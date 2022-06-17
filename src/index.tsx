@@ -1,14 +1,14 @@
 import 'regenerator-runtime/runtime.js';
 import React from 'react';
 import { GameEngine } from 'react-game-engine';
-import Entities from '@entities/index';
-import Systems from '@systems/index';
+import Entities from '@entities';
+import Systems from '@systems';
 
 class SpaceSurveyors extends React.Component {
   render() {
     return (
       <div>
-        <h1>Test</h1>{' '}
+        <h1>Space Surveyors</h1>
         <GameEngine
           entities={Entities}
           systems={Systems}
