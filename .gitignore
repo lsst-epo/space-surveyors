@@ -3,15 +3,8 @@
 /.pnp
 .pnp.js
 
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
+# example
+/example/node_modules
 
 # misc
 .DS_Store
