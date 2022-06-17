@@ -1,7 +1,5 @@
 import React from 'react';
 import { GameEngine } from 'react-game-engine';
-import Entities from '@entities/index';
-import Systems from '@systems/index';
 
 function _inheritsLoose(subClass, superClass) {
   subClass.prototype = Object.create(superClass.prototype);
@@ -778,6 +776,10 @@ try {
 }
 });
 
+var Entities = {};
+
+var Systems = [];
+
 var SpaceSurveyors = /*#__PURE__*/function (_React$Component) {
   _inheritsLoose(SpaceSurveyors, _React$Component);
 
@@ -788,7 +790,7 @@ var SpaceSurveyors = /*#__PURE__*/function (_React$Component) {
   var _proto = SpaceSurveyors.prototype;
 
   _proto.render = function render() {
-    return React.createElement("div", null, React.createElement("h1", null, "Test"), ' ', React.createElement(GameEngine, {
+    return React.createElement("div", null, React.createElement("h1", null, "Space Surveyors"), React.createElement(GameEngine, {
       entities: Entities,
       systems: Systems,
       style: {

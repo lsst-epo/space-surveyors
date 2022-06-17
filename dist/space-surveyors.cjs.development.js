@@ -6,8 +6,6 @@ function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'defau
 
 var React = _interopDefault(require('react'));
 var reactGameEngine = require('react-game-engine');
-var Entities = _interopDefault(require('@entities/index'));
-var Systems = _interopDefault(require('@systems/index'));
 
 function _inheritsLoose(subClass, superClass) {
   subClass.prototype = Object.create(superClass.prototype);
@@ -784,6 +782,10 @@ try {
 }
 });
 
+var Entities = {};
+
+var Systems = [];
+
 var SpaceSurveyors = /*#__PURE__*/function (_React$Component) {
   _inheritsLoose(SpaceSurveyors, _React$Component);
 
@@ -794,7 +796,7 @@ var SpaceSurveyors = /*#__PURE__*/function (_React$Component) {
   var _proto = SpaceSurveyors.prototype;
 
   _proto.render = function render() {
-    return React.createElement("div", null, React.createElement("h1", null, "Test"), ' ', React.createElement(reactGameEngine.GameEngine, {
+    return React.createElement("div", null, React.createElement("h1", null, "Space Surveyors"), React.createElement(reactGameEngine.GameEngine, {
       entities: Entities,
       systems: Systems,
       style: {
