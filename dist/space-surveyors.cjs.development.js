@@ -71,44 +71,76 @@ var useGlobalStore = function useGlobalStore() {
   return React.useContext(GlobalStoreContext);
 };
 
-var Entities = {};
+const Entities = {};
 
-var Systems = [];
+const Systems = [];
 
-var SpaceSurveyors = function SpaceSurveyors() {
-  var _useGlobalStore = useGlobalStore(),
-      state = _useGlobalStore.state,
-      dispatch = _useGlobalStore.dispatch;
+function styleInject(css, ref) {
+  if ( ref === void 0 ) ref = {};
+  var insertAt = ref.insertAt;
 
-  var handleContainerResize = function handleContainerResize(_ref) {
-    var width = _ref.width,
-        height = _ref.height;
+  if (!css || typeof document === 'undefined') { return; }
+
+  var head = document.head || document.getElementsByTagName('head')[0];
+  var style = document.createElement('style');
+  style.type = 'text/css';
+
+  if (insertAt === 'top') {
+    if (head.firstChild) {
+      head.insertBefore(style, head.firstChild);
+    } else {
+      head.appendChild(style);
+    }
+  } else {
+    head.appendChild(style);
+  }
+
+  if (style.styleSheet) {
+    style.styleSheet.cssText = css;
+  } else {
+    style.appendChild(document.createTextNode(css));
+  }
+}
+
+var css_248z = ".styles-module_spaceSurveyorsContainer__Yohl0 {\n  width: 100%;\n  height: 100%;\n  position: relative;\n  overflow: hidden;\n}\n\n.styles-module_spaceSurveyorsStage__uK-Xz {\n  background-color: steelblue;\n  width: 100%;\n  height: 100%;\n}\n";
+var styles = {"spaceSurveyorsContainer":"styles-module_spaceSurveyorsContainer__Yohl0","spaceSurveyorsStage":"styles-module_spaceSurveyorsStage__uK-Xz"};
+styleInject(css_248z);
+
+const SpaceSurveyors = () => {
+  const {
+    state,
+    dispatch
+  } = useGlobalStore();
+
+  const handleContainerResize = _ref => {
+    let {
+      width,
+      height
+    } = _ref;
     dispatch({
       type: 'SET_CONTAINER_SIZE',
-      width: width,
-      height: height
+      width,
+      height
     });
   };
 
-  var _useResizeObserver = useResizeObserver({
+  const {
+    ref
+  } = useResizeObserver({
     onResize: handleContainerResize
-  }),
-      ref = _useResizeObserver.ref;
-
-  var width = state.width,
-      height = state.height;
+  });
+  const {
+    width,
+    height
+  } = state;
   return React__default.createElement("div", {
-    className: "space-surveyors-container",
+    className: styles.spaceSurveyorsContainer,
     ref: ref
-  }, React__default.createElement("h1", null, "Space Surveyors ", width, " ", height), React__default.createElement(reactGameEngine.GameEngine, {
+  }, React__default.createElement(reactGameEngine.GameEngine, {
+    className: styles.spaceSurveyorsStage,
     entities: Entities,
-    systems: Systems,
-    style: {
-      height: '100vh',
-      backgroundColor: 'peachpuff',
-      overflow: 'hidden'
-    }
-  }));
+    systems: Systems
+  }, React__default.createElement("h1", null, "Space Surveyors ", width, " ", height)));
 };
 
 var index = (function () {

@@ -4,6 +4,7 @@ import { useGlobalStore } from '@contexts/store';
 import { GameEngine } from 'react-game-engine';
 import Entities from '@entities/index';
 import Systems from '@systems/index';
+import styles from './styles.module.css';
 
 const SpaceSurveyors = () => {
   const { state, dispatch } = useGlobalStore();
@@ -25,19 +26,16 @@ const SpaceSurveyors = () => {
   const { width, height } = state;
 
   return (
-    <div className="space-surveyors-container" ref={ref}>
-      <h1>
-        Space Surveyors {width} {height}
-      </h1>
+    <div className={styles.spaceSurveyorsContainer} ref={ref}>
       <GameEngine
+        className={styles.spaceSurveyorsStage}
         entities={Entities}
         systems={Systems}
-        style={{
-          height: '100vh',
-          backgroundColor: 'peachpuff',
-          overflow: 'hidden',
-        }}
-      />
+      >
+        <h1>
+          Space Surveyors {width} {height}
+        </h1>
+      </GameEngine>
     </div>
   );
 };

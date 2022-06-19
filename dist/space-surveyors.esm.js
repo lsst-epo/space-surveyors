@@ -2,111 +2,124 @@ import React, { useReducer, useContext, createContext } from 'react';
 import useResizeObserver from 'use-resize-observer';
 import { GameEngine } from 'react-game-engine';
 
-function _extends() {
-  _extends = Object.assign ? Object.assign.bind() : function (target) {
-    for (var i = 1; i < arguments.length; i++) {
-      var source = arguments[i];
-
-      for (var key in source) {
-        if (Object.prototype.hasOwnProperty.call(source, key)) {
-          target[key] = source[key];
-        }
-      }
-    }
-
-    return target;
-  };
-  return _extends.apply(this, arguments);
-}
-
-var initialStoreContext = {
+const initialStoreContext = {
   state: {
     width: undefined,
     height: undefined
   },
-  dispatch: function dispatch(_a) {}
+  dispatch: _a => {}
 };
 
-var reducer = function reducer(state, action) {
+const reducer = (state, action) => {
   switch (action.type) {
     case 'SET_CONTAINER_SIZE':
-      var width = action.width,
-          height = action.height;
-      return _extends({}, state, {
-        width: width,
-        height: height
-      });
+      const {
+        width,
+        height
+      } = action;
+      return { ...state,
+        width,
+        height
+      };
 
     default:
       return state;
   }
 };
 
-var GlobalStoreContext = /*#__PURE__*/createContext(initialStoreContext);
-var Provider = GlobalStoreContext.Provider;
+const GlobalStoreContext = /*#__PURE__*/createContext(initialStoreContext);
+const {
+  Provider
+} = GlobalStoreContext;
 
-var GlobalStateProvider = function GlobalStateProvider(_ref) {
-  var children = _ref.children;
-
-  var _useReducer = useReducer(reducer, initialStoreContext.state),
-      state = _useReducer[0],
-      dispatch = _useReducer[1];
-
+const GlobalStateProvider = _ref => {
+  let {
+    children
+  } = _ref;
+  const [state, dispatch] = useReducer(reducer, initialStoreContext.state);
   return React.createElement(Provider, {
     value: {
-      state: state,
-      dispatch: dispatch
+      state,
+      dispatch
     }
   }, children);
 };
 
-var useGlobalStore = function useGlobalStore() {
-  return useContext(GlobalStoreContext);
-};
+const useGlobalStore = () => useContext(GlobalStoreContext);
 
-var Entities = {};
+const Entities = {};
 
-var Systems = [];
+const Systems = [];
 
-var SpaceSurveyors = function SpaceSurveyors() {
-  var _useGlobalStore = useGlobalStore(),
-      state = _useGlobalStore.state,
-      dispatch = _useGlobalStore.dispatch;
+function styleInject(css, ref) {
+  if ( ref === void 0 ) ref = {};
+  var insertAt = ref.insertAt;
 
-  var handleContainerResize = function handleContainerResize(_ref) {
-    var width = _ref.width,
-        height = _ref.height;
+  if (!css || typeof document === 'undefined') { return; }
+
+  var head = document.head || document.getElementsByTagName('head')[0];
+  var style = document.createElement('style');
+  style.type = 'text/css';
+
+  if (insertAt === 'top') {
+    if (head.firstChild) {
+      head.insertBefore(style, head.firstChild);
+    } else {
+      head.appendChild(style);
+    }
+  } else {
+    head.appendChild(style);
+  }
+
+  if (style.styleSheet) {
+    style.styleSheet.cssText = css;
+  } else {
+    style.appendChild(document.createTextNode(css));
+  }
+}
+
+var css_248z = ".styles-module_spaceSurveyorsContainer__Yohl0 {\n  width: 100%;\n  height: 100%;\n  position: relative;\n  overflow: hidden;\n}\n\n.styles-module_spaceSurveyorsStage__uK-Xz {\n  background-color: steelblue;\n  width: 100%;\n  height: 100%;\n}\n";
+var styles = {"spaceSurveyorsContainer":"styles-module_spaceSurveyorsContainer__Yohl0","spaceSurveyorsStage":"styles-module_spaceSurveyorsStage__uK-Xz"};
+styleInject(css_248z);
+
+const SpaceSurveyors = () => {
+  const {
+    state,
+    dispatch
+  } = useGlobalStore();
+
+  const handleContainerResize = _ref => {
+    let {
+      width,
+      height
+    } = _ref;
     dispatch({
       type: 'SET_CONTAINER_SIZE',
-      width: width,
-      height: height
+      width,
+      height
     });
   };
 
-  var _useResizeObserver = useResizeObserver({
+  const {
+    ref
+  } = useResizeObserver({
     onResize: handleContainerResize
-  }),
-      ref = _useResizeObserver.ref;
-
-  var width = state.width,
-      height = state.height;
+  });
+  const {
+    width,
+    height
+  } = state;
   return React.createElement("div", {
-    className: "space-surveyors-container",
+    className: styles.spaceSurveyorsContainer,
     ref: ref
-  }, React.createElement("h1", null, "Space Surveyors ", width, " ", height), React.createElement(GameEngine, {
+  }, React.createElement(GameEngine, {
+    className: styles.spaceSurveyorsStage,
     entities: Entities,
-    systems: Systems,
-    style: {
-      height: '100vh',
-      backgroundColor: 'peachpuff',
-      overflow: 'hidden'
-    }
-  }));
+    systems: Systems
+  }, React.createElement("h1", null, "Space Surveyors ", width, " ", height)));
 };
 
-var index = (function () {
-  return React.createElement(GlobalStateProvider, null, React.createElement(SpaceSurveyors, null));
-});
+var index = (() => React.createElement(GlobalStateProvider, null, React.createElement(SpaceSurveyors, null)));
 
 export default index;
 //# sourceMappingURL=space-surveyors.esm.js.map

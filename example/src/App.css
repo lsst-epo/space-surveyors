@@ -1,0 +1,6 @@
+.app-container {
+  width: 100%;
+  max-width: 800px;
+  height: 800px;
+  position: relative;
+}
