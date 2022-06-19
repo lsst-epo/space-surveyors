@@ -1,10 +1,15 @@
-import React, { createContext, useReducer, PropsWithChildren } from 'react';
+import React, {
+  createContext,
+  useReducer,
+  PropsWithChildren,
+  useContext,
+} from 'react';
 import { Context, State, Action } from '@shapes/store';
 
 const initialStoreContext: Context = {
   state: {
-    width: 1,
-    height: 1,
+    width: undefined,
+    height: undefined,
   },
   dispatch: _a => {},
 };
@@ -23,9 +28,11 @@ const reducer = (state: State, action: Action): State => {
 const GlobalStoreContext = createContext(initialStoreContext);
 const { Provider } = GlobalStoreContext;
 
-const StateProvider = ({ children }: PropsWithChildren<any>) => {
+const GlobalStateProvider = ({ children }: PropsWithChildren<any>) => {
   const [state, dispatch] = useReducer(reducer, initialStoreContext.state);
   return <Provider value={{ state, dispatch }}>{children}</Provider>;
 };
 
-export { GlobalStoreContext, StateProvider };
+const useGlobalStore = () => useContext(GlobalStoreContext);
+
+export { GlobalStoreContext, GlobalStateProvider, useGlobalStore };

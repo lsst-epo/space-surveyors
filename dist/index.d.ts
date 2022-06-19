@@ -1,3 +1,3 @@
 /// <reference types="react" />
-declare const SpaceSurveyors: () => JSX.Element;
-export { SpaceSurveyors };
+declare const _default: () => JSX.Element;
+export default _default;

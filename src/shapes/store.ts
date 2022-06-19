@@ -3,8 +3,8 @@ import { Dispatch } from 'react';
 type Context = { state: State; dispatch: Dispatch<Action> };
 
 interface State {
-  width: number | null | undefined;
-  height: number | null | undefined;
+  width: number | undefined;
+  height: number | undefined;
 }
 
 interface Entry {

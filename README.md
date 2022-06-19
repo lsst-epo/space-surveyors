@@ -27,3 +27,32 @@ The example imports whatever is in `/dist`, so if you are seeing an out of date 
 To do a one-off build, use `yarn build`.
 
 To run tests, use `yarn test`.
+
+## Dependency linking
+
+For running the local development server several package links are required, [yarn links](https://classic.yarnpkg.com/en/docs/cli/link) can be used to set these up.
+
+First, link the `space-surveyors` package to the example.
+
+```bash
+cd dist
+yarn link space-surveyors
+cd ..
+cd example
+yarn link "space-surveyors"
+```
+
+Then link `react` and `react-dom` in the library development folder to the example application to avoid having duplicate `react` packages.
+
+```bash
+cd example/node_modules/react
+yarn link
+cd ..
+cd react-dom
+yarn link
+cd ../../..
+yarn link "react"
+yarn link "react-dom"
+```
+
+You may need to delete your library `yarn.lock` and node_modules folder after this then `yarn` again.
