@@ -1,6 +1,3 @@
-import 'regenerator-runtime/runtime.js';
-import React from 'react';
-declare class SpaceSurveyors extends React.Component {
-    render(): JSX.Element;
-}
+/// <reference types="react" />
+declare const SpaceSurveyors: () => JSX.Element;
 export { SpaceSurveyors };
