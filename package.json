@@ -48,12 +48,18 @@
     }
   ],
   "devDependencies": {
-    "babel-plugin-module-resolver": "^4.0.0",
     "@babel/preset-react": "^7.18.6",
+    "@castiron/eslint-config": "^0.0.1",
+    "@castiron/style-mixins": "^1.0.6",
     "@rollup/plugin-image": "^2.1.1",
+    "@rushstack/eslint-patch": "^1.1.4",
     "@size-limit/preset-small-lib": "^7.0.8",
     "@types/react": "^18.0.12",
     "@types/react-dom": "^18.0.5",
+    "autoprefixer": "^10.4.7",
+    "babel-plugin-module-resolver": "^4.0.0",
+    "babel-plugin-styled-components": "^2.0.7",
+    "cssnano": "^5.1.12",
     "husky": "^8.0.1",
     "postcss": "^8.4.14",
     "react": "^18.2.0",
@@ -65,8 +71,9 @@
     "typescript": "^4.7.3"
   },
   "dependencies": {
-    "react-game-engine": "^1.1.0",
     "prop-types": "^15.8.1",
+    "react-game-engine": "^1.1.0",
+    "styled-components": "^5.3.5",
     "use-resize-observer": "^9.0.2"
   },
   "browserslist": {

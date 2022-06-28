@@ -8,7 +8,7 @@
     "build": "parcel build index.html"
   },
   "dependencies": {
-
+    "modern-css-reset": "^1.4.0",
     "react-app-polyfill": "^1.0.0"
   },
   "alias": {
@@ -21,12 +21,15 @@
     "@types/react-dom": "^16.8.4",
     "parcel": "1.12.4",
     "typescript": "^3.4.5"
-
   },
   "resolutions": {
-    "@babel/preset-env": "7.13.8"
+    "@babel/preset-env": "7.13.8",
+    "browserslist": "4.14.2"
   },
   "browserslist": [
-    "last 2 Chrome versions"
+    "last 4 versions",
+    "> 2%",
+    "not dead",
+    "IE 11"
   ]
 }
