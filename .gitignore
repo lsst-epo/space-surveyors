@@ -8,7 +8,7 @@
 
 # production
 /dist
-/example/.cache
+/example/.cache/
 
 # misc
 .DS_Store
