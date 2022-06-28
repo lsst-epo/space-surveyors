@@ -78,6 +78,7 @@ function styleInject(css, ref) {
   }
 }
 
+
 var css_248z = ".styles-module_spaceSurveyorsContainer__Yohl0 {\n  width: 100%;\n  height: 100%;\n  position: relative;\n  overflow: hidden;\n}\n\n.styles-module_spaceSurveyorsStage__uK-Xz {\n  background-color: steelblue;\n  width: 100%;\n  height: 100%;\n}\n";
 var styles = {"spaceSurveyorsContainer":"styles-module_spaceSurveyorsContainer__Yohl0","spaceSurveyorsStage":"styles-module_spaceSurveyorsStage__uK-Xz"};
 styleInject(css_248z);
@@ -98,6 +99,7 @@ const SpaceSurveyors = () => {
       width,
       height
     });
+
   };
 
   const {

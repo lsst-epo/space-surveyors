@@ -4,12 +4,12 @@ Space Surveyors is built as library package using `tsdx` with a `create-react-ap
 
 ## Commands
 
-TSDX scaffolds your new library inside `/src`, and also sets up a [Parcel-based](https://parceljs.org) playground for it inside `/example`.
+TSDX scaffolds the package inside `/src`, and also sets up a [create-react-app](https://create-react-app.dev/) playground for it inside `/example`.
 
 The recommended workflow is to run TSDX in one terminal:
 
 ```bash
-npm start # or yarn start
+yarn start
 ```
 
 This builds to `/dist` and runs the project in watch mode so any edits you save inside `src` causes a rebuild to `/dist`.
@@ -18,6 +18,7 @@ Then run the example inside another:
 
 ```bash
 cd example
+
 npm i # or yarn to install dependencies
 npm start # or yarn start
 ```
