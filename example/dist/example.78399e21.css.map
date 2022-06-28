@@ -1,1 +1,0 @@
-{"version":3,"sources":["src/App.css"],"names":[],"mappings":"AAAA;AACA;AACA;AACA;AACA;AACA;AACA","file":"example.78399e21.css","sourceRoot":"..","sourcesContent":[".app-container {\n  width: 100%;\n  max-width: 800px;\n  height: 800px;\n  position: relative;\n}\n"]}
