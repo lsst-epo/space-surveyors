@@ -106,33 +106,28 @@ var css_248z = ".styles-module_spaceSurveyorsContainer__Yohl0 {\n  width: 100%;\
 var styles = {"spaceSurveyorsContainer":"styles-module_spaceSurveyorsContainer__Yohl0","spaceSurveyorsStage":"styles-module_spaceSurveyorsStage__uK-Xz"};
 styleInject(css_248z);
 
-const SpaceSurveyors = () => {
-  const {
-    state,
-    dispatch
-  } = useGlobalStore();
+var SpaceSurveyors = function SpaceSurveyors() {
+  var _useGlobalStore = useGlobalStore(),
+      state = _useGlobalStore.state,
+      dispatch = _useGlobalStore.dispatch;
 
-  const handleContainerResize = _ref => {
-    let {
-      width,
-      height
-    } = _ref;
+  var handleContainerResize = function handleContainerResize(_ref) {
+    var width = _ref.width,
+        height = _ref.height;
     dispatch({
       type: 'SET_CONTAINER_SIZE',
-      width,
-      height
+      width: width,
+      height: height
     });
   };
 
-  const {
-    ref
-  } = useResizeObserver({
+  var _useResizeObserver = useResizeObserver({
     onResize: handleContainerResize
-  });
-  const {
-    width,
-    height
-  } = state;
+  }),
+      ref = _useResizeObserver.ref;
+
+  var width = state.width,
+      height = state.height;
   return React__default.createElement("div", {
     className: styles.spaceSurveyorsContainer,
     ref: ref
