@@ -2,6 +2,7 @@ module.exports = {
   presets: ['@babel/preset-react'],
   // ..
   plugins: [
+    'babel-plugin-styled-components',
     [
       // npm i -D babel-plugin-module-resolver
       // Alias resolver for `tsconfig.paths`
@@ -18,6 +19,7 @@ module.exports = {
           '@contexts': './src/contexts',
           '@entities': './src/entities',
           '@shapes': './src/shapes',
+          '@styles': './src/styles',
           '@systems': './src/systems',
           '@utils': './src/utils',
         },

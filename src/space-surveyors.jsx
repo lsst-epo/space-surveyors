@@ -2,9 +2,11 @@ import React from 'react';
 import useResizeObserver from 'use-resize-observer';
 import { useGlobalStore } from '@contexts/store';
 import { GameEngine } from 'react-game-engine';
+import SpaceSurveyorsContainer from '@components/SpaceSurveyorsContainer';
+import StyledGameStage from '@components/GameStage';
+import styled from 'styled-components';
 import Entities from '@entities/index';
 import Systems from '@systems/index';
-import styles from './styles.module.css';
 
 const SpaceSurveyors = () => {
   const { state, dispatch } = useGlobalStore();
@@ -20,17 +22,13 @@ const SpaceSurveyors = () => {
   const { width, height } = state;
 
   return (
-    <div className={styles.spaceSurveyorsContainer} ref={ref}>
-      <GameEngine
-        className={styles.spaceSurveyorsStage}
-        entities={Entities}
-        systems={Systems}
-      >
+    <SpaceSurveyorsContainer ref={ref} className="space-surveyors-container">
+      <StyledGameStage entities={Entities} systems={Systems}>
         <h1>
           Space Surveyors {width} {height}
         </h1>
-      </GameEngine>
-    </div>
+      </StyledGameStage>
+    </SpaceSurveyorsContainer>
   );
 };
 
