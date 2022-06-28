@@ -13,12 +13,9 @@ const SpaceSurveyors = () => {
     dispatch({ type: 'SET_CONTAINER_SIZE', width, height });
   };
 
-  const { ref } =
-    useResizeObserver <
-    HTMLDivElement >
-    {
-      onResize: handleContainerResize,
-    };
+  const { ref } = useResizeObserver({
+    onResize: handleContainerResize,
+  });
 
   const { width, height } = state;
 
