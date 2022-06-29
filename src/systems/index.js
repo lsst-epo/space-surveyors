@@ -1,5 +1,7 @@
-import progressGameplayMock from '@systems/gameplay';
+import onResize from './resize';
+import onTimeEnd from './timer';
+import mockProgression from './mock';
 
-const Systems = [progressGameplayMock];
+const Systems = [onResize, onTimeEnd, mockProgression];
 
 export default Systems;

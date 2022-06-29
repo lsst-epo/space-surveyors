@@ -1,5 +1,6 @@
-import Backdrop from './backdrop';
+import backdrop from './backdrop';
+import state from './state';
 
-const Entities = { Backdrop };
+const Entities = { state, backdrop };
 
 export default Entities;
