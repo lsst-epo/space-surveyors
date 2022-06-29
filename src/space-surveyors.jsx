@@ -1,54 +1,67 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import useResizeObserver from 'use-resize-observer';
-import { useSelector, useDispatch } from 'react-redux';
-import { resize } from '@contexts/dimensionsSlice';
-import { setStage } from '@contexts/stageSlice';
 import SpaceSurveyorsContainer from '@components/SpaceSurveyorsContainer';
 import StyledGameStage from '@components/GameStage';
-import LandingContainer from '@components/Landing';
-import SummaryContainer from '@components/Summary';
+import Menus from '@components/Menus';
 import styled from 'styled-components';
 import Entities from '@entities/index';
 import Systems from '@systems/index';
 
 const SpaceSurveyors = () => {
-  const dispatch = useDispatch();
+  const [menu, setMenu] = useState('landing');
   const engine = useRef();
   const running = false;
 
   const { ref: resizeRef } = useResizeObserver({
     onResize: (size) => {
-      dispatch(resize(size));
+      console.log('resize');
+      engine.current.dispatch({ type: 'resize', payload: size });
     },
   });
 
-  const handleGameStart = () => {
-    dispatch(setStage('gameplay'));
-    engine.current.start();
+  const handleMenuAction = (action) => {
+    switch (action) {
+      case 'start':
+        engine.current.start();
+        setMenu(null);
+        break;
+      case 'restart':
+        engine.current.swap(Entities);
+        setMenu('landing');
+      default:
+        break;
+    }
   };
 
-  const handleGameRestart = () => {};
+  const handleEvent = (event) => {
+    const { type } = event;
 
-  const stage = useSelector((state) => state.stage);
-  const isLandingStage = stage === 'landing';
-  const isSummaryStage = stage === 'summary';
+    switch (type) {
+      case 'started':
+        setMenu(null);
+        break;
+      case 'quit':
+        engine.current.stop();
+        setMenu('summary');
+      default:
+        break;
+    }
+  };
+
+  const Menu = Menus[menu];
 
   return (
     <SpaceSurveyorsContainer
       ref={resizeRef}
       className="space-surveyors-container"
     >
-      {isLandingStage && (
-        <LandingContainer onGameStart={handleGameStart}></LandingContainer>
-      )}
-      {isSummaryStage && (
-        <SummaryContainer onGameRestart={handleGameRestart}></SummaryContainer>
-      )}
+      {menu && <Menu onMenuAction={handleMenuAction}></Menu>}
       <StyledGameStage
         ref={engine}
         entities={Entities}
         systems={Systems}
         running={running}
+        onEvent={handleEvent}
       ></StyledGameStage>
     </SpaceSurveyorsContainer>
   );
