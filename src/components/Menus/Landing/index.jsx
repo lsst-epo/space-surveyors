@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import StyledMenu from '../StyledMenu';
+import StyledMenu from '@components/Menus/StyledMenu';
 import Button from '@components/Button';
 
 const LandingMenu = ({ onMenuAction }) => {
