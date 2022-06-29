@@ -1,9 +1,9 @@
 import React from 'react';
 import BackdropRenderer from '@components/GameplayBackdrop';
 
-const Backdrop = {
+const backdrop = {
   isGameplayRunning: true,
   renderer: <BackdropRenderer isGameplayRunning></BackdropRenderer>,
 };
 
-export default Backdrop;
+export default backdrop;
