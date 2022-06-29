@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import useResizeObserver from 'use-resize-observer';
 import SpaceSurveyorsContainer from '@components/SpaceSurveyorsContainer';
 import StyledGameStage from '@components/GameStage';
-import Menus from '@components/Menus';
+import GameMenus from '@components/Menus';
 import styled from 'styled-components';
 import Entities from '@entities/index';
 import Systems from '@systems/index';
@@ -14,7 +14,6 @@ const SpaceSurveyors = () => {
 
   const { ref: resizeRef } = useResizeObserver({
     onResize: (size) => {
-      console.log('resize');
       engine.current.dispatch({ type: 'resize', payload: size });
     },
   });
@@ -48,14 +47,14 @@ const SpaceSurveyors = () => {
     }
   };
 
-  const Menu = Menus[menu];
+  const GameMenu = GameMenus[menu];
 
   return (
     <SpaceSurveyorsContainer
       ref={resizeRef}
       className="space-surveyors-container"
     >
-      {menu && <Menu onMenuAction={handleMenuAction}></Menu>}
+      {menu && <GameMenu onMenuAction={handleMenuAction}></GameMenu>}
       <StyledGameStage
         ref={engine}
         entities={Entities}
