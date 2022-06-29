@@ -64,8 +64,8 @@ export const tokens = {
 };
 
 export const zStack = {
-  dialog: 35,
-  header: 25,
+  game: 20,
+  menu: 100,
 };
 
 export const white = tokens.white;

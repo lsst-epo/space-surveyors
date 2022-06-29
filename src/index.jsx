@@ -1,12 +1,13 @@
 import React from 'react';
 
 import GlobalStyles from '@styles/globalStyle';
-import { GlobalStateProvider } from '@contexts/store';
+import store from '@contexts/store';
+import { Provider } from 'react-redux';
 import { SpaceSurveyors } from './space-surveyors';
 
 export default () => (
-  <GlobalStateProvider>
+  <Provider store={store}>
     <SpaceSurveyors></SpaceSurveyors>
     <GlobalStyles />
-  </GlobalStateProvider>
+  </Provider>
 );

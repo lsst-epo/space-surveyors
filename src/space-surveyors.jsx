@@ -1,33 +1,55 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import useResizeObserver from 'use-resize-observer';
-import { useGlobalStore } from '@contexts/store';
-import { GameEngine } from 'react-game-engine';
+import { useSelector, useDispatch } from 'react-redux';
+import { resize } from '@contexts/dimensionsSlice';
+import { setStage } from '@contexts/stageSlice';
 import SpaceSurveyorsContainer from '@components/SpaceSurveyorsContainer';
 import StyledGameStage from '@components/GameStage';
+import LandingContainer from '@components/Landing';
+import SummaryContainer from '@components/Summary';
 import styled from 'styled-components';
 import Entities from '@entities/index';
 import Systems from '@systems/index';
 
 const SpaceSurveyors = () => {
-  const { state, dispatch } = useGlobalStore();
+  const dispatch = useDispatch();
+  const engine = useRef();
+  const running = false;
 
-  const handleContainerResize = ({ width, height }) => {
-    dispatch({ type: 'SET_CONTAINER_SIZE', width, height });
-  };
-
-  const { ref } = useResizeObserver({
-    onResize: handleContainerResize,
+  const { ref: resizeRef } = useResizeObserver({
+    onResize: (size) => {
+      dispatch(resize(size));
+    },
   });
 
-  const { width, height } = state;
+  const handleGameStart = () => {
+    dispatch(setStage('gameplay'));
+    engine.current.start();
+  };
+
+  const handleGameRestart = () => {};
+
+  const stage = useSelector((state) => state.stage);
+  const isLandingStage = stage === 'landing';
+  const isSummaryStage = stage === 'summary';
 
   return (
-    <SpaceSurveyorsContainer ref={ref} className="space-surveyors-container">
-      <StyledGameStage entities={Entities} systems={Systems}>
-        <h1>
-          Space Surveyors {width} {height}
-        </h1>
-      </StyledGameStage>
+    <SpaceSurveyorsContainer
+      ref={resizeRef}
+      className="space-surveyors-container"
+    >
+      {isLandingStage && (
+        <LandingContainer onGameStart={handleGameStart}></LandingContainer>
+      )}
+      {isSummaryStage && (
+        <SummaryContainer onGameRestart={handleGameRestart}></SummaryContainer>
+      )}
+      <StyledGameStage
+        ref={engine}
+        entities={Entities}
+        systems={Systems}
+        running={running}
+      ></StyledGameStage>
     </SpaceSurveyorsContainer>
   );
 };
