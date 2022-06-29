@@ -3,7 +3,6 @@ import 'react-app-polyfill/ie11';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './src/App';
-import '../dist/space-surveyors.css';
 
 const rootElement = document.getElementById('root');
 const root = createRoot(rootElement);
