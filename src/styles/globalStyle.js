@@ -36,6 +36,7 @@ export const tokens = {
   red: '#cf4040',
   red20: '#f2c3c0',
   red40: '#FF8489',
+  yellow: '#fdda78',
   BREAK_HEADER_LAYOUT: '1625px',
   BREAK_HEADER_LAYOUT: '1500px',
   BREAK_DESKTOP: '1280px',
@@ -65,6 +66,7 @@ export const tokens = {
 
 export const zStack = {
   game: 20,
+  timer: 50,
   menu: 100,
 };
 
@@ -172,12 +174,12 @@ export const layoutGrid = (
   `;
 };
 
-export const encodeColor = string => {
+export const encodeColor = (string) => {
   const str = string.split('#').pop();
   return `%23${str}`;
 };
 
-export const needsDarkColor = hexColor => {
+export const needsDarkColor = (hexColor) => {
   var color = hexColor.charAt(0) === '#' ? hexColor.substring(1, 7) : hexColor;
   var r = parseInt(color.substring(0, 2), 16); // hexToR
   var g = parseInt(color.substring(2, 4), 16); // hexToG
@@ -185,7 +187,7 @@ export const needsDarkColor = hexColor => {
   return r * 0.299 + g * 0.587 + b * 0.114 > 186 ? true : false;
 };
 
-export const palette = color => {
+export const palette = (color) => {
   return tokens[color];
 };
 
@@ -227,11 +229,11 @@ export const respond = (
   return respondBase(content, size, operator, aspect);
 };
 
-export const token = which => {
+export const token = (which) => {
   if (typeof which === 'string') {
     return tokens[which];
   } else if (which.isArray()) {
-    let obj = which.reduce(function(result, item) {
+    let obj = which.reduce(function (result, item) {
       result[item] = tokens[item];
       return result;
     }, {});
@@ -242,7 +244,7 @@ export const token = which => {
 };
 
 const createCSSGlobalStyles = () => {
-  return Object.keys(tokens).map(k => `--${k}: ${tokens[k]};`);
+  return Object.keys(tokens).map((k) => `--${k}: ${tokens[k]};`);
 };
 
 const GlobalStyles = createGlobalStyle`

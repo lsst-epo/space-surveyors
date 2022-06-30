@@ -4,7 +4,6 @@ const onResize: GameSystem = (entities, { events }) => {
   const event = events.find((e) => e.type === 'resize');
 
   if (event) {
-    console.log('onResize');
     const { state } = entities;
     const { payload } = event;
 
