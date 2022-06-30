@@ -1,4 +1,10 @@
-type GameEventType = 'started' | 'resize' | 'timeEnd' | 'quit' | 'stopped';
+type GameEventType =
+  | 'started'
+  | 'resize'
+  | 'timeStart'
+  | 'timeEnd'
+  | 'quit'
+  | 'stopped';
 
 interface GameEvent {
   type: GameEventType;

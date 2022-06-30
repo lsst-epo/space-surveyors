@@ -1,6 +1,11 @@
-import backdrop from './backdrop';
-import state from './state';
+import Backdrop from './backdrop';
+import State from './state';
+import Timer from './timer';
 
-const Entities = { state, backdrop };
+export default () => {
+  const backdrop = Backdrop();
+  const timer = Timer();
+  const state = State();
 
-export default Entities;
+  return { backdrop, timer, state };
+};

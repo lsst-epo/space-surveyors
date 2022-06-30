@@ -1,7 +1,6 @@
 import onResize from './resize';
-import onTimeEnd from './timer';
-import mockProgression from './mock';
+import { onGameStart, onTimeEnd, onTimeStart, countdown } from './timer';
 
-const Systems = [onResize, onTimeEnd, mockProgression];
+const Systems = [onResize, onGameStart, onTimeEnd, onTimeStart, countdown];
 
 export default Systems;
