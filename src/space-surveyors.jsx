@@ -8,9 +8,12 @@ import Entities from '@entities/index';
 import Systems from '@systems/index';
 
 const SpaceSurveyors = () => {
-  const [menu, setMenu] = useState('landing');
+  const initialState = {
+    menu: 'landing',
+    running: false,
+  };
+  const [state, setState] = useState(initialState);
   const engine = useRef();
-  const running = false;
 
   const { ref: resizeRef } = useResizeObserver({
     onResize: (size) => {
@@ -21,12 +24,11 @@ const SpaceSurveyors = () => {
   const handleMenuAction = (action) => {
     switch (action) {
       case 'start':
+        setState({ ...state, menu: null });
         engine.current.start();
-        setMenu(null);
         break;
       case 'restart':
-        engine.current.swap(Entities);
-        setMenu('landing');
+        window.location.reload(false);
       default:
         break;
     }
@@ -34,19 +36,19 @@ const SpaceSurveyors = () => {
 
   const handleEvent = (event) => {
     const { type } = event;
+    console.debug(type);
 
     switch (type) {
-      case 'started':
-        setMenu(null);
-        break;
       case 'quit':
         engine.current.stop();
-        setMenu('summary');
+      case 'stopped':
+        setState({ ...state, menu: 'summary' });
       default:
         break;
     }
   };
 
+  const { menu, running } = state;
   const GameMenu = GameMenus[menu];
 
   return (
@@ -57,7 +59,7 @@ const SpaceSurveyors = () => {
       {menu && <GameMenu onMenuAction={handleMenuAction}></GameMenu>}
       <StyledGameStage
         ref={engine}
-        entities={Entities}
+        entities={Entities()}
         systems={Systems}
         running={running}
         onEvent={handleEvent}

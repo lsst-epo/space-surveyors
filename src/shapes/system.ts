@@ -3,22 +3,23 @@ import { GameEvent } from './event';
 interface GameEntities {
   state: any;
   backdrop: any;
+  timer: any;
 }
 
 interface TickArgs {
   input: any;
   window: any;
   events: GameEvent[];
-  dispatch: Function;
+  dispatch: (GameEvent) => void;
   defer: any;
   time: {
-    current: any;
-    previous: any;
-    delta: any;
-    previousDelta: any;
+    current: number;
+    previous: number;
+    delta: number;
+    previousDelta: number;
   };
 }
 
-type GameSystem = (entities: GameEntities, args: TickArgs) => any;
+type GameSystem = (entities: GameEntities, args: TickArgs) => GameEntities;
 
 export { GameSystem, TickArgs };
