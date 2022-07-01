@@ -26,12 +26,14 @@ const FocalPlaneContainer = styled.div.attrs(({ x, y, offset }) => ({
   justify-content: center;
   align-items: center;
   position: absolute;
+  width: ${(props) => props.size}px;
+  height: ${(props) => props.size}px;
 `;
 
 const FocalPlane = ({ x, y, children }) => {
   const size = CAMERA_SIZE;
   return (
-    <FocalPlaneContainer offset={size / 2} {...{ x, y }}>
+    <FocalPlaneContainer offset={size / 2} {...{ x, y, size }}>
       {children && <ExposureContainer>{children}</ExposureContainer>}
       <img src={FocalPlaneSVG} width={size} height={size} />
     </FocalPlaneContainer>
