@@ -1,14 +1,9 @@
-import { GameEvent } from './event';
-
-interface GameEntities {
-  state: any;
-  backdrop: any;
-  timer: any;
-}
+import { GameEntities } from './entities';
+import { GameEvent, GameInputEvent } from './event';
 
 interface TickArgs {
-  input: any;
-  window: any;
+  input: GameInputEvent[];
+  window: Window;
   events: GameEvent[];
   dispatch: (GameEvent) => void;
   defer: any;

@@ -7,7 +7,7 @@ const onResize: GameSystem = (entities, { events }) => {
     const { state } = entities;
     const { payload } = event;
 
-    return { ...entities, state: { ...state, ...payload } };
+    return { ...entities, state: { ...state, boundingRect: payload } };
   }
 
   return entities;

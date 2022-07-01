@@ -1,14 +1,51 @@
-type GameEventType =
+type GameEventName =
   | 'started'
   | 'resize'
   | 'timeStart'
   | 'timeEnd'
+  | 'targetSet'
+  | 'cameraMoving'
+  | 'cameraExposure'
+  | 'cameraExposureEnd'
   | 'quit'
   | 'stopped';
 
-interface GameEvent {
-  type: GameEventType;
+type GameEvent = {
+  type: GameEventName;
   payload?: any;
-}
+};
 
-export { GameEventType, GameEvent };
+type GameInputEventName =
+  | 'onClick'
+  | 'onContextMenu'
+  | 'onDoubleClick'
+  | 'onDrag'
+  | 'onDragEnd'
+  | 'onDragEnter'
+  | 'onDragExit'
+  | 'onDragLeave'
+  | 'onDragOver'
+  | 'onDragStart'
+  | 'onDrop'
+  | 'onMouseDown'
+  | 'onMouseEnter'
+  | 'onMouseLeave'
+  | 'onMouseMove'
+  | 'onMouseOut'
+  | 'onMouseOver'
+  | 'onMouseUp'
+  | 'onWheel'
+  | 'onTouchCancel'
+  | 'onTouchEnd'
+  | 'onTouchMove'
+  | 'onTouchStart'
+  | 'onKeyDown'
+  | 'onKeyPress'
+  | 'onKeyUp';
+
+type GameInputEvent = {
+  name: GameInputEventName;
+  payload?: any;
+};
+
+export { GameEventName, GameEvent, GameInputEventName, GameInputEvent };
