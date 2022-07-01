@@ -9,6 +9,7 @@ const StyledExposure = styled.img.attrs(({ x, y, offset }) => ({
   },
 }))`
   position: absolute;
+  pointer-events: none;
 `;
 
 const Exposure = ({ x, y }) => {
