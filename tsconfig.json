@@ -43,8 +43,7 @@
       "@entities/*": ["src/entities/*"],
       "@shapes/*": ["src/shapes/*"],
       "@styles/*": ["src/styles/*"],
-      "@systems/*": ["src/systems/*"],
-      "@utils/*": ["src/utils/*"]
+      "@systems/*": ["src/systems/*"]
     }
   }
 }

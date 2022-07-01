@@ -14,11 +14,16 @@ const SpaceSurveyors = () => {
   };
   const [state, setState] = useState(initialState);
   const engine = useRef();
+  const resizeRef = useRef(null);
 
-  const { ref: resizeRef } = useResizeObserver({
-    onResize: (size) => {
-      engine.current.dispatch({ type: 'resize', payload: size });
-    },
+  const handleResize = (size) => {
+    const boundingRect = resizeRef.current.getBoundingClientRect();
+    engine.current.dispatch({ type: 'resize', payload: boundingRect });
+  };
+
+  useResizeObserver({
+    ref: resizeRef,
+    onResize: handleResize,
   });
 
   const handleMenuAction = (action) => {
@@ -26,6 +31,9 @@ const SpaceSurveyors = () => {
       case 'start':
         setState({ ...state, menu: null });
         engine.current.start();
+
+        // a resize needs to be performed after the game starts to set the current game dimensions
+        handleResize({});
         break;
       case 'restart':
         window.location.reload(false);

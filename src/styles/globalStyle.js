@@ -65,7 +65,8 @@ export const tokens = {
 };
 
 export const zStack = {
-  game: 20,
+  backdrop: 20,
+  camera: 30,
   timer: 50,
   menu: 100,
 };
@@ -250,6 +251,11 @@ const createCSSGlobalStyles = () => {
 const GlobalStyles = createGlobalStyle`
   .space-surveyors-container {
       ${createCSSGlobalStyles()}
+  }
+  .space-surveyors-container > * {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
   }
   .c-buttonish {
     ${aButton}
