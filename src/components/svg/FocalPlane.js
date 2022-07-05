@@ -9,8 +9,8 @@ const FocalPlane = styled.img.attrs(() => ({
   style: {
     width: size,
     height: size,
-    src: FocalPlaneSVG,
   },
+  src: FocalPlaneSVG,
 }))`
   pointer-events: none;
 `;
