@@ -11,8 +11,8 @@ const Exposure = styled.img.attrs(({ x, y }) => ({
     top: `calc(${y}% - ${offset}px)`,
     width: size,
     height: size,
-    src: ExposureSVG,
   },
+  src: ExposureSVG,
 }))`
   position: absolute;
   pointer-events: none;
