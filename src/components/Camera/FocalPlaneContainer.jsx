@@ -1,11 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
-import FocalPlaneSVG from '@assets/svg/focalPlane.svg';
 import { CAMERA_SIZE } from '@constants/';
-
-const StyledFocalPlane = styled.img`
-  position: absolute;
-`;
+import FocalPlane from '@components/svg/FocalPlane';
 
 const ExposureContainer = styled.div`
   position: absolute;
@@ -16,7 +12,7 @@ const ExposureContainer = styled.div`
   pointer-events: none;
 `;
 
-const FocalPlaneContainer = styled.div.attrs(({ x, y, offset }) => ({
+const StyledFocalPlaneContainer = styled.div.attrs(({ x, y, offset }) => ({
   style: {
     left: `calc(${x}% - ${offset}px)`,
     top: `calc(${y}% - ${offset}px)`,
@@ -30,14 +26,14 @@ const FocalPlaneContainer = styled.div.attrs(({ x, y, offset }) => ({
   height: ${(props) => props.size}px;
 `;
 
-const FocalPlane = ({ x, y, children }) => {
+const FocalPlaneContainer = ({ x, y, children }) => {
   const size = CAMERA_SIZE;
   return (
-    <FocalPlaneContainer offset={size / 2} {...{ x, y, size }}>
+    <StyledFocalPlaneContainer offset={size / 2} {...{ x, y, size }}>
       {children && <ExposureContainer>{children}</ExposureContainer>}
-      <img src={FocalPlaneSVG} width={size} height={size} />
-    </FocalPlaneContainer>
+      <FocalPlane />
+    </StyledFocalPlaneContainer>
   );
 };
 
-export default FocalPlane;
+export default FocalPlaneContainer;
