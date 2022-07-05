@@ -2,27 +2,20 @@ import styled from 'styled-components';
 import ExposureSVG from '@assets/svg/exposure.svg';
 import { CAMERA_SIZE } from '@constants/';
 
-const StyledExposure = styled.img.attrs(({ x, y, offset }) => ({
+const size = CAMERA_SIZE;
+const offset = size / 2;
+
+const Exposure = styled.img.attrs(({ x, y }) => ({
   style: {
     left: `calc(${x}% - ${offset}px)`,
     top: `calc(${y}% - ${offset}px)`,
+    width: size,
+    height: size,
+    src: ExposureSVG,
   },
 }))`
   position: absolute;
   pointer-events: none;
 `;
-
-const Exposure = ({ x, y }) => {
-  const size = CAMERA_SIZE;
-  return (
-    <StyledExposure
-      src={ExposureSVG}
-      width={size}
-      height={size}
-      offset={size / 2}
-      {...{ x, y }}
-    />
-  );
-};
 
 export default Exposure;
