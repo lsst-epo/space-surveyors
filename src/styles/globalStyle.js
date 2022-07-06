@@ -68,7 +68,9 @@ export const zStack = {
   backdrop: 20,
   camera: 30,
   timer: 50,
-  menu: 100,
+  game: 75,
+  hud: 100,
+  menu: 200,
 };
 
 export const white = tokens.white;
