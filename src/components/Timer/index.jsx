@@ -12,8 +12,8 @@ const StyledTimeContainer = styled.div`
   color: var(--yellow);
   top: 0;
   left: 0;
-  width: 100%;
-  margin: 0 auto;
+  width: 80vw;
+  margin: 0 10vw;
   display: flex;
   flex-direction: column;
   justify-content: center;
