@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import SVG from 'react-inlinesvg';
 import PropTypes from 'prop-types';
 import DomeSVG from '@assets/svg/dome.svg';
-import { zStack } from '@styles/globalStyle';
+import { zStack, BREAK_DESKTOP } from '@styles/globalStyle';
 
 const Dome = styled(SVG).attrs(() => ({
   src: DomeSVG,
@@ -13,9 +13,12 @@ const Dome = styled(SVG).attrs(() => ({
   z-index: ${zStack.hud};
   user-select: none;
   ${({ $left }) =>
-    $left
-      ? `transform: translateX(min(0vw,calc(-100% + 10vw))) scaleX(-1);`
-      : `transform: translateX(max(calc(100vw - 100%),90vw))`}
+    $left ? 'transform: scaleX(-1); right: 90%;' : 'left: 90%;'}
+
+  @media (min-width: ${BREAK_DESKTOP}) {
+    ${({ $left }) =>
+      $left ? 'left: 0' : 'left: 100%; transform: translateX(-100%);'}
+  }
 `;
 
 Dome.propTypes = {
