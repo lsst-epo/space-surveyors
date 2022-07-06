@@ -12,10 +12,10 @@ const ExposureContainer = styled.div`
   pointer-events: none;
 `;
 
-const StyledFocalPlaneContainer = styled.div.attrs(({ x, y, offset }) => ({
+const StyledFocalPlaneContainer = styled.div.attrs(({ x, y }) => ({
   style: {
-    left: `calc(${x}% - ${offset}px)`,
-    top: `calc(${y}% - ${offset}px)`,
+    left: `${x}%`,
+    top: `${y}%`,
   },
 }))`
   display: flex;
@@ -24,12 +24,13 @@ const StyledFocalPlaneContainer = styled.div.attrs(({ x, y, offset }) => ({
   position: absolute;
   width: ${(props) => props.size}px;
   height: ${(props) => props.size}px;
+  transform: translate(-50%, -50%);
 `;
 
 const FocalPlaneContainer = ({ x, y, children }) => {
   const size = CAMERA_SIZE;
   return (
-    <StyledFocalPlaneContainer offset={size / 2} {...{ x, y, size }}>
+    <StyledFocalPlaneContainer {...{ x, y, size }}>
       {children && <ExposureContainer>{children}</ExposureContainer>}
       <FocalPlane />
     </StyledFocalPlaneContainer>

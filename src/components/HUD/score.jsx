@@ -11,8 +11,6 @@ const HUDScoreContainer = styled.div`
   font-weight: bold;
 `;
 
-const IconContainer = styled.div``;
-
 const ScoreList = styled.ul`
   list-style: none;
   height: 100%;
@@ -24,6 +22,7 @@ const ScoreList = styled.ul`
 const ScoreListItem = styled.li`
   display: flex;
   align-items: center;
+  flex-basis: 20%;
   font-size: 1.25em;
   line-height: 1;
 `;
