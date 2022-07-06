@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import styled from 'styled-components';
 import { GAME_TIME } from '@constants/index';
 import { convertMsToTime } from '@utils/';
-import { zStack } from '@styles/globalStyle';
+import { zStack, BREAK_DESKTOP } from '@styles/globalStyle';
 import LinearProgress from '@components/Progress';
 
 const StyledTimeContainer = styled.div`
@@ -12,8 +12,8 @@ const StyledTimeContainer = styled.div`
   color: var(--yellow);
   top: 0;
   left: 0;
-  width: 80vw;
-  margin: 0 10vw;
+  width: 80%;
+  margin: 0 10%;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -23,6 +23,11 @@ const StyledTimeContainer = styled.div`
   font-weight: bold;
   font-variant-numeric: tabular-nums;
   pointer-events: none;
+
+  @media (min-width: ${BREAK_DESKTOP}) {
+    width: 70%;
+    margin: 0 15%;
+  }
 `;
 
 const TimerRenderer = ({ timeRemaining }) => {
