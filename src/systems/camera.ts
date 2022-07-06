@@ -132,7 +132,18 @@ const onCameraExposing = (entities, { events, time, dispatch }) => {
         },
       };
     } else {
-      dispatch({ type: 'cameraExposureEnd' });
+      const { score } = entities;
+      const { asteroid, comet, galaxy, star, supernova } = score;
+      const newScore = {
+        ...score,
+        asteroid: asteroid + 1,
+        comet: comet + 1,
+        galaxy: galaxy + 1,
+        star: star + 1,
+        supernova: supernova + 1,
+      };
+
+      dispatch({ type: 'cameraExposureEnd', payload: newScore });
       return {
         ...entities,
         camera: {
@@ -140,6 +151,7 @@ const onCameraExposing = (entities, { events, time, dispatch }) => {
           exposureRemaining: null,
           exposureStartTime: null,
         },
+        score: newScore,
       };
     }
   }
@@ -156,6 +168,7 @@ const onCameraExposureEnd = (entities, { events, dispatch }) => {
 
   if (event) {
     const { camera } = entities;
+
     const { exposures, currentPosition, path } = camera;
 
     exposures.push(currentPosition);
@@ -164,7 +177,10 @@ const onCameraExposureEnd = (entities, { events, dispatch }) => {
       dispatch({ type: 'cameraMoving' });
     }
 
-    return { ...entities, camera: { ...camera, exposures } };
+    return {
+      ...entities,
+      camera: { ...camera, exposures },
+    };
   }
 
   return entities;
