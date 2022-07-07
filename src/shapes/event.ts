@@ -5,8 +5,9 @@ type GameEventName =
   | 'timeEnd'
   | 'targetSet'
   | 'cameraMoving'
-  | 'cameraExposure'
+  | 'cameraExposing'
   | 'cameraExposureEnd'
+  | 'scoreUpdate'
   | 'quit'
   | 'stopped';
 

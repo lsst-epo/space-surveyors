@@ -14,12 +14,12 @@ const CameraContainer = styled.div`
 `;
 
 const CameraRenderer = ({
-  currentPosition,
   nextPosition,
   exposures,
   exposureRemaining,
+  physics,
 }) => {
-  const { x, y } = currentPosition;
+  const { x, y } = physics;
 
   return (
     <CameraContainer>

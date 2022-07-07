@@ -1,6 +1,7 @@
 import { MAX_CAMERA_MOVE, EXPOSURE_TIME } from '@constants/index';
 import { CameraPosition } from '@shapes/camera';
-import { GameSystem } from '@shapes/system';
+import { GameEntities } from '@shapes/entities';
+import { GameEventDispatch, GameSystem } from '@shapes/system';
 import { getDistanceBetweenPoints, getRelativePosition } from '../utils';
 
 /** onClick, while the game has started but not end,
@@ -16,11 +17,13 @@ const setCameraTarget: GameSystem = (entities, { input, dispatch }) => {
     const { payload } = mouseDown;
     const { pageX: x, pageY: y } = payload;
     const { camera, state } = entities;
-    const { currentPosition } = camera;
+    const { physics } = camera;
     const { boundingRect } = state;
     const nextPosition = getRelativePosition(x, y, boundingRect);
 
-    if (getDistanceBetweenPoints(currentPosition, nextPosition) > 0) {
+    if (
+      getDistanceBetweenPoints({ x: physics.x, y: physics.y }, nextPosition) > 0
+    ) {
       dispatch({ type: 'targetSet' });
       return { ...entities, camera: { ...camera, nextPosition } };
     }
@@ -35,16 +38,20 @@ const setCameraTarget: GameSystem = (entities, { input, dispatch }) => {
  *  and then create a path of CameraPositions and if the camera
  *  is not currently exposing, fire 'cameraMoving'
  */
-const onTargetSet = (entities, { events, dispatch }) => {
+const onTargetSet: GameSystem = (entities, { events, dispatch }) => {
   const event = events.find((e) => e.type === 'targetSet');
 
   if (event) {
     const { camera } = entities;
-    const { currentPosition, nextPosition, exposureRemaining } = camera;
-    const distance = getDistanceBetweenPoints(currentPosition, nextPosition);
+    const { physics, nextPosition, exposureRemaining } = camera;
+    const { x: currentX, y: currentY } = physics;
+    const distance = getDistanceBetweenPoints(
+      { x: currentX, y: currentY },
+      nextPosition
+    );
     const steps = Math.ceil(distance / MAX_CAMERA_MOVE);
-    const xStepDistance = (nextPosition.x - currentPosition.x) / steps;
-    const yStepDistance = (nextPosition.y - currentPosition.y) / steps;
+    const xStepDistance = (nextPosition.x - currentX) / steps;
+    const yStepDistance = (nextPosition.y - currentY) / steps;
 
     const path: CameraPosition[] = [];
 
@@ -52,8 +59,8 @@ const onTargetSet = (entities, { events, dispatch }) => {
       const movementX = xStepDistance * i;
       const movementY = yStepDistance * i;
       path.push({
-        x: currentPosition.x + movementX,
-        y: currentPosition.y + movementY,
+        x: currentX + movementX,
+        y: currentY + movementY,
       });
     }
 
@@ -73,7 +80,7 @@ const onTargetSet = (entities, { events, dispatch }) => {
  *  fire 'cameraMoving'. If not future positions remaining then
  *  fire 'cameraExposing' and save the exposure start time.
  */
-const onCameraMoving = (entities, { events, dispatch, time }) => {
+const onCameraMoving: GameSystem = (entities, { events, dispatch, time }) => {
   const event = events.find((e) => e.type === 'cameraMoving');
 
   if (event) {
@@ -82,14 +89,16 @@ const onCameraMoving = (entities, { events, dispatch, time }) => {
 
     if (path.length > 0) {
       const nextStep = path.shift();
+      camera.physics.setPosition(nextStep.x, nextStep.y);
       dispatch({ type: 'cameraMoving' });
       return {
         ...entities,
-        camera: { ...camera, currentPosition: nextStep, path },
+        camera: { ...camera, path },
       };
     } else {
       const { nextPosition } = camera;
       const { current: exposureStartTime } = time;
+      camera.physics.setPosition(nextPosition.x, nextPosition.y);
       dispatch({ type: 'cameraExposing' });
       return {
         ...entities,
@@ -97,7 +106,6 @@ const onCameraMoving = (entities, { events, dispatch, time }) => {
           ...camera,
           exposureStartTime,
           exposureRemaining: EXPOSURE_TIME,
-          currentPosition: nextPosition,
           nextPosition: null,
         },
       };
@@ -112,7 +120,7 @@ const onCameraMoving = (entities, { events, dispatch, time }) => {
  *  continue exposure. If exposure time has lapsed, remove the
  *  exposure start time and time remaining and fire 'cameraExposureEnd
  */
-const onCameraExposing = (entities, { events, time, dispatch }) => {
+const onCameraExposing: GameSystem = (entities, { events, time, dispatch }) => {
   const event = events.find((e) => e.type === 'cameraExposing');
 
   if (event) {
@@ -132,18 +140,7 @@ const onCameraExposing = (entities, { events, time, dispatch }) => {
         },
       };
     } else {
-      const { score } = entities;
-      const { asteroid, comet, galaxy, star, supernova } = score;
-      const newScore = {
-        ...score,
-        asteroid: asteroid + 1,
-        comet: comet + 1,
-        galaxy: galaxy + 1,
-        star: star + 1,
-        supernova: supernova + 1,
-      };
-
-      dispatch({ type: 'cameraExposureEnd', payload: newScore });
+      dispatch({ type: 'cameraExposureEnd' });
       return {
         ...entities,
         camera: {
@@ -151,7 +148,6 @@ const onCameraExposing = (entities, { events, time, dispatch }) => {
           exposureRemaining: null,
           exposureStartTime: null,
         },
-        score: newScore,
       };
     }
   }
@@ -159,19 +155,53 @@ const onCameraExposing = (entities, { events, time, dispatch }) => {
   return entities;
 };
 
+/** detect if camera captured any objects by first doing potential
+ *  collision checks on bounding boxes, then refining and doing a full
+ *  collision check on all potentials, get the matching object in the
+ *  game entities by location and increment the score by the type of
+ *  object found.
+ */
+const detectCapture = (entities: GameEntities, dispatch: GameEventDispatch) => {
+  const { world, camera, score } = entities;
+  let isScoreUpdated = false;
+
+  const potentials = world.system.getPotentials(camera.physics);
+
+  potentials.forEach((body) => {
+    if (world.system.checkCollision(camera.physics, body)) {
+      const { objects } = entities;
+      const { x, y } = body;
+
+      const collider = objects.objects.find(
+        (object) => object.physics.x === x && object.physics.y === y
+      );
+
+      score[collider.type]++;
+      isScoreUpdated = true;
+    }
+  });
+
+  if (isScoreUpdated) {
+    dispatch({ type: 'scoreUpdate', payload: score });
+  }
+};
+
 /** onCameraExposureEnd, add an exposure to the array of exposures
  *  at the current camera position. If a target was queued during
  *  exposure then fire 'cameraMoving' to restart movement.
  */
-const onCameraExposureEnd = (entities, { events, dispatch }) => {
+const onCameraExposureEnd: GameSystem = (entities, { events, dispatch }) => {
   const event = events.find((e) => e.type === 'cameraExposureEnd');
 
   if (event) {
-    const { camera } = entities;
+    const { camera, score } = entities;
 
-    const { exposures, currentPosition, path } = camera;
+    const { exposures, physics, path } = camera;
+    const { x, y } = physics;
 
-    exposures.push(currentPosition);
+    detectCapture(entities, dispatch);
+
+    exposures.push({ x, y });
 
     if (path.length > 0) {
       dispatch({ type: 'cameraMoving' });
@@ -179,6 +209,7 @@ const onCameraExposureEnd = (entities, { events, dispatch }) => {
 
     return {
       ...entities,
+      score,
       camera: { ...camera, exposures },
     };
   }
