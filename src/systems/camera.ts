@@ -161,6 +161,8 @@ const onCameraExposing: GameSystem = (entities, { events, time, dispatch }) => {
  * more than x% of it's width or height
  */
 const checkOverlap = (response: SAT.Response): boolean => {
+  if (response.bInA) return true;
+
   const { b: collider, overlapV } = response;
   const x = collider.maxX - collider.minX;
   const y = collider.maxY - collider.minY;
