@@ -57,3 +57,13 @@ export const getDistanceBetweenPoints = (
 
   return Math.sqrt(x * x + y * y);
 };
+
+export const getRandomDecimal = (
+  min: number,
+  max: number,
+  places: number = 2
+) => {
+  const value = Math.random() * (max - min + 1) + min;
+  console.log(value.toFixed(places));
+  return Number(value.toFixed(places));
+};

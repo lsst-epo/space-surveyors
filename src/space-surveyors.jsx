@@ -34,7 +34,7 @@ const SpaceSurveyors = () => {
   const handleMenuAction = (action) => {
     switch (action) {
       case 'start':
-        setState({ ...state, running: true, menu: null });
+        setState({ ...state, menu: null });
         engine.current.start();
 
         // a resize needs to be performed after the game starts to set the current game dimensions
@@ -42,6 +42,7 @@ const SpaceSurveyors = () => {
         break;
       case 'restart':
         window.location.reload(false);
+        break;
       default:
         break;
     }
@@ -52,7 +53,7 @@ const SpaceSurveyors = () => {
     console.debug(type);
 
     switch (type) {
-      case 'cameraExposureEnd':
+      case 'scoreUpdate':
         const { payload } = event;
         setState({ ...state, score: payload });
         break;
@@ -60,7 +61,7 @@ const SpaceSurveyors = () => {
         engine.current.stop();
         break;
       case 'stopped':
-        setState({ ...state, running: false, menu: 'summary' });
+        setState({ ...state, menu: 'summary' });
         break;
       default:
         break;

@@ -22,9 +22,9 @@ const StyledFocalPlaneContainer = styled.div.attrs(({ x, y }) => ({
   justify-content: center;
   align-items: center;
   position: absolute;
-  width: ${(props) => props.size}px;
-  height: ${(props) => props.size}px;
+  width: ${(props) => props.size}%;
   transform: translate(-50%, -50%);
+  aspect-ratio: 1/1;
 `;
 
 const FocalPlaneContainer = ({ x, y, children }) => {
