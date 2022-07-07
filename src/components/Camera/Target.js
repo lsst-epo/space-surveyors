@@ -6,16 +6,17 @@ const offset = size / 2;
 
 const CameraTarget = styled.div.attrs(({ x, y }) => ({
   style: {
-    left: `calc(${x}% - ${offset}px)`,
-    top: `calc(${y}% - ${offset}px)`,
+    left: `${x}%`,
+    top: `${y}%`,
   },
 }))`
-  width: ${size}px;
-  height: ${size}px;
-  border-radius: ${offset}px;
+  width: ${size}%;
+  border-radius: 50%;
   background-color: var(--red);
   opacity: 0.5;
   position: absolute;
+  transform: translate(-50%, -50%);
+  aspect-ratio: 1 / 1;
 `;
 
 export default CameraTarget;

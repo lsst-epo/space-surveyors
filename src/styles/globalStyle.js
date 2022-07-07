@@ -66,6 +66,7 @@ export const tokens = {
 
 export const zStack = {
   backdrop: 20,
+  objects: 25,
   camera: 30,
   timer: 50,
   game: 75,

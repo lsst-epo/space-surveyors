@@ -1,23 +1,29 @@
 import React from 'react';
 import CameraRenderer from '@components/Camera';
+import { Polygon } from 'detect-collisions';
+import { FocalPlaneBounding } from './boundings/FocalPlaneBounding';
+import { CAMERA_SIZE } from '@constants/';
 
 export default () => {
-  const currentPosition = { x: 50, y: 50 };
   const nextPosition = null;
   const path = [];
   const exposures = [];
   const exposureStartTime = null;
   const exposureRemaining = null;
-  const isMoving = false;
+  const physics = new Polygon(
+    { x: 50, y: 50 },
+    FocalPlaneBounding(CAMERA_SIZE)
+  );
+
+  physics.center();
 
   const properties = {
-    currentPosition,
     nextPosition,
     path,
     exposures,
     exposureStartTime,
     exposureRemaining,
-    isMoving,
+    physics,
   };
 
   return {
