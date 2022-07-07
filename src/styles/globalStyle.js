@@ -125,6 +125,8 @@ export const PADDING_LARGE = tokens.PADDING_LARGE;
 export const PADDING_MEDIUM = tokens.PADDING_MEDIUM;
 export const PADDING_SMALL = tokens.PADDING_SMALL;
 
+export const getRawPx = (pixelValue) => Number(pixelValue.replace('px', ''));
+
 export function fluidScale(
   max,
   min,
@@ -254,7 +256,7 @@ const GlobalStyles = createGlobalStyle`
   .space-surveyors-container {
       ${createCSSGlobalStyles()}
   }
-  .space-surveyors-container > * {
+  .space-surveyors-container * {
     box-sizing: border-box;
     padding: 0;
     margin: 0;
