@@ -27,7 +27,7 @@ const NightSkyRenderer = ({ objects }) => {
         objects.map((object) => {
           const { x, y } = object.physics;
           return (
-            <NightSkyStar {...{ x, y }}>
+            <NightSkyStar key={`${object.type}-${x}-${y}`} {...{ x, y }}>
               <Star></Star>
             </NightSkyStar>
           );

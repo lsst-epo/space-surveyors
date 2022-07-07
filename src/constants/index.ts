@@ -6,6 +6,7 @@ const TARGET_SIZE: number = CAMERA_SIZE / 5;
 const STAR_SIZE: number = 3;
 const MAX_CAMERA_MOVE: number = 0.5;
 const EXPOSURE_TIME: number = 3500;
+const MIN_OVERLAP: number = 0.5;
 
 export {
   GAME_TIME,
@@ -16,4 +17,5 @@ export {
   TARGET_SIZE,
   MAX_CAMERA_MOVE,
   EXPOSURE_TIME,
+  MIN_OVERLAP,
 };

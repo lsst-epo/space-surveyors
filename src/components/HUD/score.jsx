@@ -36,6 +36,7 @@ const TotalScore = styled.div`
   ${({ width }) =>
     width > getRawPx(BREAK_TABLET_MIN) ? 'justify-content: flex-end;' : ''}
   align-items: center;
+  line-height: 1;
   font-size: 2em;
 `;
 

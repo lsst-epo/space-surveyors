@@ -1,4 +1,4 @@
-import { MAX_CAMERA_MOVE, EXPOSURE_TIME } from '@constants/index';
+import { MAX_CAMERA_MOVE, EXPOSURE_TIME, MIN_OVERLAP } from '@constants/index';
 import { CameraPosition } from '@shapes/camera';
 import { GameEntities } from '@shapes/entities';
 import { GameEventDispatch, GameSystem } from '@shapes/system';
@@ -122,8 +122,9 @@ const onCameraMoving: GameSystem = (entities, { events, dispatch, time }) => {
  */
 const onCameraExposing: GameSystem = (entities, { events, time, dispatch }) => {
   const event = events.find((e) => e.type === 'cameraExposing');
+  const timeEnd = events.find((e) => e.type === 'timeEnd');
 
-  if (event) {
+  if (event && !timeEnd) {
     const { current } = time;
     const { camera } = entities;
     const { exposureStartTime } = camera;
@@ -155,6 +156,20 @@ const onCameraExposing: GameSystem = (entities, { events, time, dispatch }) => {
   return entities;
 };
 
+/**
+ * check to see if the colliding object overlaps by
+ * more than x% of it's width or height
+ */
+const checkOverlap = (response: SAT.Response): boolean => {
+  const { b: collider, overlapV } = response;
+  const x = collider.maxX - collider.minX;
+  const y = collider.maxY - collider.minY;
+  const xOverlap = Math.abs(overlapV.x / x);
+  const yOverlap = Math.abs(overlapV.y / y);
+
+  return xOverlap >= MIN_OVERLAP || yOverlap >= MIN_OVERLAP;
+};
+
 /** detect if camera captured any objects by first doing potential
  *  collision checks on bounding boxes, then refining and doing a full
  *  collision check on all potentials, get the matching object in the
@@ -165,19 +180,24 @@ const detectCapture = (entities: GameEntities, dispatch: GameEventDispatch) => {
   const { world, camera, score } = entities;
   let isScoreUpdated = false;
 
+  world.system.update();
   const potentials = world.system.getPotentials(camera.physics);
 
   potentials.forEach((body) => {
     if (world.system.checkCollision(camera.physics, body)) {
-      const { objects } = entities;
-      const { x, y } = body;
+      const isDetected = checkOverlap(world.system.response);
 
-      const collider = objects.objects.find(
-        (object) => object.physics.x === x && object.physics.y === y
-      );
+      if (isDetected) {
+        const { objects } = entities;
+        const { x, y } = body;
 
-      score[collider.type]++;
-      isScoreUpdated = true;
+        const collider = objects.objects.find(
+          (object) => object.physics.x === x && object.physics.y === y
+        );
+
+        score[collider.type]++;
+        isScoreUpdated = true;
+      }
     }
   });
 
