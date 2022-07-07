@@ -64,6 +64,5 @@ export const getRandomDecimal = (
   places: number = 2
 ) => {
   const value = Math.random() * (max - min + 1) + min;
-  console.log(value.toFixed(places));
   return Number(value.toFixed(places));
 };
