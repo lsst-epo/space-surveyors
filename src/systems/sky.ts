@@ -17,7 +17,6 @@ const addObject = (
   position?: GamePosition
 ) => {
   const type = getRandomWeightedValue(WEIGHTED_GENERATION);
-  console.log({ type });
   const newObject = new SkyObject(type, timestamp, aspectRatio, position);
   objects.push(newObject);
   system.insert(newObject.physics);
