@@ -16,17 +16,18 @@ const SpaceSurveyors = () => {
     menu: 'landing',
     running: false,
     score: Score(),
+    boundingRect: null,
   };
   const [state, setState] = useState(initialState);
   const engine = useRef();
   const resizeRef = useRef(null);
 
-  const handleResize = (size) => {
+  const handleResize = ({ width, height }) => {
     const boundingRect = resizeRef.current.getBoundingClientRect();
-    engine.current.dispatch({ type: 'resize', payload: boundingRect });
+    setState({ ...state, boundingRect });
   };
 
-  useResizeObserver({
+  const { ref, width, height } = useResizeObserver({
     ref: resizeRef,
     onResize: handleResize,
   });
@@ -36,9 +37,6 @@ const SpaceSurveyors = () => {
       case 'start':
         setState({ ...state, menu: null });
         engine.current.start();
-
-        // a resize needs to be performed after the game starts to set the current game dimensions
-        handleResize({});
         break;
       case 'restart':
         window.location.reload(false);
@@ -49,12 +47,11 @@ const SpaceSurveyors = () => {
   };
 
   const handleEvent = (event) => {
-    const { type } = event;
+    const { type, payload } = event;
     console.debug(type);
 
     switch (type) {
       case 'scoreUpdate':
-        const { payload } = event;
         setState({ ...state, score: payload });
         break;
       case 'quit':
@@ -68,21 +65,23 @@ const SpaceSurveyors = () => {
     }
   };
 
-  const { menu, running, score } = state;
+  const { menu, running, score, boundingRect } = state;
   const GameMenu = GameMenus[menu];
 
   return (
     <SpaceSurveyorsContainer className="space-surveyors-container">
       {menu && <GameMenu onMenuAction={handleMenuAction}></GameMenu>}
       <GameStageContainer ref={resizeRef}>
-        <GameEngine
-          style={{ width: '100%', height: '100%' }}
-          ref={engine}
-          entities={Entities()}
-          systems={Systems}
-          running={running}
-          onEvent={handleEvent}
-        ></GameEngine>
+        {boundingRect && (
+          <GameEngine
+            style={{ width: '100%', height: '100%' }}
+            ref={engine}
+            entities={Entities(boundingRect)}
+            systems={Systems}
+            running={running}
+            onEvent={handleEvent}
+          ></GameEngine>
+        )}
       </GameStageContainer>
       <HUD score={score} />
     </SpaceSurveyorsContainer>

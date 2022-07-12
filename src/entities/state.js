@@ -1,5 +1,4 @@
-export default () => {
-  const boundingRect = null;
+export default (boundingRect) => {
   const gameStart = null;
   const startTime = null;
   const endTime = null;

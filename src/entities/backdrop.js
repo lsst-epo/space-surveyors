@@ -2,10 +2,10 @@ import React from 'react';
 import BackdropRenderer from '@components/Backdrop';
 
 export default () => {
-  const isGameplayRunning = true;
+  const showEndgame = false;
 
   return {
-    isGameplayRunning,
-    renderer: <BackdropRenderer isGameplayRunning></BackdropRenderer>,
+    showEndgame,
+    renderer: <BackdropRenderer showEndgame></BackdropRenderer>,
   };
 };

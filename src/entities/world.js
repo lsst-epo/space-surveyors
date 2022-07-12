@@ -1,5 +1,5 @@
 import { System } from 'detect-collisions';
-import WorldDebug from '@components/WorldDebug';
+// import WorldDebug from '@components/WorldDebug';
 
 export default () => {
   const system = new System();

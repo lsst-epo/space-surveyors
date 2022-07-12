@@ -1,4 +1,4 @@
-export const StarBounding = (width: number = 1) => {
+export const StarBounding = (xScale: number = 1, yScale: number = 1) => {
   const base = [
     { x: 0.5, y: 0 },
     { x: 0.609375, y: 0.359375 },
@@ -13,7 +13,7 @@ export const StarBounding = (width: number = 1) => {
   ];
 
   return base.map(({ x, y }) => ({
-    x: x * width,
-    y: y * width,
+    x: x * xScale,
+    y: y * yScale,
   }));
 };
