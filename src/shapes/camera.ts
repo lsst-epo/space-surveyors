@@ -1,14 +1,10 @@
 import { Polygon } from 'detect-collisions';
-
-export type CameraPosition = {
-  x: number;
-  y: number;
-};
+import { GamePosition } from '.';
 
 export type CameraRendererProps = {
-  nextPosition: CameraPosition;
-  path: CameraPosition[];
-  exposures: CameraPosition[];
+  nextPosition: GamePosition;
+  path: GamePosition[];
+  exposures: GamePosition[];
   exposureStartTime: number;
   exposureRemaining: number;
   physics: Polygon;

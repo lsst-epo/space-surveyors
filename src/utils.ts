@@ -1,4 +1,13 @@
-import { CameraPosition } from '@shapes/camera';
+import Chance from 'chance';
+import {
+  MAX_OBJECT_X,
+  MAX_OBJECT_Y,
+  MIN_OBJECT_X,
+  MIN_OBJECT_Y,
+} from '@constants/index';
+import { WeightedOptions, GamePosition, SkyObjectType } from '@shapes/index';
+
+const chance = Chance();
 
 export const convertMsToTime = (milliseconds: number): string => {
   let seconds = Math.floor(milliseconds / 1000);
@@ -20,7 +29,7 @@ export const getRelativePosition = (
   x: number,
   y: number,
   boundingRect: DOMRectReadOnly
-): CameraPosition => {
+): GamePosition => {
   const { left, top, width, height } = boundingRect;
 
   return {
@@ -29,28 +38,9 @@ export const getRelativePosition = (
   };
 };
 
-// export const AngleBetweenPoints = (x1, y1, x2, y2) =>
-//   Math.atan2(y2 - y1, x2 - x1) * (180 / Math.PI);
-
-// export function random(min, max) {
-//   return Math.floor(Math.random() * (max - min + 1)) + min;
-// }
-
-// //prettier-ignore
-// export function isPointInCircle(pt, center, r) {
-//   console.log(pt, center, r);
-
-//   const lhs = Math.pow(center[0] - pt[0], 2) + Math.pow(center[1] - pt[1], 2);
-//   const rhs = Math.pow(r, 2);
-
-//   return lhs < rhs ? -1 : (lhs === rhs ? 0 : 1);
-// }
-
-// export const easeInOutSine = (x) => -(Math.cos(Math.PI * x) - 1) / 2;
-
 export const getDistanceBetweenPoints = (
-  startPosition: CameraPosition,
-  endPosition: CameraPosition
+  startPosition: GamePosition,
+  endPosition: GamePosition
 ) => {
   const y = endPosition.x - startPosition.x;
   const x = endPosition.y - startPosition.y;
@@ -58,11 +48,20 @@ export const getDistanceBetweenPoints = (
   return Math.sqrt(x * x + y * y);
 };
 
-export const getRandomDecimal = (
-  min: number,
-  max: number,
-  places: number = 2
-) => {
-  const value = Math.random() * (max - min + 1) + min;
-  return Number(value.toFixed(places));
+export const getRandomDecimal = (min: number, max: number, fixed: number = 2) =>
+  chance.floating({ min, max, fixed });
+
+export const getRandomInt = (min: number, max: number) =>
+  chance.integer({ min, max });
+
+export const getNewPosition = (offset: number = 0): GamePosition => ({
+  x: getRandomDecimal(MIN_OBJECT_X, MAX_OBJECT_X, 1) - offset,
+  y: getRandomDecimal(MIN_OBJECT_Y, MAX_OBJECT_Y, 1) - offset,
+});
+
+export const getRandomWeightedValue = (options: WeightedOptions) => {
+  const keys = Object.keys(options) as Array<SkyObjectType>;
+  const weights = Object.values(options);
+
+  return chance.weighted(keys, weights);
 };

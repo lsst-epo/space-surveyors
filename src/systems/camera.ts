@@ -1,7 +1,10 @@
 import { MAX_CAMERA_MOVE, EXPOSURE_TIME, MIN_OVERLAP } from '@constants/index';
-import { CameraPosition } from '@shapes/camera';
-import { GameEntities } from '@shapes/entities';
-import { GameEventDispatch, GameSystem } from '@shapes/system';
+import {
+  GamePosition,
+  GameEntities,
+  GameEventDispatch,
+  GameSystem,
+} from '@shapes/index';
 import { getDistanceBetweenPoints, getRelativePosition } from '../utils';
 
 /** onClick, while the game has started but not end,
@@ -35,7 +38,7 @@ const setCameraTarget: GameSystem = (entities, { input, dispatch }) => {
 /** onTargetSet, calculate the distance between the
  *  current position and the next position. Then calculate
  *  the number of steps to take based on max movement per tick
- *  and then create a path of CameraPositions and if the camera
+ *  and then create a path of GamePositions and if the camera
  *  is not currently exposing, fire 'cameraMoving'
  */
 const onTargetSet: GameSystem = (entities, { events, dispatch }) => {
@@ -53,7 +56,7 @@ const onTargetSet: GameSystem = (entities, { events, dispatch }) => {
     const xStepDistance = (nextPosition.x - currentX) / steps;
     const yStepDistance = (nextPosition.y - currentY) / steps;
 
-    const path: CameraPosition[] = [];
+    const path: GamePosition[] = [];
 
     for (let i = 1; i < steps; i++) {
       const movementX = xStepDistance * i;
@@ -82,8 +85,10 @@ const onTargetSet: GameSystem = (entities, { events, dispatch }) => {
  */
 const onCameraMoving: GameSystem = (entities, { events, dispatch, time }) => {
   const event = events.find((e) => e.type === 'cameraMoving');
+  const { state } = entities;
+  const { startTime, endTime } = state;
 
-  if (event) {
+  if (event && startTime && !endTime) {
     const { camera } = entities;
     const { path } = camera;
 
@@ -190,15 +195,21 @@ const detectCapture = (entities: GameEntities, dispatch: GameEventDispatch) => {
       const isDetected = checkOverlap(world.system.response);
 
       if (isDetected) {
-        const { objects } = entities;
+        const { skyObjects } = entities;
         const { x, y } = body;
 
-        const collider = objects.objects.find(
+        const collider = skyObjects.objects.find(
           (object) => object.physics.x === x && object.physics.y === y
         );
 
-        score[collider.type]++;
-        isScoreUpdated = true;
+        if (collider) {
+          const capturedCollider = { ...collider };
+          skyObjects.capturedObjects.push(capturedCollider);
+          world.system.remove(collider.physics);
+          collider.captured = true;
+          score[collider.type]++;
+          isScoreUpdated = true;
+        }
       }
     }
   });
@@ -216,7 +227,7 @@ const onCameraExposureEnd: GameSystem = (entities, { events, dispatch }) => {
   const event = events.find((e) => e.type === 'cameraExposureEnd');
 
   if (event) {
-    const { camera, score } = entities;
+    const { camera } = entities;
 
     const { exposures, physics, path } = camera;
     const { x, y } = physics;
@@ -228,12 +239,6 @@ const onCameraExposureEnd: GameSystem = (entities, { events, dispatch }) => {
     if (path.length > 0) {
       dispatch({ type: 'cameraMoving' });
     }
-
-    return {
-      ...entities,
-      score,
-      camera: { ...camera, exposures },
-    };
   }
 
   return entities;

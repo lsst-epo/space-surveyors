@@ -1,4 +1,5 @@
 import { System } from 'detect-collisions';
+import { SkyObject } from '@entities/skyObjects/skyObject';
 
 type GameState = {
   boundingRect: DOMRectReadOnly;
@@ -11,6 +12,12 @@ type GameWorld = {
   system: System;
 };
 
+type SkyObjects = {
+  objects: SkyObject[];
+  capturedObjects: any[];
+  showEndgame: boolean;
+};
+
 type GameEntities = {
   state: GameState;
   backdrop: any;
@@ -18,7 +25,7 @@ type GameEntities = {
   camera: any;
   world: GameWorld;
   score: any;
-  objects: any;
+  skyObjects: SkyObjects;
 };
 
 export { GameEntities, GameState, GameWorld };

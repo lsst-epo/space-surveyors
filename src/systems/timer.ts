@@ -78,11 +78,13 @@ const onTimeEnd: GameSystem = (entities, { events, time }) => {
 
   if (event) {
     const { current } = time;
-    const { backdrop, state } = entities;
+    const { backdrop, state, skyObjects } = entities;
+    const showEndgame = true;
 
     return {
       ...entities,
-      backdrop: { ...backdrop, isGameplayRunning: false },
+      skyObjects: { ...skyObjects, showEndgame },
+      backdrop: { ...backdrop, showEndgame },
       state: { ...state, endTime: current },
     };
   }
