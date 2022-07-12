@@ -6,8 +6,6 @@ export const GAME_TIME: number = 60000;
 export const WARMUP_TIME: number = 1000;
 export const FINISH_SCREEN_TIME: number = 5000;
 
-export const STAR_SIZE: number = 3;
-
 // Camera
 export const CAMERA_SIZE: number = 15;
 export const TARGET_SIZE: number = CAMERA_SIZE / 5;

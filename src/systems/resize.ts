@@ -6,7 +6,6 @@ const onResize: GameSystem = (entities, { events }) => {
   if (event) {
     const { state } = entities;
     const { payload } = event;
-    console.log({ payload });
 
     return {
       ...entities,
