@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import styled from 'styled-components';
 
 const WorldCanvas = styled.canvas`
+  background: rgba(0, 0, 0, 0.5);
   border: 1px solid white;
   position: absolute;
   bottom: 0;
@@ -20,7 +21,9 @@ const WorldDebug = ({ system }) => {
     ctx.beginPath();
 
     system.draw(ctx);
+    // system.drawBVH(ctx);
 
+    ctx.scale(1, 1);
     ctx.stroke();
   };
 

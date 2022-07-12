@@ -4,21 +4,18 @@ import Timer from './timer';
 import Camera from './camera';
 import Score from './score';
 import World from './world';
-import Objects from './objects';
+import SkyObjects from './skyObjects';
 
-export default () => {
+export default (boundingRect) => {
   const backdrop = Backdrop();
   const timer = Timer();
-  const state = State();
-  const camera = Camera();
+  const state = State(boundingRect);
+  const camera = Camera(boundingRect.width / boundingRect.height);
   const score = Score();
   const world = World();
-  const objects = Objects();
+  const skyObjects = SkyObjects();
 
-  objects.objects.forEach((object) => {
-    world.system.insert(object.physics);
-  });
   world.system.insert(camera.physics);
 
-  return { backdrop, timer, state, camera, score, world, objects };
+  return { backdrop, timer, state, camera, score, world, skyObjects };
 };

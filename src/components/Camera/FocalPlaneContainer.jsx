@@ -12,17 +12,17 @@ const ExposureContainer = styled.div`
   pointer-events: none;
 `;
 
-const StyledFocalPlaneContainer = styled.div.attrs(({ x, y }) => ({
+const StyledFocalPlaneContainer = styled.div.attrs(({ x, y, size }) => ({
   style: {
     left: `${x}%`,
     top: `${y}%`,
+    width: `${size}%`,
   },
 }))`
   display: flex;
   justify-content: center;
   align-items: center;
   position: absolute;
-  width: ${(props) => props.size}%;
   transform: translate(-50%, -50%);
   aspect-ratio: 1/1;
 `;

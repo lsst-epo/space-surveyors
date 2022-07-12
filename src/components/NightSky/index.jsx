@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from 'styled-components';
-import Star from '@components/svg/Star';
-import { STAR_SIZE } from '@constants/';
+import Objects from '@components/NightSky/objects';
 import { zStack } from '@styles/globalStyle';
+import { fadeIn } from '@styles/keyframes';
 
 const NightSkyContainer = styled.div`
   position: absolute;
@@ -11,27 +11,23 @@ const NightSkyContainer = styled.div`
   z-index: ${zStack.objects};
 `;
 
-const NightSkyStar = styled.div`
-  position: absolute;
-  left: ${({ x }) => `${x}%`};
-  top: ${({ y }) => `${y}%`};
-  width: ${STAR_SIZE}%;
-  transform: translate(-50%, -50%);
-  aspect-ratio: 1/1;
-`;
+const NightSkyRenderer = ({ objects, capturedObjects, showEndgame }) => {
+  const renderSkyObjects = (object) => {
+    const { width, brightness, captured } = object;
+    const { x, y } = object.physics;
+    const Object = Objects[object.type];
+    return (
+      <Object
+        key={`${object.type}-${x}-${y}`}
+        {...{ brightness, captured, x, y, width: `${width}%` }}
+      />
+    );
+  };
 
-const NightSkyRenderer = ({ objects }) => {
   return (
     <NightSkyContainer>
-      {objects &&
-        objects.map((object) => {
-          const { x, y } = object.physics;
-          return (
-            <NightSkyStar key={`${object.type}-${x}-${y}`} {...{ x, y }}>
-              <Star></Star>
-            </NightSkyStar>
-          );
-        })}
+      {!showEndgame && objects && objects.map(renderSkyObjects)}
+      {showEndgame && capturedObjects.map(renderSkyObjects)}
     </NightSkyContainer>
   );
 };

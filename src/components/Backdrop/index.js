@@ -8,12 +8,11 @@ const BackdropRenderer = styled.div`
   position: absolute;
   z-index: ${zStack.backdrop};
   transition: background-color 0.2s;
-  background-color: ${(props) =>
-    props.isGameplayRunning ? '#004b73' : '#5db8e8'};
+  background-color: ${(props) => (props.showEndgame ? '#5db8e8' : '#004b73')};
 `;
 
 BackdropRenderer.propTypes = {
-  isGameplayRunning: PropTypes.bool,
+  showEndgame: PropTypes.bool,
 };
 
 export default BackdropRenderer;
