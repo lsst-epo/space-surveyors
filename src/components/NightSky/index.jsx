@@ -2,7 +2,6 @@ import React from 'react';
 import styled from 'styled-components';
 import Objects from '@components/NightSky/objects';
 import { zStack } from '@styles/globalStyle';
-import { fadeIn } from '@styles/keyframes';
 
 const NightSkyContainer = styled.div`
   position: absolute;
