@@ -16,9 +16,9 @@ const SkyObjectBase = css`
   transition: ${FADE_TIME}ms opacity, ${FADE_TIME}ms filter;
 `;
 
-const SkyObjectAttrs = ({ width, x, y, captured, brightness }) => ({
+const SkyObjectAttrs = ({ width, x, y, $captured, brightness }) => ({
   style: {
-    color: captured ? 'var(--yellow)' : 'var(--neutral10)',
+    color: $captured ? 'var(--yellow)' : 'var(--neutral10)',
     left: `${x}%`,
     top: `${y}%`,
     opacity: brightness,

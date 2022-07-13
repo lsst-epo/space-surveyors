@@ -18,7 +18,7 @@ const NightSkyRenderer = ({ objects, capturedObjects, showEndgame }) => {
     return (
       <Object
         key={`${object.type}-${x}-${y}`}
-        {...{ brightness, captured, x, y, width: `${width}%` }}
+        {...{ brightness, $captured: captured, x, y, width: `${width}%` }}
       />
     );
   };
