@@ -34,30 +34,16 @@ const shouldAddObject = (): boolean => {
 };
 
 export const addSkyObjects: GameSystem = (entities, { time }) => {
-  // const mouseDown = input.find((x) => x.name === 'onContextMenu');
   const { current } = time;
   const { skyObjects, world, state } = entities;
-  const { boundingRect, startTime, endTime } = state;
+  const { aspectRatio, startTime, endTime } = state;
   const { objects } = skyObjects;
 
   if (startTime && !endTime) {
     if (objects.length < MAX_SKY_OBJECTS && shouldAddObject()) {
-      addObject(
-        objects,
-        world.system,
-        current,
-        boundingRect.width / boundingRect.height
-      );
+      addObject(objects, world.system, current, aspectRatio);
     }
   }
-
-  // if (mouseDown) {
-  //   const { payload } = mouseDown;
-  //   const { pageX: x, pageY: y } = payload;
-  //   const position = getRelativePosition(x, y, boundingRect);
-  //   console.log({ position });
-  //   addObject(objects, world.system, current, position);
-  // }
 
   return entities;
 };

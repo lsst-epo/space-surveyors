@@ -1,5 +1,6 @@
 import Chance from 'chance';
 import {
+  ASPECT_RATIOS_FLOAT,
   MAX_OBJECT_X,
   MAX_OBJECT_Y,
   MIN_OBJECT_X,
@@ -65,3 +66,11 @@ export const getRandomWeightedValue = (options: WeightedOptions) => {
 
   return chance.weighted(keys, weights);
 };
+
+export const closest = (values: number[], test: number) =>
+  values.reduce((a, b) => {
+    return Math.abs(b - test) < Math.abs(a - test) ? b : a;
+  });
+
+export const getAspectRatio = (ratio: number): number =>
+  closest(ASPECT_RATIOS_FLOAT, ratio);

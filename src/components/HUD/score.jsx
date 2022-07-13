@@ -19,9 +19,10 @@ const HUDScoreContainer = styled.div`
 
 const ScoreList = styled.ul`
   list-style: none;
-  display: grid;
-  grid-template-columns: ${({ width }) =>
-    width > getRawPx(BREAK_TABLET_MIN) ? '1fr' : 'repeat(5, 1fr)'};
+  display: flex;
+  flex-direction: ${({ width }) =>
+    width > getRawPx(BREAK_TABLET_MIN) ? 'column' : 'row'};
+  justify-content: space-around;
 `;
 
 const ScoreListItem = styled.li`
