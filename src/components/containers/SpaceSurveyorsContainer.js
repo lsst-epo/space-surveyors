@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 const SpaceSurveyorsContainer = styled.div`
-  background: #1f2121;
+  background: var(--neutral95);
   width: 100%;
   height: 100%;
   position: relative;

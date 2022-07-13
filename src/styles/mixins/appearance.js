@@ -1,5 +1,15 @@
 import { css } from 'styled-components';
 
+export const fullScreenAbsolute = `
+width: 100%;
+height: 100%;
+position: absolute;`;
+
+export const flexCentered = `
+display: flex;
+justify-content: center;
+align-items: center;`;
+
 export const focusDefault = (style = '') => {
   return `
     .js-focus-visible &:focus:not(.focus-visible) {
@@ -35,7 +45,7 @@ export const aFocus = (styles = '') => css`
   `)}
 `;
 
-export const aButtonTheme = style => {
+export const aButtonTheme = (style) => {
   switch (style) {
     case 'secondary':
       return css`

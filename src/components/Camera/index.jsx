@@ -1,4 +1,5 @@
 import React from 'react';
+import useFitText from 'use-fit-text';
 import styled from 'styled-components';
 import { zStack } from '@styles/globalStyle';
 import Exposure from '@components/svg/Exposure';

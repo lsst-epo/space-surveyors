@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { zStack } from '@styles/globalStyle';
+import { fullScreenAbsolute } from '@styles/mixins/appearance';
 
 const StyledMenu = styled.div`
   background-color: var(--black);
@@ -9,9 +10,7 @@ const StyledMenu = styled.div`
   justify-content: center;
   align-items: center;
   flex-direction: column;
-  height: 100%;
-  width: 100%;
-  position: absolute;
+  ${fullScreenAbsolute}
   z-index: ${zStack.menu};
 `;
 
