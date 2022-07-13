@@ -128,10 +128,10 @@ const onCameraMoving: GameSystem = (entities, { events, dispatch, time }) => {
 const onCameraExposing: GameSystem = (entities, { events, time, dispatch }) => {
   const event = events.find((e) => e.type === 'cameraExposing');
   const timeEnd = events.find((e) => e.type === 'timeEnd');
+  const { camera } = entities;
 
   if (event && !timeEnd) {
     const { current } = time;
-    const { camera } = entities;
     const { exposureStartTime } = camera;
     const exposureElapsed = current - exposureStartTime;
 

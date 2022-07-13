@@ -78,11 +78,12 @@ const onTimeEnd: GameSystem = (entities, { events, time }) => {
 
   if (event) {
     const { current } = time;
-    const { backdrop, state, skyObjects } = entities;
+    const { backdrop, state, skyObjects, camera } = entities;
     const showEndgame = true;
 
     return {
       ...entities,
+      camera: { ...camera, exposureRemaining: null, nextPosition: null },
       skyObjects: { ...skyObjects, showEndgame },
       backdrop: { ...backdrop, showEndgame },
       state: { ...state, endTime: current },
