@@ -73,6 +73,9 @@ const SpaceSurveyors = () => {
     console.debug(type);
 
     switch (type) {
+      case 'timeEnd':
+        setState({ ...state, menu: 'finished' });
+        break;
       case 'scoreUpdate':
         setState({ ...state, score: payload });
         break;

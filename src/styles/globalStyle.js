@@ -2,6 +2,7 @@
 import { createGlobalStyle } from 'styled-components';
 import { fluidScaleBase, stripUnit, respondBase } from '@castiron/style-mixins';
 import { aButton, aButtonTheme } from './mixins/appearance';
+import { fontFace } from './mixins/font';
 
 export const tokens = {
   white: '#ffffff',
@@ -16,6 +17,7 @@ export const tokens = {
   neutral60: '#666666',
   neutral80: '#404040',
   neutral90: '#2b2e34',
+  neutral95: '#1f2121',
   black: '#000000',
   turquoise05: '#EDFFFE',
   turqouise07: '#EDFFFE',
@@ -86,6 +88,7 @@ export const neutral40 = tokens.neutral40;
 export const neutral60 = tokens.neutral60;
 export const neutral80 = tokens.neutral80;
 export const neutral90 = tokens.neutral90;
+export const neutral95 = tokens.neutral95;
 export const black = tokens.black;
 export const orange20 = tokens.orange20;
 export const orange55 = tokens.orange55;
@@ -254,6 +257,7 @@ const createCSSGlobalStyles = () => {
 };
 
 const GlobalStyles = createGlobalStyle`
+  ${fontFace}
   .space-surveyors-container {
       ${createCSSGlobalStyles()}
   }

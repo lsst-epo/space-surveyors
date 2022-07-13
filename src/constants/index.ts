@@ -8,6 +8,7 @@ export const ASPECT_RATIOS_FLOAT: number[] = [1.7778, 1.333, 0.75, 0.5625];
 // Timeline
 export const GAME_TIME: number = 60000;
 export const WARMUP_TIME: number = 1000;
+export const DAY_TRANSITION_TIME: number = 1000;
 export const FINISH_SCREEN_TIME: number = 5000;
 
 // Camera
