@@ -1,10 +1,10 @@
 # Space Surveyors
 
-Space Surveyors is built as library package using `tsdx` with a `create-react-app` example.
+Space Surveyors is built as library package using `tsdx` with a `Parcel` example.
 
 ## Commands
 
-TSDX scaffolds the package inside `/src`, and also sets up a [create-react-app](https://create-react-app.dev/) playground for it inside `/example`.
+TSDX scaffolds the package inside `/src`, and also sets up a [Parcel](https://parceljs.org) playground for it inside `/example`.
 
 The recommended workflow is to run TSDX in one terminal:
 
@@ -28,3 +28,13 @@ The default example imports and live reloads whatever is in `/dist`, so if you a
 To do a one-off build, use `npm run build` or `yarn build`.
 
 To run tests, use `npm test` or `yarn test`.
+
+## Deployment
+
+Space Surveyors is deployed using [gh-pages](https://github.com/tschaub/gh-pages) and lives at [https://lsst-epo.github.io/space-surveyors/](https://lsst-epo.github.io/space-surveyors/). To deploy a branch to Github Pages:
+
+```bash
+yarn build
+```
+
+A `predeploy` script will build the TSDX library and then the Parcel example and `gh-pages` will push the Parcel `example/dist` directory to the `gh-pages` branch.
