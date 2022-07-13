@@ -1,6 +1,6 @@
 import React from 'react';
 import CameraRenderer from '@components/Camera';
-import { Polygon, Circle } from 'detect-collisions';
+import { Polygon } from 'detect-collisions';
 import { FocalPlaneBounding } from './boundings/FocalPlaneBounding';
 import { CAMERA_SIZE } from '@constants/index';
 
