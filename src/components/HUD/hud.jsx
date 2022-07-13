@@ -19,13 +19,9 @@ const HUDBackdrop = styled.div`
 `;
 
 const HUD = ({ score }) => (
-  <>
-    <Dome $left />
-    <Dome />
-    <HUDBackdrop>
-      <HUDScore {...{ score }}></HUDScore>
-    </HUDBackdrop>
-  </>
+  <HUDBackdrop>
+    <HUDScore {...{ score }}></HUDScore>
+  </HUDBackdrop>
 );
 
 HUD.propTypes = {

@@ -1,9 +1,15 @@
 import React from 'react';
+import useResizeObserver from 'use-resize-observer';
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
-import { GAME_TIME } from '@constants/index';
+import { GAME_TIME, MIN_OBJECT_Y } from '@constants/index';
 import { convertMsToTime } from '@utils/';
-import { zStack, BREAK_DESKTOP } from '@styles/globalStyle';
+import {
+  zStack,
+  BREAK_TABLET_MIN,
+  BREAK_DESKTOP,
+  getRawPx,
+} from '@styles/globalStyle';
 import LinearProgress from '@components/Progress';
 
 const StyledTimeContainer = styled.div`
@@ -12,28 +18,25 @@ const StyledTimeContainer = styled.div`
   color: var(--yellow);
   top: 0;
   left: 0;
-  width: 80%;
   margin: 0 10%;
+  width: 80%;
+  height: ${MIN_OBJECT_Y}%;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: space-evenly;
   align-items: center;
-  font-size: 2.5em;
-  padding: 1em;
+  font-size: ${({ width }) =>
+    width > getRawPx(BREAK_TABLET_MIN) ? '2.5em' : '1.5em'};
   font-weight: bold;
   font-variant-numeric: tabular-nums;
   pointer-events: none;
-
-  @media (min-width: ${BREAK_DESKTOP}) {
-    width: 70%;
-    margin: 0 15%;
-  }
 `;
 
 const TimerRenderer = ({ timeRemaining }) => {
+  const { ref, width } = useResizeObserver();
   const percentTimeRemaining = +((timeRemaining / GAME_TIME) * 100).toFixed(2);
   return (
-    <StyledTimeContainer role="timer">
+    <StyledTimeContainer role="timer" ref={ref} width={width}>
       Time left: {convertMsToTime(timeRemaining)}
       <LinearProgress value={percentTimeRemaining}></LinearProgress>
     </StyledTimeContainer>

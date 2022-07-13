@@ -1,13 +1,17 @@
 import { SkyObjectType } from '@shapes/objects';
 import { WeightedOptions } from '@shapes/utils';
 
+// SCREEN
+export const ASPECT_RATIOS: string[] = ['16:9', '4:3', '3:4', '3:5'];
+export const ASPECT_RATIOS_FLOAT: number[] = [1.7778, 1.333, 0.75, 0.5625];
+
 // Timeline
 export const GAME_TIME: number = 60000;
 export const WARMUP_TIME: number = 1000;
 export const FINISH_SCREEN_TIME: number = 5000;
 
 // Camera
-export const CAMERA_SIZE: number = 15;
+export const CAMERA_SIZE: number = 20;
 export const TARGET_SIZE: number = CAMERA_SIZE / 5;
 export const MAX_CAMERA_MOVE: number = 0.5;
 export const EXPOSURE_TIME: number = 3500;
@@ -18,9 +22,9 @@ export const MIN_OVERLAP: number = 0.5;
 // Sky Objects
 export const MIN_OBJECT_X: number = 10;
 export const MAX_OBJECT_X: number = 90;
-export const MIN_OBJECT_Y: number = 0;
-export const MAX_OBJECT_Y: number = 100;
-export const OBJECTS_PER_SECOND: number = 0.5;
+export const MIN_OBJECT_Y: number = 15;
+export const MAX_OBJECT_Y: number = 98;
+export const OBJECTS_PER_SECOND: number = 0.6;
 export const MAX_SKY_OBJECTS: number = 20;
 export const FADE_TIME: number = 500;
 export const OBJECT_LIFESPAN: {

@@ -2,6 +2,7 @@ import { System } from 'detect-collisions';
 import { SkyObject } from '@entities/skyObjects/skyObject';
 
 type GameState = {
+  aspectRatio: number;
   boundingRect: DOMRectReadOnly;
   gameStart: number;
   startTime: number;

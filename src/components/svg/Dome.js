@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from 'styled-components';
 import DomeSVG from '@assets/svg/dome.svg';
 import { zStack } from '@styles/globalStyle';
@@ -11,7 +10,7 @@ import { zStack } from '@styles/globalStyle';
 const Dome = styled.img.attrs(() => ({
   src: DomeSVG,
 }))`
-  height: 80%;
+  height: 100%;
   position: absolute;
   z-index: ${zStack.hud};
   user-select: none;
