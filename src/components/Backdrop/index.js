@@ -1,3 +1,4 @@
+import React from 'react';
 import styled from 'styled-components';
 import PropTypes from 'prop-types';
 import { zStack } from '@styles/globalStyle';
@@ -27,7 +28,11 @@ const BackdropNight = styled.div.attrs(({ showEndgame }) => ({
   },
 }))`
   ${fullScreenAbsolute}
+  background-color: #004b73;
   background-image: url('${backdropNightImg}');
+  background-position: center center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
   background-size: cover;
   transition: ${DAY_TRANSITION_TIME / 2}ms opacity;
   z-index: 2;
@@ -47,4 +52,4 @@ BackdropRenderer.propTypes = {
   showEndgame: PropTypes.bool,
 };
 
-export default BackdropRenderer;
+export default React.memo(BackdropRenderer);

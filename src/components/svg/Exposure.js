@@ -1,11 +1,8 @@
 import styled from 'styled-components';
 import SVG from 'react-inlinesvg';
 import ExposureSVG from '@assets/svg/exposure.svg';
-import { CAMERA_SIZE } from '@constants/';
 
-const size = CAMERA_SIZE;
-
-const Exposure = styled(SVG).attrs(({ x, y }) => ({
+const Exposure = styled(SVG).attrs(({ x, y, size }) => ({
   style: {
     left: `${x}%`,
     top: `${y}%`,

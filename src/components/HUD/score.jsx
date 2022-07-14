@@ -22,11 +22,11 @@ const ScoreList = styled.ul`
   display: flex;
   flex-direction: ${({ width }) =>
     width > getRawPx(BREAK_TABLET_MIN) ? 'column' : 'row'};
-  justify-content: space-around;
 `;
 
 const ScoreListItem = styled.li`
   display: flex;
+  flex: 0 0 20%;
   align-items: center;
   font-size: 1.25em;
   line-height: 1;
@@ -47,14 +47,21 @@ const TotalScoreCount = styled.span`
   margin-left: 0.5ch;
 `;
 
-const Score = styled.span`
+const Score = styled.div`
   margin-left: ${({ width }) =>
     width > getRawPx(BREAK_TABLET_MIN) ? '1ch' : '0'};
   font-variant-numeric: tabular-nums;
 `;
 
+const IconContainer = styled.div`
+  align-self: stretch;
+  display: flex;
+  justify-content: center;
+  aspect-ratio: 1/1;
+`;
+
 const HUDScore = ({ score }) => {
-  const { ref, width } = useResizeObserver();
+  const { ref, width, height } = useResizeObserver();
 
   const values = Object.values(score);
 
@@ -65,10 +72,12 @@ const HUDScore = ({ score }) => {
       <TotalScore width={width}>
         Discovered objects tonight <TotalScoreCount>{sum}</TotalScoreCount>
       </TotalScore>
-      <ScoreList width={width}>
+      <ScoreList {...{ width, height }}>
         {Object.keys(score).map((s) => (
           <ScoreListItem key={s}>
-            <IconComposer icon={s} width="1.5em" height="1.5em"></IconComposer>
+            <IconContainer>
+              <IconComposer icon={s} color="var(--neutral10)" height="100%" />
+            </IconContainer>
             <Score width={width}>×{score[s]}</Score>
           </ScoreListItem>
         ))}
