@@ -14,8 +14,8 @@ export const FINISH_SCREEN_TIME: number = 5000;
 // Camera
 export const CAMERA_SIZE: number = 20;
 export const TARGET_SIZE: number = CAMERA_SIZE / 5;
-export const MAX_CAMERA_MOVE: number = 0.5;
-export const EXPOSURE_TIME: number = 3500;
+export const MAX_CAMERA_MOVE: number = 1;
+export const EXPOSURE_TIME: number = 5000;
 
 // Collision
 export const MIN_OVERLAP: number = 0.5;
