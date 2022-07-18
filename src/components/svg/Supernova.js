@@ -6,7 +6,6 @@ const Supernova = styled(SVG).attrs(() => ({
   src: supernovaSVG,
 }))`
   color: var(--neutral10);
-  transition: color 0.2s;
 `;
 
 export default Supernova;

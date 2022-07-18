@@ -1,5 +1,10 @@
 import { System } from 'detect-collisions';
-import { SkyObject } from '@entities/skyObjects/skyObject';
+import { SkyObject } from '@modules/SkyObject/';
+import { DynamicSkyObject } from '@modules/DynamicSkyObject';
+import { OccludingObject } from '@modules/OccludingObject';
+import { SkyObjectType } from './objects';
+
+type GameStage = 'menu' | 'warmup' | 'running' | 'finished';
 
 type GameState = {
   aspectRatio: number;
@@ -7,14 +12,20 @@ type GameState = {
   gameStart: number;
   startTime: number;
   endTime: number;
+  windSpeed: number;
+  stage: GameStage;
+  nextSpawn: { [Key in SkyObjectType]: number };
 };
 
 type GameWorld = {
+  occlusions: System;
   system: System;
 };
 
 type SkyObjects = {
-  objects: SkyObject[];
+  dynamicObjects: DynamicSkyObject[];
+  occludingObjects: OccludingObject[];
+  staticObjects: SkyObject[];
   capturedObjects: any[];
   showEndgame: boolean;
 };

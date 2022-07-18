@@ -8,6 +8,8 @@ type GameEventName =
   | 'cameraExposing'
   | 'cameraExposureEnd'
   | 'scoreUpdate'
+  | 'spawnedObject'
+  | 'spawnedOcclusion'
   | 'quit'
   | 'stopped';
 

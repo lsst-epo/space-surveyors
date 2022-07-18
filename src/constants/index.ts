@@ -1,6 +1,3 @@
-import { SkyObjectType } from '@shapes/objects';
-import { WeightedOptions } from '@shapes/utils';
-
 // SCREEN
 export const ASPECT_RATIOS: string[] = ['16:9', '4:3', '3:4', '3:5'];
 export const ASPECT_RATIOS_FLOAT: number[] = [1.7778, 1.333, 0.75, 0.5625];
@@ -26,84 +23,53 @@ export const MAX_OBJECT_X: number = 90;
 export const MIN_OBJECT_Y: number = 15;
 export const MAX_OBJECT_Y: number = 98;
 export const OBJECTS_PER_SECOND: number = 0.6;
-export const MAX_SKY_OBJECTS: number = 20;
+export const MAX_STATIC_OBJECTS: number = 15;
+export const MAX_DYNAMIC_OBJECTS: number = 10;
 export const FADE_TIME: number = 500;
-export const OBJECT_LIFESPAN: {
-  [Key in SkyObjectType]: { min: number; max: number };
-} = {
-  star: {
-    min: 10000,
-    max: 20000,
+export * from '@modules/SkyObjectConfig';
+
+// Occlusions
+export const MAX_OCCLUDING_OBJECTS: number = 3;
+export const MIN_WIND_SPEED: number = 0.01;
+export const MAX_WIND_SPEED: number = 0.03;
+export const AIRPLANE_SPEED: number = 0.035;
+export const SPAWN_LOCATION: any = {
+  cloud: {
+    x: {
+      1: 4,
+      2: 3,
+      3: 1,
+      4: 0,
+    },
+    y: {
+      1: 1,
+      2: 4,
+      3: 5,
+      4: 2,
+    },
   },
-  asteroid: {
-    min: 5000,
-    max: 10000,
-  },
-  comet: {
-    min: 5000,
-    max: 10000,
-  },
-  galaxy: {
-    min: 5000,
-    max: 10000,
-  },
-  supernova: {
-    min: 5000,
-    max: 10000,
-  },
-};
-export const OBJECT_SIZE: {
-  [Key in SkyObjectType]: { min: number; max: number };
-} = {
-  star: {
-    min: 0.5,
-    max: 2,
-  },
-  asteroid: {
-    min: 1,
-    max: 3,
-  },
-  comet: {
-    min: 1,
-    max: 3,
-  },
-  galaxy: {
-    min: 1,
-    max: 3,
-  },
-  supernova: {
-    min: 1,
-    max: 3,
+  airplane: {
+    x: {
+      1: 1,
+      2: 1,
+      3: 1,
+      4: 1,
+    },
+    y: {
+      1: 1,
+      2: 1,
+      3: 1,
+      4: 1,
+    },
   },
 };
-export const OBJECT_BRIGHTNESS: {
-  [Key in SkyObjectType]: { min: number; max: number };
-} = {
-  star: {
-    min: 0.5,
-    max: 1,
+export const SPAWN_INTERVAL: any = {
+  cloud: {
+    min: 5000,
+    max: 12000,
   },
-  asteroid: {
-    min: 0.5,
-    max: 1,
+  airplane: {
+    min: 9000,
+    max: 15000,
   },
-  comet: {
-    min: 0.5,
-    max: 1,
-  },
-  galaxy: {
-    min: 0.5,
-    max: 1,
-  },
-  supernova: {
-    min: 0.5,
-    max: 1,
-  },
-};
-export const WEIGHTED_GENERATION: WeightedOptions = {
-  star: 5,
-  asteroid: 0,
-  comet: 0,
-  galaxy: 2,
-  supernova: 1,
 };

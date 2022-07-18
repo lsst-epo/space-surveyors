@@ -5,10 +5,10 @@ const countdown: GameSystem = (entities, { time, dispatch }) => {
   const { timer, state } = entities;
   const { current } = time;
   const { timeRemaining } = timer;
-  const { endTime, gameStart, startTime } = state;
+  const { endTime, gameStart, startTime, stage } = state;
 
   /** track warmup time, then start gameplay */
-  if (gameStart && !startTime) {
+  if (stage === 'warmup') {
     if (current - gameStart > WARMUP_TIME) {
       dispatch({ type: 'timeStart' });
     }
@@ -17,7 +17,7 @@ const countdown: GameSystem = (entities, { time, dispatch }) => {
   }
 
   /** track time remaining in gameplay, then end gameplay */
-  if (startTime && timeRemaining > 0) {
+  if (stage === 'running' && timeRemaining > 0) {
     const newTimeRemaining = Math.max(0, GAME_TIME - (current - startTime));
 
     if (newTimeRemaining === 0) {
@@ -31,7 +31,7 @@ const countdown: GameSystem = (entities, { time, dispatch }) => {
   }
 
   /** if an end time has passed, wait alloted time to display the finished screen then quit */
-  if (endTime) {
+  if (stage === 'finished') {
     if (current - endTime > FINISH_SCREEN_TIME) {
       dispatch({ type: 'quit' });
     }
@@ -50,7 +50,7 @@ const onGameStart: GameSystem = (entities, { events, time }) => {
 
     return {
       ...entities,
-      state: { ...state, gameStart: current },
+      state: { ...state, stage: 'warmup', gameStart: current },
     };
   }
 
@@ -66,7 +66,7 @@ const onTimeStart: GameSystem = (entities, { events, time }) => {
 
     return {
       ...entities,
-      state: { ...state, startTime: current },
+      state: { ...state, stage: 'running', startTime: current },
     };
   }
 
@@ -83,10 +83,15 @@ const onTimeEnd: GameSystem = (entities, { events, time }) => {
 
     return {
       ...entities,
-      camera: { ...camera, exposureRemaining: null, nextPosition: null },
+      camera: {
+        ...camera,
+        exposureRemaining: null,
+        nextPosition: null,
+        showEndgame,
+      },
       skyObjects: { ...skyObjects, showEndgame },
       backdrop: { ...backdrop, showEndgame },
-      state: { ...state, endTime: current },
+      state: { ...state, stage: 'finished', endTime: current },
     };
   }
 
