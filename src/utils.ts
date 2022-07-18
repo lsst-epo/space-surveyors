@@ -6,7 +6,7 @@ import {
   MIN_OBJECT_X,
   MIN_OBJECT_Y,
 } from '@constants/index';
-import { WeightedOptions, GamePosition, SkyObjectType } from '@shapes/index';
+import { WeightedOptions, GamePosition } from '@shapes/index';
 
 const chance = Chance();
 
@@ -60,9 +60,28 @@ export const getNewPosition = (offset: number = 0): GamePosition => ({
   y: getRandomDecimal(MIN_OBJECT_Y, MAX_OBJECT_Y, 1) - offset,
 });
 
+export const getPositionInQuad = (
+  xQuad?: number,
+  yQuad?: number
+): GamePosition => {
+  const xRange = MAX_OBJECT_X - MIN_OBJECT_X;
+  const yRange = MAX_OBJECT_Y - MIN_OBJECT_Y;
+  const xQuart = xRange / 4;
+  const yQuart = yRange / 4;
+  const xMin = xQuad ? MIN_OBJECT_X + xQuart * (xQuad - 1) : MIN_OBJECT_X;
+  const xMax = xQuad ? MIN_OBJECT_X + xQuart * xQuad : MAX_OBJECT_X;
+  const yMin = yQuad ? MIN_OBJECT_Y + yQuart * (yQuad - 1) : MIN_OBJECT_Y;
+  const yMax = yQuad ? MIN_OBJECT_Y + yQuart * yQuad : MAX_OBJECT_Y;
+
+  return {
+    x: getRandomDecimal(xMin, xMax, 1),
+    y: getRandomDecimal(yMin, yMax, 1),
+  };
+};
+
 export const getRandomWeightedValue = (options: WeightedOptions) => {
-  const keys = Object.keys(options) as Array<SkyObjectType>;
-  const weights = Object.values(options);
+  const keys = Object.keys(options);
+  const weights = Object.values(options) as number[];
 
   return chance.weighted(keys, weights);
 };
@@ -74,3 +93,13 @@ export const closest = (values: number[], test: number) =>
 
 export const getAspectRatio = (ratio: number): number =>
   closest(ASPECT_RATIOS_FLOAT, ratio);
+
+export const getAngleBetweenPoints = (
+  startPoint: GamePosition,
+  endPoint: GamePosition
+) =>
+  (Math.atan2(endPoint.y - startPoint.y, endPoint.x - startPoint.x) * 180) /
+  Math.PI;
+
+export const round = (number: number, fixed: number = 2) =>
+  parseFloat(number.toFixed(fixed));

@@ -7,7 +7,6 @@ const Star = styled(SVG).attrs(() => ({
   src: starSVG,
 }))`
   color: var(--neutral10);
-  transition: color 0.2s;
 `;
 
 export default Star;

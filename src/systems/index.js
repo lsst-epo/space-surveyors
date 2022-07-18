@@ -7,7 +7,13 @@ import {
   onCameraExposing,
   onCameraExposureEnd,
 } from './camera';
-import { addSkyObjects, cullSkyObjects } from './sky';
+import {
+  spawnSkyObjects,
+  cullSkyObjects,
+  spawnOccludingObjects,
+  moveOccludingObjects,
+  cullOccludingObjects,
+} from './sky';
 
 const Systems = [
   onResize,
@@ -20,8 +26,11 @@ const Systems = [
   onCameraMoving,
   onCameraExposing,
   onCameraExposureEnd,
-  addSkyObjects,
+  spawnSkyObjects,
+  spawnOccludingObjects,
   cullSkyObjects,
+  cullOccludingObjects,
+  moveOccludingObjects,
 ];
 
 export default Systems;

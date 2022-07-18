@@ -1,11 +1,7 @@
-import { MAX_CAMERA_MOVE, EXPOSURE_TIME, MIN_OVERLAP } from '@constants/index';
-import {
-  GamePosition,
-  GameEntities,
-  GameEventDispatch,
-  GameSystem,
-} from '@shapes/index';
+import { MAX_CAMERA_MOVE, EXPOSURE_TIME } from '@constants/index';
+import { GamePosition, GameSystem } from '@shapes/index';
 import { getDistanceBetweenPoints, getRelativePosition } from '../utils';
+import { detectCapture } from '@systems/collision';
 
 /** onClick, while the game has started but not end,
  *  get the click position and convert it to relative
@@ -20,16 +16,11 @@ const setCameraTarget: GameSystem = (entities, { input, dispatch }) => {
     const { payload } = mouseDown;
     const { pageX: x, pageY: y } = payload;
     const { camera, state } = entities;
-    const { physics } = camera;
     const { boundingRect } = state;
     const nextPosition = getRelativePosition(x, y, boundingRect);
 
-    if (
-      getDistanceBetweenPoints({ x: physics.x, y: physics.y }, nextPosition) > 0
-    ) {
-      dispatch({ type: 'targetSet' });
-      return { ...entities, camera: { ...camera, nextPosition } };
-    }
+    dispatch({ type: 'targetSet' });
+    return { ...entities, camera: { ...camera, nextPosition } };
   }
 
   return entities;
@@ -53,21 +44,19 @@ const onTargetSet: GameSystem = (entities, { events, dispatch }) => {
       nextPosition
     );
     const steps = Math.ceil(distance / MAX_CAMERA_MOVE);
-    const xStepDistance = (nextPosition.x - currentX) / steps;
-    const yStepDistance = (nextPosition.y - currentY) / steps;
+    const xDelta = (nextPosition.x - currentX) / steps;
+    const yDelta = (nextPosition.y - currentY) / steps;
 
     const path: GamePosition[] = [];
 
-    for (let i = 1; i < steps; i++) {
-      const movementX = xStepDistance * i;
-      const movementY = yStepDistance * i;
+    for (let i = 1; i <= steps; i++) {
+      const movementX = xDelta * i;
+      const movementY = yDelta * i;
       path.push({
         x: currentX + movementX,
         y: currentY + movementY,
       });
     }
-
-    path.push(nextPosition);
 
     if (!exposureRemaining) {
       dispatch({ type: 'cameraMoving' });
@@ -104,7 +93,7 @@ const onCameraMoving: GameSystem = (entities, { events, dispatch, time }) => {
       const { nextPosition } = camera;
       const { current: exposureStartTime } = time;
       camera.physics.setPosition(nextPosition.x, nextPosition.y);
-      dispatch({ type: 'cameraExposing' });
+      dispatch({ type: 'cameraExposing', payload: { isFirstExposure: true } });
       return {
         ...entities,
         camera: {
@@ -127,16 +116,26 @@ const onCameraMoving: GameSystem = (entities, { events, dispatch, time }) => {
  */
 const onCameraExposing: GameSystem = (entities, { events, time, dispatch }) => {
   const event = events.find((e) => e.type === 'cameraExposing');
-  const timeEnd = events.find((e) => e.type === 'timeEnd');
+  const isTimeEnd = events.find((e) => e.type === 'timeEnd');
   const { camera } = entities;
 
-  if (event && !timeEnd) {
+  if (event && !isTimeEnd) {
+    const { payload } = event;
+    const { isFirstExposure } = payload;
     const { current } = time;
     const { exposureStartTime } = camera;
+    const { physics, exposures } = camera;
+    const { x, y } = physics;
     const exposureElapsed = current - exposureStartTime;
 
+    if (isFirstExposure) {
+      exposures.push({ x, y });
+    }
+
+    detectCapture(entities, dispatch);
+
     if (exposureElapsed < EXPOSURE_TIME) {
-      dispatch({ type: 'cameraExposing' });
+      dispatch({ type: 'cameraExposing', payload: { isFirstExposure: false } });
 
       return {
         ...entities,
@@ -161,64 +160,6 @@ const onCameraExposing: GameSystem = (entities, { events, time, dispatch }) => {
   return entities;
 };
 
-/**
- * check to see if the colliding object overlaps by
- * more than x% of it's width or height
- */
-const checkOverlap = (response: SAT.Response): boolean => {
-  if (response.bInA) return true;
-
-  const { b: collider, overlapV } = response;
-  const x = collider.maxX - collider.minX;
-  const y = collider.maxY - collider.minY;
-  const xOverlap = Math.abs(overlapV.x / x);
-  const yOverlap = Math.abs(overlapV.y / y);
-
-  return xOverlap >= MIN_OVERLAP || yOverlap >= MIN_OVERLAP;
-};
-
-/** detect if camera captured any objects by first doing potential
- *  collision checks on bounding boxes, then refining and doing a full
- *  collision check on all potentials, get the matching object in the
- *  game entities by location and increment the score by the type of
- *  object found.
- */
-const detectCapture = (entities: GameEntities, dispatch: GameEventDispatch) => {
-  const { world, camera, score } = entities;
-  let isScoreUpdated = false;
-
-  world.system.update();
-  const potentials = world.system.getPotentials(camera.physics);
-
-  potentials.forEach((body) => {
-    if (world.system.checkCollision(camera.physics, body)) {
-      const isDetected = checkOverlap(world.system.response);
-
-      if (isDetected) {
-        const { skyObjects } = entities;
-        const { x, y } = body;
-
-        const collider = skyObjects.objects.find(
-          (object) => object.physics.x === x && object.physics.y === y
-        );
-
-        if (collider) {
-          const capturedCollider = { ...collider };
-          skyObjects.capturedObjects.push(capturedCollider);
-          world.system.remove(collider.physics);
-          collider.captured = true;
-          score[collider.type]++;
-          isScoreUpdated = true;
-        }
-      }
-    }
-  });
-
-  if (isScoreUpdated) {
-    dispatch({ type: 'scoreUpdate', payload: score });
-  }
-};
-
 /** onCameraExposureEnd, add an exposure to the array of exposures
  *  at the current camera position. If a target was queued during
  *  exposure then fire 'cameraMoving' to restart movement.
@@ -228,13 +169,7 @@ const onCameraExposureEnd: GameSystem = (entities, { events, dispatch }) => {
 
   if (event) {
     const { camera } = entities;
-
-    const { exposures, physics, path } = camera;
-    const { x, y } = physics;
-
-    detectCapture(entities, dispatch);
-
-    exposures.push({ x, y });
+    const { path } = camera;
 
     if (path.length > 0) {
       dispatch({ type: 'cameraMoving' });

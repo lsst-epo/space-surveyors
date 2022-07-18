@@ -3,9 +3,11 @@ import { System } from 'detect-collisions';
 
 export default () => {
   const system = new System();
+  const occlusions = new System();
 
   return {
     system,
-    // renderer: <WorldDebug system />,
+    occlusions,
+    // renderer: <WorldDebug occlusions />,
   };
 };

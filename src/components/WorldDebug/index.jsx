@@ -12,7 +12,7 @@ const WorldCanvas = styled.canvas`
   z-index: 1000;
 `;
 
-const WorldDebug = ({ system }) => {
+const WorldDebug = ({ occlusions }) => {
   const canvasRef = useRef(null);
 
   const draw = (ctx) => {
@@ -20,7 +20,7 @@ const WorldDebug = ({ system }) => {
     ctx.strokeStyle = '#FFFFFF';
     ctx.beginPath();
 
-    system.draw(ctx);
+    occlusions.draw(ctx);
     // system.drawBVH(ctx);
 
     ctx.scale(1, 1);

@@ -3,4 +3,6 @@ export type SkyObjectType =
   | 'asteroid'
   | 'comet'
   | 'galaxy'
-  | 'supernova';
+  | 'supernova'
+  | 'cloud'
+  | 'airplane';
