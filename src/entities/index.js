@@ -13,9 +13,13 @@ export default (boundingRect, aspectRatio) => {
   const camera = Camera(aspectRatio);
   const score = Score();
   const world = World();
-  const skyObjects = SkyObjects();
+  const skyObjects = SkyObjects(aspectRatio);
 
   world.system.insert(camera.physics);
+
+  skyObjects.staticObjects.forEach((object) => {
+    world.system.insert(object.physics);
+  });
 
   return { backdrop, timer, state, camera, score, world, skyObjects };
 };

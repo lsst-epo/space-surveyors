@@ -24,7 +24,7 @@ const ExposureText = styled.text.attrs(({ width, height, charSize }) => ({
 }))`
   fill: var(--neutral10);
   font-weight: bold;
-  text-shadow: 2px 2px var(--neutral90) 0;
+  text-shadow: 2px 2px 0 var(--neutral90);
 `;
 
 const CameraRenderer = ({
@@ -32,6 +32,7 @@ const CameraRenderer = ({
   exposures,
   exposureRemaining,
   physics,
+  showEndgame,
 }) => {
   const { ref, width, height } = useResizeObserver();
   const { x, y } = physics;
@@ -41,6 +42,13 @@ const CameraRenderer = ({
 
   return (
     <CameraContainer>
+      {exposures &&
+        exposures.map((exposure, i) => (
+          <Exposure
+            key={`expo-${i}-${exposure.x}-${exposure.y}`}
+            {...{ x: exposure.x, y: exposure.y, size, $pause: showEndgame }}
+          />
+        ))}
       <FocalPlaneContainer {...{ x, y, size }}>
         <ExposureText
           x="50%"
@@ -55,13 +63,6 @@ const CameraRenderer = ({
       {nextPosition && (
         <CameraTarget {...{ x: nextPosition.x, y: nextPosition.y }} />
       )}
-      {exposures &&
-        exposures.map((exposure, i) => (
-          <Exposure
-            key={`expo-${i}-${exposure.x}-${exposure.y}`}
-            {...{ x: exposure.x, y: exposure.y, size }}
-          />
-        ))}
     </CameraContainer>
   );
 };

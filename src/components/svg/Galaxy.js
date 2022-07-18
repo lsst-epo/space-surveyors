@@ -6,7 +6,6 @@ const Galaxy = styled(SVG).attrs(() => ({
   src: galaxySVG,
 }))`
   color: var(--neutral10);
-  transition: color 0.2s;
 `;
 
 export default Galaxy;

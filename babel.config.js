@@ -25,6 +25,7 @@ module.exports = {
           '@constants': './src/constants',
           '@contexts': './src/contexts',
           '@entities': './src/entities',
+          '@modules': './src/modules',
           '@shapes': './src/shapes',
           '@styles': './src/styles',
           '@systems': './src/systems',

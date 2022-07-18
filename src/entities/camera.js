@@ -5,6 +5,7 @@ import { FocalPlaneBounding } from './boundings/FocalPlaneBounding';
 import { CAMERA_SIZE } from '@constants/index';
 
 export default (aspectRatio) => {
+  const showEndgame = false;
   const offset = CAMERA_SIZE / 2;
   const nextPosition = null;
   const path = [];
@@ -18,6 +19,7 @@ export default (aspectRatio) => {
   );
 
   const properties = {
+    showEndgame,
     nextPosition,
     path,
     exposures,

@@ -10,22 +10,50 @@ const NightSkyContainer = styled.div`
   z-index: ${zStack.objects};
 `;
 
-const NightSkyRenderer = ({ objects, capturedObjects, showEndgame }) => {
-  const renderSkyObjects = (object) => {
-    const { width, brightness, captured } = object;
+const NightSkyRenderer = ({
+  staticObjects,
+  dynamicObjects,
+  occludingObjects,
+  capturedObjects,
+  showEndgame,
+}) => {
+  const renderOccludingObjects = (object) => {
+    const { width } = object;
     const { x, y } = object.physics;
     const Object = Objects[object.type];
+
     return (
       <Object
         key={`${object.type}-${x}-${y}`}
-        {...{ brightness, $captured: captured, x, y, width: `${width}%` }}
+        {...{ x, y, width: `${width}%` }}
+      />
+    );
+  };
+  const renderSkyObjects = (object) => {
+    const { width, brightness, captured, angle } = object;
+    const { x, y } = object.physics;
+    const Object = Objects[object.type];
+
+    return (
+      <Object
+        key={`${object.type}-${x}-${y}`}
+        {...{
+          brightness,
+          $captured: captured,
+          x,
+          y,
+          width: `${width}%`,
+          angle,
+        }}
       />
     );
   };
 
   return (
     <NightSkyContainer>
-      {!showEndgame && objects && objects.map(renderSkyObjects)}
+      {!showEndgame && staticObjects.map(renderSkyObjects)}
+      {!showEndgame && dynamicObjects.map(renderSkyObjects)}
+      {!showEndgame && occludingObjects.map(renderSkyObjects)}
       {showEndgame && capturedObjects.map(renderSkyObjects)}
     </NightSkyContainer>
   );
