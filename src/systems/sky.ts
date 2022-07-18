@@ -8,16 +8,10 @@ import {
   FADE_TIME,
   MAX_DYNAMIC_OBJECTS,
   OBJECTS_PER_SECOND,
-  // OBJECT_SIZE,
   SPAWN_INTERVAL,
-  // SPAWN_LOCATION,
   WEIGHTED_GENERATION,
 } from '@constants/index';
-import {
-  // getPositionInQuad,
-  getRandomInt,
-  getRandomWeightedValue,
-} from '../utils';
+import { getRandomInt, getRandomWeightedValue } from '../utils';
 import { System } from 'detect-collisions';
 import { DynamicSkyObject } from '@modules/DynamicSkyObject';
 import { OccludingObject } from '@modules/OccludingObject';
