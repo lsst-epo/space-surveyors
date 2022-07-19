@@ -8,9 +8,8 @@ import {
   onCameraExposureEnd,
 } from './camera';
 import {
-  spawnSkyObjects,
   cullSkyObjects,
-  spawnOccludingObjects,
+  spawnObjects,
   moveOccludingObjects,
   cullOccludingObjects,
 } from './sky';
@@ -26,8 +25,7 @@ const Systems = [
   onCameraMoving,
   onCameraExposing,
   onCameraExposureEnd,
-  spawnSkyObjects,
-  spawnOccludingObjects,
+  spawnObjects,
   cullSkyObjects,
   cullOccludingObjects,
   moveOccludingObjects,

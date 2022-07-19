@@ -9,13 +9,34 @@ export const DAY_TRANSITION_TIME: number = 1000;
 export const FINISH_SCREEN_TIME: number = 5000;
 
 // Camera
-export const CAMERA_SIZE: number = 20;
+export const CAMERA_SIZE: number = 15;
 export const TARGET_SIZE: number = CAMERA_SIZE / 5;
 export const MAX_CAMERA_MOVE: number = 1;
 export const EXPOSURE_TIME: number = 5000;
 
 // Collision
 export const MIN_OVERLAP: number = 0.5;
+
+// Spawn
+export const FIRST_SPAWN: any = {
+  cloud: 0,
+  airplane: 5000,
+  supernova: 3000,
+};
+export const SPAWN_INTERVAL: any = {
+  cloud: {
+    min: 5000,
+    max: 12000,
+  },
+  airplane: {
+    min: 10000,
+    max: 20000,
+  },
+  supernova: {
+    min: 3000,
+    max: 5000,
+  },
+};
 
 // Sky Objects
 export const MIN_OBJECT_X: number = 10;
@@ -26,50 +47,11 @@ export const OBJECTS_PER_SECOND: number = 0.6;
 export const MAX_STATIC_OBJECTS: number = 15;
 export const MAX_DYNAMIC_OBJECTS: number = 10;
 export const FADE_TIME: number = 500;
-export * from '@modules/SkyObjectConfig';
+export * from '@constants/SkyObjectConfig';
 
 // Occlusions
-export const MAX_OCCLUDING_OBJECTS: number = 3;
-export const MIN_WIND_SPEED: number = 0.01;
-export const MAX_WIND_SPEED: number = 0.03;
+export const MAX_OCCLUDING_OBJECTS: number = 8;
+export const MIN_WIND_SPEED: number = 0.015;
+export const MAX_WIND_SPEED: number = 0.035;
 export const AIRPLANE_SPEED: number = 0.035;
-export const SPAWN_LOCATION: any = {
-  cloud: {
-    x: {
-      1: 4,
-      2: 3,
-      3: 1,
-      4: 0,
-    },
-    y: {
-      1: 1,
-      2: 4,
-      3: 5,
-      4: 2,
-    },
-  },
-  airplane: {
-    x: {
-      1: 1,
-      2: 1,
-      3: 1,
-      4: 1,
-    },
-    y: {
-      1: 1,
-      2: 1,
-      3: 1,
-      4: 1,
-    },
-  },
-};
-export const SPAWN_INTERVAL: any = {
-  cloud: {
-    min: 5000,
-    max: 12000,
-  },
-  airplane: {
-    min: 9000,
-    max: 15000,
-  },
-};
+export * from '@constants/OcclusionConfig';

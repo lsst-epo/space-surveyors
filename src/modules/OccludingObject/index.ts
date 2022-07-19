@@ -1,4 +1,4 @@
-import { SPAWN_LOCATION } from '@constants/index';
+import { SPAWN_LOCATION, STARTING_EDGES } from '@constants/index';
 import { SkyObject } from '@modules/SkyObject';
 import { GamePosition, SkyObjectType } from '@shapes/index';
 import {
@@ -8,8 +8,6 @@ import {
   getRandomWeightedValue,
   round,
 } from 'src/utils';
-
-const startingEdges = { left: 1, right: 1, top: 1, bottom: 1 };
 
 export class OccludingObject extends SkyObject {
   public delta: GamePosition;
@@ -38,10 +36,10 @@ export class OccludingObject extends SkyObject {
 
     const startOnEdge = onlyMovesHorizontal
       ? 'left'
-      : getRandomWeightedValue(startingEdges);
+      : getRandomWeightedValue(STARTING_EDGES);
     const endOnEdge = onlyMovesHorizontal
       ? 'right'
-      : getRandomWeightedValue({ ...startingEdges, [startOnEdge]: 0 });
+      : getRandomWeightedValue({ ...STARTING_EDGES, [startOnEdge]: 0 });
 
     const xQuad = Number(getRandomWeightedValue(SPAWN_LOCATION[this.type].x));
     const yQuad = Number(getRandomWeightedValue(SPAWN_LOCATION[this.type].y));

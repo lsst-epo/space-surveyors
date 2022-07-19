@@ -3,6 +3,8 @@ export type GamePosition = {
   y: number;
 };
 
+export type Edge = 'top' | 'bottom' | 'left' | 'right';
+
 export type WeightedOptions = {
   [key: string | number]: number;
 };
