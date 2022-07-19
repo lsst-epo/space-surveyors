@@ -1,72 +1,33 @@
-import {
-  GameSystem,
-  GamePosition,
-  GameState,
-  SkyObjectType,
-} from '@shapes/index';
+import { GameSystem, GameState, SkyObjectType } from '@shapes/index';
 import {
   FADE_TIME,
   MAX_DYNAMIC_OBJECTS,
-  OBJECTS_PER_SECOND,
+  MAX_OCCLUDING_OBJECTS,
   SPAWN_INTERVAL,
-  WEIGHTED_GENERATION,
 } from '@constants/index';
-import { getRandomInt, getRandomWeightedValue } from '../utils';
+import { getRandomInt } from '../utils';
 import { System } from 'detect-collisions';
 import { DynamicSkyObject } from '@modules/DynamicSkyObject';
 import { OccludingObject } from '@modules/OccludingObject';
 
 const spawnObject = (
+  type: SkyObjectType,
   objects: DynamicSkyObject[],
   system: System,
-  timestamp: number,
-  aspectRatio: number = 1,
-  position?: GamePosition
+  state: GameState,
+  timestamp: number
 ) => {
-  const { asteroid, comet, supernova } = WEIGHTED_GENERATION as any;
-  const type = getRandomWeightedValue({
-    asteroid,
-    comet,
-    supernova,
-  }) as SkyObjectType;
-  const newObject = new DynamicSkyObject(
-    type,
-    timestamp,
-    aspectRatio,
-    position
-  );
-  objects.push(newObject);
-  system.insert(newObject.physics);
-};
-
-/** method is dependent on game running at
- *  close to 60fps. 60 is divided by number of objects to generate
- *  per second, if number generated is equal to that then
- *  it should generate a new object
- */
-const shouldSpawnObject = (frequency: number): boolean => {
-  const target = 60 / frequency;
-
-  return getRandomInt(1, target) === target;
-};
-
-export const spawnSkyObjects: GameSystem = (entities, { time, dispatch }) => {
-  const { current } = time;
-  const { skyObjects, world, state } = entities;
-  const { aspectRatio, stage } = state;
-  const { dynamicObjects } = skyObjects;
-
-  if (stage === 'running') {
-    if (
-      dynamicObjects.length < MAX_DYNAMIC_OBJECTS &&
-      shouldSpawnObject(OBJECTS_PER_SECOND)
-    ) {
-      spawnObject(dynamicObjects, world.system, current, aspectRatio);
-      dispatch({ type: 'spawnedObject' });
-    }
+  if (objects.length < MAX_DYNAMIC_OBJECTS) {
+    const { aspectRatio } = state;
+    const newObject = new DynamicSkyObject(type, timestamp, aspectRatio);
+    objects.push(newObject);
+    system.insert(newObject.physics);
   }
 
-  return entities;
+  state.nextSpawn[type] += getRandomInt(
+    SPAWN_INTERVAL[type].min,
+    SPAWN_INTERVAL[type].max
+  );
 };
 
 const prepareExpiringObjects = (
@@ -109,36 +70,67 @@ const spawnOcclusion = (
   system: System,
   state: GameState
 ) => {
-  const { aspectRatio, windSpeed } = state;
+  if (objects.length < MAX_OCCLUDING_OBJECTS) {
+    const { aspectRatio, windSpeed } = state;
+    const newOcclusion = new OccludingObject(type, aspectRatio, windSpeed);
+    objects.push(newOcclusion);
+    system.insert(newOcclusion.physics);
+  }
 
-  const newOcclusion = new OccludingObject(type, aspectRatio, windSpeed);
-  objects.push(newOcclusion);
-  system.insert(newOcclusion.physics);
   state.nextSpawn[type] += getRandomInt(
     SPAWN_INTERVAL[type].min,
     SPAWN_INTERVAL[type].max
   );
 };
 
-export const spawnOccludingObjects: GameSystem = (
-  entities,
-  { dispatch, time }
-) => {
+export const spawnObjects: GameSystem = (entities, { dispatch, time }) => {
   const { current } = time;
   const { skyObjects, world, state } = entities;
   const { stage, nextSpawn, startTime } = state;
-  const { occludingObjects } = skyObjects;
+  const { system, occlusions } = world;
+  const { occludingObjects, dynamicObjects } = skyObjects;
+
+  const objectTypes = {
+    cloud: 'occlusion',
+    airplane: 'occlusion',
+    supernova: 'dynamicObject',
+  };
+
+  const objects = {
+    occlusion: occludingObjects,
+    dynamicObject: dynamicObjects,
+  };
+
+  const physics = {
+    occlusion: occlusions,
+    dynamicObject: system,
+  };
+
+  const spawners = {
+    occlusion: spawnOcclusion,
+    dynamicObject: spawnObject,
+  };
+
+  const event = {
+    occlusion: 'spawnedOcclusion',
+    dynamicObject: 'spawnedObject',
+  };
 
   if (stage === 'running') {
-    Object.keys(nextSpawn).forEach((type) => {
-      if (nextSpawn[type] < current - startTime) {
-        spawnOcclusion(
-          type as SkyObjectType,
-          occludingObjects,
-          world.occlusions,
-          state
+    Object.keys(nextSpawn).forEach((object) => {
+      if (nextSpawn[object] < current - startTime) {
+        const objectType = objectTypes[object];
+        const spawner = spawners[objectType];
+
+        spawner(
+          object as SkyObjectType,
+          objects[objectType],
+          physics[objectType],
+          state,
+          current
         );
-        dispatch({ type: 'spawnedOcclusion' });
+
+        dispatch({ type: event[objectType] });
       }
     });
   }

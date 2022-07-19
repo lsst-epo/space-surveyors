@@ -1,5 +1,5 @@
 {
-  "version": "0.7.0-alpha",
+  "version": "0.7.1-alpha",
   "name": "space-surveyors",
   "author": "Rubin EPO",
   "module": "dist/space-surveyors.esm.js",
