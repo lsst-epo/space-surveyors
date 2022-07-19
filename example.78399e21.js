@@ -58870,7 +58870,7 @@ var OBJECT_SIZE = {
   },
   cloud: {
     min: 15,
-    max: 25
+    max: 30
   },
   airplane: {
     min: 3,
@@ -58914,32 +58914,7 @@ var WEIGHTED_GENERATION = {
   galaxy: 2,
   supernova: 1,
   cloud: 1
-}; // SCREEN
-
-var ASPECT_RATIOS_FLOAT = [1.7778, 1.333, 0.75, 0.5625]; // Timeline
-
-var GAME_TIME = 60000;
-var WARMUP_TIME = 1000;
-var DAY_TRANSITION_TIME = 1000;
-var FINISH_SCREEN_TIME = 5000; // Camera
-
-var CAMERA_SIZE = 20;
-var TARGET_SIZE = CAMERA_SIZE / 5;
-var MAX_CAMERA_MOVE = 1;
-var EXPOSURE_TIME = 5000; // Collision
-
-var MIN_OVERLAP = 0.5; // Sky Objects
-
-var MIN_OBJECT_X = 10;
-var MAX_OBJECT_X = 90;
-var MIN_OBJECT_Y = 15;
-var MAX_OBJECT_Y = 98;
-var OBJECTS_PER_SECOND = 0.6;
-var MAX_STATIC_OBJECTS = 15;
-var MAX_DYNAMIC_OBJECTS = 10;
-var FADE_TIME = 500;
-var MIN_WIND_SPEED = 0.01;
-var MAX_WIND_SPEED = 0.03;
+};
 var SPAWN_LOCATION = {
   cloud: {
     x: {
@@ -58950,9 +58925,9 @@ var SPAWN_LOCATION = {
     },
     y: {
       1: 1,
-      2: 4,
-      3: 5,
-      4: 2
+      2: 2,
+      3: 2,
+      4: 1
     }
   },
   airplane: {
@@ -58970,16 +58945,57 @@ var SPAWN_LOCATION = {
     }
   }
 };
+var STARTING_EDGES = {
+  left: 1,
+  right: 1,
+  top: 3,
+  bottom: 3
+}; // SCREEN
+
+var ASPECT_RATIOS_FLOAT = [1.7778, 1.333, 0.75, 0.5625]; // Timeline
+
+var GAME_TIME = 60000;
+var WARMUP_TIME = 1000;
+var DAY_TRANSITION_TIME = 1000;
+var FINISH_SCREEN_TIME = 5000; // Camera
+
+var CAMERA_SIZE = 15;
+var TARGET_SIZE = CAMERA_SIZE / 5;
+var MAX_CAMERA_MOVE = 1;
+var EXPOSURE_TIME = 5000; // Collision
+
+var MIN_OVERLAP = 0.5; // Spawn
+
+var FIRST_SPAWN = {
+  cloud: 0,
+  airplane: 5000,
+  supernova: 3000
+};
 var SPAWN_INTERVAL = {
   cloud: {
     min: 5000,
     max: 12000
   },
   airplane: {
-    min: 9000,
-    max: 15000
+    min: 10000,
+    max: 20000
+  },
+  supernova: {
+    min: 3000,
+    max: 5000
   }
-};
+}; // Sky Objects
+
+var MIN_OBJECT_X = 10;
+var MAX_OBJECT_X = 90;
+var MIN_OBJECT_Y = 15;
+var MAX_OBJECT_Y = 98;
+var MAX_STATIC_OBJECTS = 15;
+var MAX_DYNAMIC_OBJECTS = 10;
+var FADE_TIME = 500;
+var MAX_OCCLUDING_OBJECTS = 8;
+var MIN_WIND_SPEED = 0.015;
+var MAX_WIND_SPEED = 0.035;
 var Sun = /*#__PURE__*/styled__default.div.attrs(function (_ref) {
   var showEndgame = _ref.showEndgame;
   return {
@@ -59174,10 +59190,7 @@ var State = function State(boundingRect, aspectRatio) {
   var endTime = null;
   var stage = 'menu';
   var windSpeed = getRandomDecimal(MIN_WIND_SPEED, MAX_WIND_SPEED, 3);
-  var nextSpawn = {
-    cloud: 0,
-    airplane: 5000
-  };
+  var nextSpawn = FIRST_SPAWN;
   return {
     nextSpawn: nextSpawn,
     aspectRatio: aspectRatio,
@@ -60514,13 +60527,6 @@ var DynamicSkyObject = /*#__PURE__*/function (_SkyObject) {
   return DynamicSkyObject;
 }(SkyObject);
 
-var startingEdges = {
-  left: 1,
-  right: 1,
-  top: 1,
-  bottom: 1
-};
-
 var OccludingObject = /*#__PURE__*/function (_SkyObject) {
   _inheritsLoose(OccludingObject, _SkyObject);
 
@@ -60542,8 +60548,8 @@ var OccludingObject = /*#__PURE__*/function (_SkyObject) {
       var _extends2;
 
       var onlyMovesHorizontal = _this.type === 'cloud';
-      var startOnEdge = onlyMovesHorizontal ? 'left' : getRandomWeightedValue(startingEdges);
-      var endOnEdge = onlyMovesHorizontal ? 'right' : getRandomWeightedValue(_extends({}, startingEdges, (_extends2 = {}, _extends2[startOnEdge] = 0, _extends2)));
+      var startOnEdge = onlyMovesHorizontal ? 'left' : getRandomWeightedValue(STARTING_EDGES);
+      var endOnEdge = onlyMovesHorizontal ? 'right' : getRandomWeightedValue(_extends({}, STARTING_EDGES, (_extends2 = {}, _extends2[startOnEdge] = 0, _extends2)));
       var xQuad = Number(getRandomWeightedValue(SPAWN_LOCATION[_this.type].x));
       var yQuad = Number(getRandomWeightedValue(SPAWN_LOCATION[_this.type].y));
       var startQuadPosition = getPositionInQuad(xQuad, yQuad);
@@ -60632,56 +60638,15 @@ var OccludingObject = /*#__PURE__*/function (_SkyObject) {
   return OccludingObject;
 }(SkyObject);
 
-var spawnObject = function spawnObject(objects, system, timestamp, aspectRatio, position) {
-  if (aspectRatio === void 0) {
-    aspectRatio = 1;
+var spawnObject = function spawnObject(type, objects, system, state, timestamp) {
+  if (objects.length < MAX_DYNAMIC_OBJECTS) {
+    var aspectRatio = state.aspectRatio;
+    var newObject = new DynamicSkyObject(type, timestamp, aspectRatio);
+    objects.push(newObject);
+    system.insert(newObject.physics);
   }
 
-  var asteroid = WEIGHTED_GENERATION.asteroid,
-      comet = WEIGHTED_GENERATION.comet,
-      supernova = WEIGHTED_GENERATION.supernova;
-  var type = getRandomWeightedValue({
-    asteroid: asteroid,
-    comet: comet,
-    supernova: supernova
-  });
-  var newObject = new DynamicSkyObject(type, timestamp, aspectRatio, position);
-  objects.push(newObject);
-  system.insert(newObject.physics);
-};
-/** method is dependent on game running at
- *  close to 60fps. 60 is divided by number of objects to generate
- *  per second, if number generated is equal to that then
- *  it should generate a new object
- */
-
-
-var shouldSpawnObject = function shouldSpawnObject(frequency) {
-  var target = 60 / frequency;
-  return getRandomInt(1, target) === target;
-};
-
-var spawnSkyObjects = function spawnSkyObjects(entities, _ref) {
-  var time = _ref.time,
-      dispatch = _ref.dispatch;
-  var current = time.current;
-  var skyObjects = entities.skyObjects,
-      world = entities.world,
-      state = entities.state;
-  var aspectRatio = state.aspectRatio,
-      stage = state.stage;
-  var dynamicObjects = skyObjects.dynamicObjects;
-
-  if (stage === 'running') {
-    if (dynamicObjects.length < MAX_DYNAMIC_OBJECTS && shouldSpawnObject(OBJECTS_PER_SECOND)) {
-      spawnObject(dynamicObjects, world.system, current, aspectRatio);
-      dispatch({
-        type: 'spawnedObject'
-      });
-    }
-  }
-
-  return entities;
+  state.nextSpawn[type] += getRandomInt(SPAWN_INTERVAL[type].min, SPAWN_INTERVAL[type].max);
 };
 
 var prepareExpiringObjects = function prepareExpiringObjects(object, currentTime) {
@@ -60693,8 +60658,8 @@ var prepareExpiringObjects = function prepareExpiringObjects(object, currentTime
   return object;
 };
 
-var cullSkyObjects = function cullSkyObjects(entities, _ref2) {
-  var time = _ref2.time;
+var cullSkyObjects = function cullSkyObjects(entities, _ref) {
+  var time = _ref.time;
   var current = time.current;
   var skyObjects = entities.skyObjects,
       world = entities.world;
@@ -60715,17 +60680,20 @@ var cullSkyObjects = function cullSkyObjects(entities, _ref2) {
 };
 
 var spawnOcclusion = function spawnOcclusion(type, objects, system, state) {
-  var aspectRatio = state.aspectRatio,
-      windSpeed = state.windSpeed;
-  var newOcclusion = new OccludingObject(type, aspectRatio, windSpeed);
-  objects.push(newOcclusion);
-  system.insert(newOcclusion.physics);
+  if (objects.length < MAX_OCCLUDING_OBJECTS) {
+    var aspectRatio = state.aspectRatio,
+        windSpeed = state.windSpeed;
+    var newOcclusion = new OccludingObject(type, aspectRatio, windSpeed);
+    objects.push(newOcclusion);
+    system.insert(newOcclusion.physics);
+  }
+
   state.nextSpawn[type] += getRandomInt(SPAWN_INTERVAL[type].min, SPAWN_INTERVAL[type].max);
 };
 
-var spawnOccludingObjects = function spawnOccludingObjects(entities, _ref3) {
-  var dispatch = _ref3.dispatch,
-      time = _ref3.time;
+var spawnObjects = function spawnObjects(entities, _ref2) {
+  var dispatch = _ref2.dispatch,
+      time = _ref2.time;
   var current = time.current;
   var skyObjects = entities.skyObjects,
       world = entities.world,
@@ -60733,14 +60701,40 @@ var spawnOccludingObjects = function spawnOccludingObjects(entities, _ref3) {
   var stage = state.stage,
       nextSpawn = state.nextSpawn,
       startTime = state.startTime;
-  var occludingObjects = skyObjects.occludingObjects;
+  var system = world.system,
+      occlusions = world.occlusions;
+  var occludingObjects = skyObjects.occludingObjects,
+      dynamicObjects = skyObjects.dynamicObjects;
+  var objectTypes = {
+    cloud: 'occlusion',
+    airplane: 'occlusion',
+    supernova: 'dynamicObject'
+  };
+  var objects = {
+    occlusion: occludingObjects,
+    dynamicObject: dynamicObjects
+  };
+  var physics = {
+    occlusion: occlusions,
+    dynamicObject: system
+  };
+  var spawners = {
+    occlusion: spawnOcclusion,
+    dynamicObject: spawnObject
+  };
+  var event = {
+    occlusion: 'spawnedOcclusion',
+    dynamicObject: 'spawnedObject'
+  };
 
   if (stage === 'running') {
-    Object.keys(nextSpawn).forEach(function (type) {
-      if (nextSpawn[type] < current - startTime) {
-        spawnOcclusion(type, occludingObjects, world.occlusions, state);
+    Object.keys(nextSpawn).forEach(function (object) {
+      if (nextSpawn[object] < current - startTime) {
+        var objectType = objectTypes[object];
+        var spawner = spawners[objectType];
+        spawner(object, objects[objectType], physics[objectType], state, current);
         dispatch({
-          type: 'spawnedOcclusion'
+          type: event[objectType]
         });
       }
     });
@@ -60801,7 +60795,7 @@ var cullOccludingObjects = function cullOccludingObjects(entities) {
   return entities;
 };
 
-var Systems = [onResize, onGameStart, onTimeEnd, onTimeStart, countdown, setCameraTarget, onTargetSet, onCameraMoving, onCameraExposing, onCameraExposureEnd, spawnSkyObjects, spawnOccludingObjects, cullSkyObjects, cullOccludingObjects, moveOccludingObjects];
+var Systems = [onResize, onGameStart, onTimeEnd, onTimeStart, countdown, setCameraTarget, onTargetSet, onCameraMoving, onCameraExposing, onCameraExposureEnd, spawnObjects, cullSkyObjects, cullOccludingObjects, moveOccludingObjects];
 var GameStageContainer = /*#__PURE__*/styled__default.div.attrs(function (_ref) {
   var aspectRatio = _ref.aspectRatio;
   return {
@@ -61257,7 +61251,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "60915" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "59975" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
