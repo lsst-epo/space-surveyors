@@ -41,7 +41,7 @@ export const OBJECT_SIZE: {
   },
   cloud: {
     min: 15,
-    max: 25,
+    max: 30,
   },
   airplane: {
     min: 3,
