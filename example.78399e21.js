@@ -58905,7 +58905,7 @@ var OBJECT_SIZE = {
   camera: {
     min: 15,
     target: 25,
-    max: 35
+    max: 30
   },
   star: {
     min: 1,
@@ -61000,7 +61000,6 @@ var SpaceSurveyors = function SpaceSurveyors() {
     var aspectRatio = state.aspectRatio;
 
     if (!aspectRatio) {
-      console.log(getAspectRatio(width / (height * GAME_FIELD_SIZE)));
       setState(_extends({}, state, {
         aspectRatio: getAspectRatio(width / (height * GAME_FIELD_SIZE))
       }));
