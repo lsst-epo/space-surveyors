@@ -9,7 +9,7 @@ module.exports = {
   ],
   // ..
   plugins: [
-    'babel-plugin-styled-components',
+    ['babel-plugin-styled-components', { namespace: 'space-surveyors' }],
     [
       // npm i -D babel-plugin-module-resolver
       // Alias resolver for `tsconfig.paths`
