@@ -6,7 +6,6 @@ import Exposure from '@components/svg/Exposure';
 import CameraTarget from '@components/Camera/Target';
 import FocalPlaneContainer from '@components/Camera/FocalPlaneContainer';
 import { fullScreenAbsolute } from '@styles/mixins/appearance';
-import { CAMERA_SIZE } from '@constants/';
 
 const CameraContainer = styled.div`
   ${fullScreenAbsolute}
@@ -33,10 +32,10 @@ const CameraRenderer = ({
   exposureRemaining,
   physics,
   showEndgame,
+  size,
 }) => {
   const { ref, width, height } = useResizeObserver();
   const { x, y } = physics;
-  const size = CAMERA_SIZE;
   const captureMessage = 'Capturing';
   const charSize = captureMessage.length / 2;
 
@@ -61,7 +60,7 @@ const CameraRenderer = ({
         </ExposureText>
       </FocalPlaneContainer>
       {nextPosition && (
-        <CameraTarget {...{ x: nextPosition.x, y: nextPosition.y }} />
+        <CameraTarget {...{ x: nextPosition.x, y: nextPosition.y, size }} />
       )}
     </CameraContainer>
   );
