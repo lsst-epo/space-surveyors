@@ -1,12 +1,13 @@
 import React from 'react';
 import CameraRenderer from '@components/Camera';
 import { Polygon } from 'detect-collisions';
-import { FocalPlaneBounding } from './boundings/FocalPlaneBounding';
-import { CAMERA_SIZE } from '@constants/index';
+import { FocalPlaneBounding } from '@constants/objects/boundings/FocalPlaneBounding';
+import { getScaledObjectSize } from '@constants/index';
 
 export default (aspectRatio) => {
+  const size = getScaledObjectSize('camera', aspectRatio);
   const showEndgame = false;
-  const offset = CAMERA_SIZE / 2;
+  const offset = size / 2;
   const nextPosition = null;
   const path = [];
   const exposures = [];
@@ -14,7 +15,7 @@ export default (aspectRatio) => {
   const exposureRemaining = null;
   const physics = new Polygon(
     { x: 50 - offset, y: 50 - offset },
-    FocalPlaneBounding(CAMERA_SIZE, CAMERA_SIZE * aspectRatio),
+    FocalPlaneBounding(size, size * aspectRatio),
     { center: true, isTrigger: true }
   );
 
@@ -26,6 +27,7 @@ export default (aspectRatio) => {
     exposureStartTime,
     exposureRemaining,
     physics,
+    size,
   };
 
   return {

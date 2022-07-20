@@ -1,6 +1,19 @@
 // SCREEN
-export const ASPECT_RATIOS: string[] = ['16:9', '4:3', '3:4', '3:5'];
-export const ASPECT_RATIOS_FLOAT: number[] = [1.7778, 1.333, 0.75, 0.5625];
+export const ASPECT_RATIOS: string[] = [
+  '1.85:1',
+  '16:9',
+  '16:10',
+  '4:3',
+  '1:1',
+  '3:4',
+  '2:3',
+  '3:5',
+];
+export const ASPECT_RATIOS_FLOAT: number[] = [
+  1.85, 1.7778, 1.6, 1.3333, 1, 0.75, 0.6667, 0.6,
+];
+export const GAME_FIELD_SIZE: number = 0.8;
+export const HUD_SIZE: number = 0.2;
 
 // Timeline
 export const GAME_TIME: number = 60000;
@@ -9,8 +22,6 @@ export const DAY_TRANSITION_TIME: number = 1000;
 export const FINISH_SCREEN_TIME: number = 5000;
 
 // Camera
-export const CAMERA_SIZE: number = 15;
-export const TARGET_SIZE: number = CAMERA_SIZE / 5;
 export const MAX_CAMERA_MOVE: number = 1;
 export const EXPOSURE_TIME: number = 5000;
 
@@ -55,3 +66,5 @@ export const MIN_WIND_SPEED: number = 0.015;
 export const MAX_WIND_SPEED: number = 0.035;
 export const AIRPLANE_SPEED: number = 0.035;
 export * from '@constants/OcclusionConfig';
+
+export * from '@constants/objects/sizes';

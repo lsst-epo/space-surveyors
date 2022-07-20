@@ -16,38 +16,6 @@ export const OBJECT_LIFESPAN: {
     max: 10000,
   },
 };
-export const OBJECT_SIZE: {
-  [Key in SkyObjectType]: { min: number; max: number };
-} = {
-  star: {
-    min: 0.5,
-    max: 2,
-  },
-  asteroid: {
-    min: 1,
-    max: 3,
-  },
-  comet: {
-    min: 1,
-    max: 3,
-  },
-  galaxy: {
-    min: 1,
-    max: 3,
-  },
-  supernova: {
-    min: 1,
-    max: 3,
-  },
-  cloud: {
-    min: 15,
-    max: 30,
-  },
-  airplane: {
-    min: 3,
-    max: 3,
-  },
-};
 export const OBJECT_BRIGHTNESS: {
   [Key in SkyObjectType]: { min: number; max: number };
 } = {
