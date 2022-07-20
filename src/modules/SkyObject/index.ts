@@ -1,8 +1,8 @@
 import { GamePosition, SkyObjectType } from '@shapes/index';
 import { Polygon, Ellipse } from 'detect-collisions';
 import { getNewPosition, getRandomDecimal } from '../../utils';
-import { OBJECT_BRIGHTNESS, OBJECT_SIZE } from '@constants/index';
-import boundings from '@entities/boundings';
+import { OBJECT_BRIGHTNESS, getScaledObjectSize } from '@constants/index';
+import boundings from '@constants/objects/boundings';
 
 export class SkyObject {
   public type: SkyObjectType;
@@ -18,7 +18,7 @@ export class SkyObject {
     position?: GamePosition
   ) {
     this.type = type;
-    this.width = this.getObjectSize(type);
+    this.width = getScaledObjectSize(type, aspectRatio);
     this.aspectRatio = aspectRatio;
     this.physics = this.getPhysics(type, this.width, aspectRatio, position);
     this.brightness = getRandomDecimal(
@@ -50,7 +50,4 @@ export class SkyObject {
       return new Ellipse(startPosition, width, width * aspectRatio);
     }
   };
-
-  private getObjectSize = (type: SkyObjectType) =>
-    getRandomDecimal(OBJECT_SIZE[type].min, OBJECT_SIZE[type].max, 1);
 }

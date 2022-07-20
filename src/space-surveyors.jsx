@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import useResizeObserver from 'use-resize-observer';
 import { GameEngine } from 'react-game-engine';
+import { GAME_FIELD_SIZE } from '@constants/index';
 import SpaceSurveyorsContainer from '@components/containers/SpaceSurveyorsContainer';
 import GameMenus from '@components/Menus';
 import styled from 'styled-components';
@@ -36,7 +37,10 @@ const SpaceSurveyors = () => {
   const handleOuterResize = ({ width, height }) => {
     const { aspectRatio } = state;
     if (!aspectRatio) {
-      setState({ ...state, aspectRatio: getAspectRatio(width / height) });
+      setState({
+        ...state,
+        aspectRatio: getAspectRatio(width / (height * GAME_FIELD_SIZE)),
+      });
     }
     if (resizeRef.current) {
       handleResize({});
