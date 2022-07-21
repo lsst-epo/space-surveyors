@@ -14,12 +14,15 @@ export const ASPECT_RATIOS_FLOAT: number[] = [
 ];
 export const GAME_FIELD_SIZE: number = 0.8;
 export const HUD_SIZE: number = 0.2;
+export const MENU_SLIDE_TIME: number = 500;
+export const MENU_SLIDE_DELAY: number = 200;
+export const MENU_TRANSITION_TIME: number = MENU_SLIDE_TIME + MENU_SLIDE_DELAY;
 
 // Timeline
 export const GAME_TIME: number = 60000;
 export const WARMUP_TIME: number = 1000;
 export const DAY_TRANSITION_TIME: number = 1000;
-export const FINISH_SCREEN_TIME: number = 5000;
+export const FINISH_SCREEN_TIME: number = 100000;
 
 // Camera
 export const MAX_CAMERA_MOVE: number = 1;

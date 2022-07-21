@@ -1,5 +1,5 @@
 {
-  "version": "0.7.2-alpha",
+  "version": "0.7.3-alpha",
   "name": "space-surveyors",
   "author": "Rubin EPO",
   "module": "dist/space-surveyors.esm.js",
@@ -81,7 +81,6 @@
     "react-game-engine": "^1.1.0",
     "react-inlinesvg": "^3.0.0",
     "styled-components": "^5.3.5",
-    "use-fit-text": "^2.4.0",
     "use-resize-observer": "^9.0.2"
   },
   "browserslist": {
