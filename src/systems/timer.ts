@@ -1,7 +1,7 @@
 import { GameSystem } from '@shapes/system';
 import { FINISH_SCREEN_TIME, GAME_TIME, WARMUP_TIME } from '@constants/index';
 
-const countdown: GameSystem = (entities, { time, dispatch }) => {
+const timeline: GameSystem = (entities, { time, input, dispatch }) => {
   const { timer, state } = entities;
   const { current } = time;
   const { timeRemaining } = timer;
@@ -12,8 +12,6 @@ const countdown: GameSystem = (entities, { time, dispatch }) => {
     if (current - gameStart > WARMUP_TIME) {
       dispatch({ type: 'timeStart' });
     }
-
-    return entities;
   }
 
   /** track time remaining in gameplay, then end gameplay */
@@ -30,9 +28,12 @@ const countdown: GameSystem = (entities, { time, dispatch }) => {
     };
   }
 
-  /** if an end time has passed, wait alloted time to display the finished screen then quit */
+  /** if an end time has passed, wait alloted time to display the finished screen then quit,
+   *  if user clicks, quit
+   */
   if (stage === 'finished') {
-    if (current - endTime > FINISH_SCREEN_TIME) {
+    const mouseDown = input.find((x) => x.name === 'onClick');
+    if (current - endTime > FINISH_SCREEN_TIME || mouseDown) {
       dispatch({ type: 'quit' });
     }
   }
@@ -98,4 +99,4 @@ const onTimeEnd: GameSystem = (entities, { events, time }) => {
   return entities;
 };
 
-export { countdown, onGameStart, onTimeStart, onTimeEnd };
+export { timeline, onGameStart, onTimeStart, onTimeEnd };

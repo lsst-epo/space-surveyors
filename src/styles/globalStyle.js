@@ -23,7 +23,7 @@ export const tokens = {
   turqouise07: '#EDFFFE',
   turquoise10: '#D9F7F6',
   turquoise20: '#B2F2EF',
-  turquoise50: '#00bebf',
+  turquoise50: '#00babc',
   turquoise55: '#009fa1',
   turquoise60: '#078b8c',
   turquoise70: '#058b8c',
