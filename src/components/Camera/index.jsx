@@ -6,6 +6,7 @@ import Exposure from '@components/svg/Exposure';
 import CameraTarget from '@components/Camera/Target';
 import FocalPlaneContainer from '@components/Camera/FocalPlaneContainer';
 import { fullScreenAbsolute } from '@styles/mixins/appearance';
+import CenteredText from '@components/svg/helpers/CenteredText';
 
 const CameraContainer = styled.div`
   ${fullScreenAbsolute}
@@ -13,14 +14,7 @@ const CameraContainer = styled.div`
   z-index: ${zStack.camera};
 `;
 
-const ExposureText = styled.text.attrs(({ width, height, charSize }) => ({
-  dominantBaseline: 'middle',
-  textAnchor: 'middle',
-  textLength: '80%',
-  style: {
-    fontSize: width / charSize || '1rem',
-  },
-}))`
+const ExposureText = styled(CenteredText)`
   fill: var(--neutral10);
   font-weight: bold;
   text-shadow: 2px 2px 0 var(--neutral90);
@@ -34,7 +28,7 @@ const CameraRenderer = ({
   showEndgame,
   size,
 }) => {
-  const { ref, width, height } = useResizeObserver();
+  const { ref, width } = useResizeObserver();
   const { x, y } = physics;
   const captureMessage = 'Capturing';
   const charSize = captureMessage.length / 2;
@@ -50,11 +44,11 @@ const CameraRenderer = ({
         ))}
       <FocalPlaneContainer {...{ x, y, size }}>
         <ExposureText
-          x="50%"
-          y="50%"
           ref={ref}
           visibility={exposureRemaining ? 'visible' : 'hidden'}
-          {...{ width, height, charSize }}
+          $width={width}
+          textLength="80%"
+          {...{ charSize }}
         >
           {captureMessage}
         </ExposureText>

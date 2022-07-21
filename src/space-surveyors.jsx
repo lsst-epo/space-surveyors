@@ -102,7 +102,12 @@ const SpaceSurveyors = () => {
       className="space-surveyors-container"
       ref={outerResizeRef}
     >
-      {menu && <GameMenu onMenuAction={handleMenuAction}></GameMenu>}
+      {menu && (
+        <GameMenu
+          onMenuAction={handleMenuAction}
+          {...{ score, aspectRatio }}
+        ></GameMenu>
+      )}
       {aspectRatio && (
         <GameStageContainer ref={resizeRef} aspectRatio={aspectRatio}>
           {boundingRect && (
