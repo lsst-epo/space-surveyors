@@ -31,8 +31,8 @@ export const fontFace = `
   }
   @font-face {
     font-family: 'Source Sans Pro';
-    src: url(${SourceSansProBoldItalicWoff}) format('woff2'),
-        url(${SourceSansProBoldItalicWoff2}) format('woff');
+    src: url(${SourceSansProBoldItalicWoff2}) format('woff2'),
+        url(${SourceSansProBoldItalicWoff}) format('woff');
     font-weight: bold;
     font-style: italic;
   }
