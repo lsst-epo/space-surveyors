@@ -22,7 +22,7 @@ export const MENU_TRANSITION_TIME: number = MENU_SLIDE_TIME + MENU_SLIDE_DELAY;
 export const GAME_TIME: number = 60000;
 export const WARMUP_TIME: number = 1000;
 export const DAY_TRANSITION_TIME: number = 1000;
-export const FINISH_SCREEN_TIME: number = 100000;
+export const FINISH_SCREEN_TIME: number = 10000;
 
 // Camera
 export const MAX_CAMERA_MOVE: number = 1;

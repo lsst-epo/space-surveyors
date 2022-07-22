@@ -117,7 +117,7 @@ const LandingMenu = ({ onMenuAction }) => {
             {Object.keys(icons).map((i) => (
               <IconItem key={i}>
                 <IconContainer>
-                  <IconComposer icon={i} />
+                  <IconComposer icon={i} height="100%" />
                 </IconContainer>
                 {icons[i]}
               </IconItem>

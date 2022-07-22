@@ -27,7 +27,7 @@ const FinishedScreen = ({ aspectRatio }) => {
       <CenteredText
         ref={ref}
         $width={width}
-        textLength="90%"
+        textLength="50%"
         {...{ charSize, aspectRatio }}
       >
         {finishedMessage}
