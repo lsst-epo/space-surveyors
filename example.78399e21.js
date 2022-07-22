@@ -59276,7 +59276,6 @@ var timeline = function timeline(entities, _ref) {
   var timer = entities.timer,
       state = entities.state;
   var current = time.current;
-  var timeRemaining = timer.timeRemaining;
   var endTime = state.endTime,
       gameStart = state.gameStart,
       startTime = state.startTime,
@@ -59296,23 +59295,19 @@ var timeline = function timeline(entities, _ref) {
     /** track time remaining in gameplay, then end gameplay */
 
     case 'running':
-      if (timeRemaining > 0) {
-        var newTimeRemaining = Math.max(0, GAME_TIME - (current - startTime));
+      var timeRemaining = Math.max(0, GAME_TIME - (current - startTime));
 
-        if (newTimeRemaining === 0) {
-          dispatch({
-            type: 'timeEnd'
-          });
-        }
-
-        return _extends({}, entities, {
-          timer: _extends({}, timer, {
-            timeRemaining: newTimeRemaining
-          })
+      if (timeRemaining === 0) {
+        dispatch({
+          type: 'timeEnd'
         });
       }
 
-      break;
+      return _extends({}, entities, {
+        timer: _extends({}, timer, {
+          timeRemaining: timeRemaining
+        })
+      });
 
     /** if an end time has passed, wait alloted time to display the finished screen then quit,
      *  if user clicks, quit
@@ -59341,7 +59336,7 @@ var onGameStart = function onGameStart(entities, _ref2) {
   var events = _ref2.events,
       time = _ref2.time;
   var event = events.find(function (e) {
-    return e.type === 'started';
+    return e.type === 'gameStart';
   });
 
   if (event) {
@@ -59387,6 +59382,7 @@ var onTimeEnd = function onTimeEnd(entities, _ref4) {
   });
 
   if (event) {
+    console.log('found time end');
     var current = time.current;
     var backdrop = entities.backdrop,
         state = entities.state,
@@ -60170,7 +60166,6 @@ HUD.propTypes = {
 var SpaceSurveyors = function SpaceSurveyors() {
   var initialState = {
     menu: 'landing',
-    running: false,
     score: Score$1(),
     boundingRect: null,
     aspectRatio: null
@@ -60230,7 +60225,9 @@ var SpaceSurveyors = function SpaceSurveyors() {
         setState(_extends({}, state, {
           menu: null
         }));
-        engine.current.start();
+        engine.current.dispatch({
+          type: 'gameStart'
+        });
         break;
 
       case 'restart':
@@ -60270,7 +60267,6 @@ var SpaceSurveyors = function SpaceSurveyors() {
   };
 
   var menu = state.menu,
-      running = state.running,
       score = state.score,
       boundingRect = state.boundingRect,
       aspectRatio = state.aspectRatio;
@@ -60294,7 +60290,6 @@ var SpaceSurveyors = function SpaceSurveyors() {
         ref: engine,
         entities: Entities(boundingRect, aspectRatio),
         systems: Systems,
-        running: running,
         onEvent: handleEvent
       }), /*#__PURE__*/jsxRuntime.jsx(Dome, {
         $left: true
@@ -60469,7 +60464,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "49458" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "61780" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
