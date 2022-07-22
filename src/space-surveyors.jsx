@@ -17,7 +17,6 @@ import { getAspectRatio } from './utils';
 const SpaceSurveyors = () => {
   const initialState = {
     menu: 'landing',
-    running: false,
     score: Score(),
     boundingRect: null,
     aspectRatio: null,
@@ -62,7 +61,7 @@ const SpaceSurveyors = () => {
     switch (action) {
       case 'start':
         setState({ ...state, menu: null });
-        engine.current.start();
+        engine.current.dispatch({ type: 'gameStart' });
         break;
       case 'restart':
         window.location.reload(false);
@@ -94,7 +93,7 @@ const SpaceSurveyors = () => {
     }
   };
 
-  const { menu, running, score, boundingRect, aspectRatio } = state;
+  const { menu, score, boundingRect, aspectRatio } = state;
   const GameMenu = GameMenus[menu];
 
   return (
@@ -116,7 +115,6 @@ const SpaceSurveyors = () => {
               ref={engine}
               entities={Entities(boundingRect, aspectRatio)}
               systems={Systems}
-              running={running}
               onEvent={handleEvent}
             ></GameEngine>
           )}
