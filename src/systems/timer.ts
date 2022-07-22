@@ -4,7 +4,6 @@ import { FINISH_SCREEN_TIME, GAME_TIME, WARMUP_TIME } from '@constants/index';
 const timeline: GameSystem = (entities, { time, input, dispatch }) => {
   const { timer, state } = entities;
   const { current } = time;
-  const { timeRemaining } = timer;
   const { endTime, gameStart, startTime, stage } = state;
 
   switch (stage) {
@@ -17,19 +16,16 @@ const timeline: GameSystem = (entities, { time, input, dispatch }) => {
 
     /** track time remaining in gameplay, then end gameplay */
     case 'running':
-      if (timeRemaining > 0) {
-        const newTimeRemaining = Math.max(0, GAME_TIME - (current - startTime));
+      const timeRemaining = Math.max(0, GAME_TIME - (current - startTime));
 
-        if (newTimeRemaining === 0) {
-          dispatch({ type: 'timeEnd' });
-        }
-
-        return {
-          ...entities,
-          timer: { ...timer, timeRemaining: newTimeRemaining },
-        };
+      if (timeRemaining === 0) {
+        dispatch({ type: 'timeEnd' });
       }
-      break;
+
+      return {
+        ...entities,
+        timer: { ...timer, timeRemaining },
+      };
     /** if an end time has passed, wait alloted time to display the finished screen then quit,
      *  if user clicks, quit
      */
@@ -46,13 +42,11 @@ const timeline: GameSystem = (entities, { time, input, dispatch }) => {
 
 /** log the initial start time and enter the warmup state */
 const onGameStart: GameSystem = (entities, { events, time }) => {
-  const event = events.find((e) => e.type === 'started');
+  const event = events.find((e) => e.type === 'gameStart');
 
   if (event) {
     const { state } = entities;
     const { current } = time;
-
-    console.log(current);
 
     return {
       ...entities,
@@ -83,6 +77,7 @@ const onTimeEnd: GameSystem = (entities, { events, time }) => {
   const event = events.find((e) => e.type === 'timeEnd');
 
   if (event) {
+    console.log('found time end');
     const { current } = time;
     const { backdrop, state, skyObjects, camera } = entities;
     const showEndgame = true;
