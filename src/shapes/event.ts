@@ -1,6 +1,7 @@
 type GameEventName =
   | 'started'
   | 'resize'
+  | 'gameStart'
   | 'timeStart'
   | 'timeEnd'
   | 'targetSet'
