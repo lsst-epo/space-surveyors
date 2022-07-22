@@ -7,35 +7,38 @@ const timeline: GameSystem = (entities, { time, input, dispatch }) => {
   const { timeRemaining } = timer;
   const { endTime, gameStart, startTime, stage } = state;
 
-  /** track warmup time, then start gameplay */
-  if (stage === 'warmup') {
-    if (current - gameStart > WARMUP_TIME) {
-      dispatch({ type: 'timeStart' });
-    }
-  }
+  switch (stage) {
+    /** track warmup time, then start gameplay */
+    case 'warmup':
+      if (current - gameStart > WARMUP_TIME) {
+        dispatch({ type: 'timeStart' });
+      }
+      break;
 
-  /** track time remaining in gameplay, then end gameplay */
-  if (stage === 'running' && timeRemaining > 0) {
-    const newTimeRemaining = Math.max(0, GAME_TIME - (current - startTime));
+    /** track time remaining in gameplay, then end gameplay */
+    case 'running':
+      if (timeRemaining > 0) {
+        const newTimeRemaining = Math.max(0, GAME_TIME - (current - startTime));
 
-    if (newTimeRemaining === 0) {
-      dispatch({ type: 'timeEnd' });
-    }
+        if (newTimeRemaining === 0) {
+          dispatch({ type: 'timeEnd' });
+        }
 
-    return {
-      ...entities,
-      timer: { ...timer, timeRemaining: newTimeRemaining },
-    };
-  }
-
-  /** if an end time has passed, wait alloted time to display the finished screen then quit,
-   *  if user clicks, quit
-   */
-  if (stage === 'finished') {
-    const mouseDown = input.find((x) => x.name === 'onClick');
-    if (current - endTime > FINISH_SCREEN_TIME || mouseDown) {
-      dispatch({ type: 'quit' });
-    }
+        return {
+          ...entities,
+          timer: { ...timer, timeRemaining: newTimeRemaining },
+        };
+      }
+      break;
+    /** if an end time has passed, wait alloted time to display the finished screen then quit,
+     *  if user clicks, quit
+     */
+    case 'finished':
+      const mouseDown = input.find((x) => x.name === 'onClick');
+      if (current - endTime > FINISH_SCREEN_TIME || mouseDown) {
+        dispatch({ type: 'quit' });
+      }
+      break;
   }
 
   return entities;
@@ -48,6 +51,8 @@ const onGameStart: GameSystem = (entities, { events, time }) => {
   if (event) {
     const { state } = entities;
     const { current } = time;
+
+    console.log(current);
 
     return {
       ...entities,

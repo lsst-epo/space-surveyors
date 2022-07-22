@@ -18,6 +18,7 @@ const StyledFocalPlane = styled(FocalPlane)`
   animation-delay: 3600ms;
   animation-fill-mode: forwards;
   position: relative;
+  height: 100%;
   z-index: 2;
 `;
 
