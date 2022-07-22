@@ -28,7 +28,7 @@ const ScoreList = ({ score, className }) => (
     {Object.keys(score).map((s) => (
       <ScoreListItem key={s}>
         <IconContainer>
-          <IconComposer icon={s} color="var(--neutral10)" />
+          <IconComposer icon={s} color="var(--neutral10)" height="100%" />
         </IconContainer>
         <Score>×{score[s]}</Score>
       </ScoreListItem>
