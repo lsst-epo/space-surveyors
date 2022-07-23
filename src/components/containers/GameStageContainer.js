@@ -11,5 +11,4 @@ export const GameStageContainer = styled.div.attrs(({ aspectRatio }) => ({
   height: 80%;
   position: relative;
   z-index: ${zStack.game};
-  overflow: hidden;
 `;

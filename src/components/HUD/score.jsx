@@ -2,34 +2,19 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import useResizeObserver from 'use-resize-observer';
 import styled from 'styled-components';
-import IconComposer from '@components/svg/IconComposer';
-import Icons from '@components/svg/Icons';
 import { BREAK_TABLET_MIN, getRawPx } from '@styles/globalStyle';
+import ScoreList from '@components/ScoreList';
 
 const HUDScoreContainer = styled.div`
   display: grid;
   grid-template-columns: ${({ width }) =>
-    width > getRawPx(BREAK_TABLET_MIN) ? '3fr 1fr' : '1fr'};
+    width > getRawPx(BREAK_TABLET_MIN) ? '1fr auto' : '1fr'};
+  grid-template-rows: auto;
   gap: ${({ width }) => (width > getRawPx(BREAK_TABLET_MIN) ? '2em' : '0')};
   width: 100%;
   height: 100%;
   color: var(--yellow);
   font-weight: bold;
-`;
-
-const ScoreList = styled.ul`
-  list-style: none;
-  display: flex;
-  flex-direction: ${({ width }) =>
-    width > getRawPx(BREAK_TABLET_MIN) ? 'column' : 'row'};
-`;
-
-const ScoreListItem = styled.li`
-  display: flex;
-  flex: 0 0 20%;
-  align-items: center;
-  font-size: 1.25em;
-  line-height: 1;
 `;
 
 const TotalScore = styled.div`
@@ -53,13 +38,6 @@ const Score = styled.div`
   font-variant-numeric: tabular-nums;
 `;
 
-const IconContainer = styled.div`
-  align-self: stretch;
-  display: flex;
-  justify-content: center;
-  aspect-ratio: 1/1;
-`;
-
 const HUDScore = ({ score }) => {
   const { ref, width, height } = useResizeObserver();
 
@@ -72,16 +50,7 @@ const HUDScore = ({ score }) => {
       <TotalScore width={width}>
         Discovered objects tonight <TotalScoreCount>{sum}</TotalScoreCount>
       </TotalScore>
-      <ScoreList {...{ width, height }}>
-        {Object.keys(score).map((s) => (
-          <ScoreListItem key={s}>
-            <IconContainer>
-              <IconComposer icon={s} color="var(--neutral10)" height="100%" />
-            </IconContainer>
-            <Score width={width}>×{score[s]}</Score>
-          </ScoreListItem>
-        ))}
-      </ScoreList>
+      <ScoreList {...{ score }} />
     </HUDScoreContainer>
   );
 };
