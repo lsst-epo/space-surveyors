@@ -1,13 +1,19 @@
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import SVG from 'react-inlinesvg';
 import ExposureSVG from '@assets/svg/exposure.svg';
 import { EXPOSURE_TIME } from '@constants/';
 
 const expandExposure = keyframes`
-  from {
+  0% {
+    opacity: 1;
     clip-path: polygon(0% 100%, 100% 100%, 100% 100%, 0% 100%);
   }
-  to {
+  25% {
+    opacity: 1;
+    clip-path: polygon(0% 100%, 100% 100%, 100% 0%, 0% 0%);
+  }
+  100% {
+    opacity: 0;
     clip-path: polygon(0% 100%, 100% 100%, 100% 0%, 0% 0%);
   }
 `;
@@ -17,7 +23,6 @@ const Exposure = styled(SVG).attrs(({ x, y, size, $pause }) => ({
     left: `${x}%`,
     top: `${y}%`,
     width: `${size}%`,
-    animationPlayState: $pause ? 'paused' : 'running',
   },
   src: ExposureSVG,
 }))`
@@ -25,7 +30,12 @@ const Exposure = styled(SVG).attrs(({ x, y, size, $pause }) => ({
   pointer-events: none;
   transform: translate(-50%, -50%);
   aspect-ratio: 1/1;
-  animation: ${expandExposure} ${EXPOSURE_TIME}ms;
+  ${({ $pause }) =>
+    $pause
+      ? ''
+      : css`
+          animation: ${expandExposure} ${EXPOSURE_TIME * 4}ms forwards;
+        `}
 `;
 
 export default Exposure;
