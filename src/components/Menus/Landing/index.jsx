@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { version } from 'react';
 import styled from 'styled-components';
 import PropTypes from 'prop-types';
 import BaseMenu from '@components/Menus/BaseMenu';
@@ -7,7 +8,6 @@ import IconComposer from '@components/svg/IconComposer';
 import IconContainer from '@components/svg/helpers/IconContainer';
 import { GAME_TIME, MENU_TRANSITION_TIME } from '@constants/index';
 import { convertMsToTime } from '../../../utils';
-import instructionsCameraTarget from '@assets/image/instructions-camera-target.jpg';
 import fundingLogos from '@assets/image/funding.png';
 import rubinLogo from '@assets/image/rubin_over_black.png';
 import FocalPlaneVisual from '@components/Menus/Landing/visuals/FocalPlaneVisual';
@@ -90,6 +90,8 @@ const LandingMenu = ({ onMenuAction }) => {
     setMenu(false);
     setTimeout(() => onMenuAction('start'), MENU_TRANSITION_TIME);
   };
+
+  console.log(version);
 
   return (
     <BaseMenu {...{ showMenu }}>

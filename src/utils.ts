@@ -5,6 +5,8 @@ import {
   MAX_OBJECT_Y,
   MIN_OBJECT_X,
   MIN_OBJECT_Y,
+  X_RANGE,
+  Y_RANGE,
 } from '@constants/index';
 import { WeightedOptions, GamePosition } from '@shapes/index';
 
@@ -41,10 +43,11 @@ export const getRelativePosition = (
 
 export const getDistanceBetweenPoints = (
   startPosition: GamePosition,
-  endPosition: GamePosition
+  endPosition: GamePosition,
+  aspectRatio: number = 1
 ) => {
-  const y = endPosition.x - startPosition.x;
-  const x = endPosition.y - startPosition.y;
+  const x = endPosition.x - startPosition.x;
+  const y = (endPosition.y - startPosition.y) / aspectRatio;
 
   return Math.sqrt(x * x + y * y);
 };
@@ -61,17 +64,22 @@ export const getNewPosition = (offset: number = 0): GamePosition => ({
 });
 
 export const getPositionInQuad = (
-  xQuad?: number,
-  yQuad?: number
+  xQuad: number = 1,
+  yQuad: number = 1
+): GamePosition => getPositionInCell(xQuad, yQuad, 4, 4);
+
+export const getPositionInCell = (
+  row: number,
+  column: number,
+  totalRows: number,
+  totalColumns: number
 ): GamePosition => {
-  const xRange = MAX_OBJECT_X - MIN_OBJECT_X;
-  const yRange = MAX_OBJECT_Y - MIN_OBJECT_Y;
-  const xQuart = xRange / 4;
-  const yQuart = yRange / 4;
-  const xMin = xQuad ? MIN_OBJECT_X + xQuart * (xQuad - 1) : MIN_OBJECT_X;
-  const xMax = xQuad ? MIN_OBJECT_X + xQuart * xQuad : MAX_OBJECT_X;
-  const yMin = yQuad ? MIN_OBJECT_Y + yQuart * (yQuad - 1) : MIN_OBJECT_Y;
-  const yMax = yQuad ? MIN_OBJECT_Y + yQuart * yQuad : MAX_OBJECT_Y;
+  const xCell = X_RANGE / totalRows;
+  const yCell = Y_RANGE / totalColumns;
+  const xMin = row ? MIN_OBJECT_X + xCell * (row - 1) : MIN_OBJECT_X;
+  const xMax = row ? MIN_OBJECT_X + xCell * row : MAX_OBJECT_X;
+  const yMin = column ? MIN_OBJECT_Y + yCell * (column - 1) : MIN_OBJECT_Y;
+  const yMax = column ? MIN_OBJECT_Y + yCell * column : MAX_OBJECT_Y;
 
   return {
     x: getRandomDecimal(xMin, xMax, 1),
