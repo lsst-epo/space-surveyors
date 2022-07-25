@@ -77,7 +77,6 @@ const onTimeEnd: GameSystem = (entities, { events, time }) => {
   const event = events.find((e) => e.type === 'timeEnd');
 
   if (event) {
-    console.log('found time end');
     const { current } = time;
     const { backdrop, state, skyObjects, camera } = entities;
     const showEndgame = true;
