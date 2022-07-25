@@ -25,8 +25,8 @@ export const DAY_TRANSITION_TIME: number = 1000;
 export const FINISH_SCREEN_TIME: number = 10000;
 
 // Camera
-export const MAX_CAMERA_MOVE: number = 1;
-export const EXPOSURE_TIME: number = 5000;
+export const MAX_CAMERA_MOVE: number = 0.5;
+export const EXPOSURE_TIME: number = 3500;
 
 // Collision
 export const MIN_OVERLAP: number = 0.5;
@@ -43,8 +43,8 @@ export const SPAWN_INTERVAL: any = {
     max: 12000,
   },
   airplane: {
-    min: 10000,
-    max: 20000,
+    min: 12000,
+    max: 24000,
   },
   supernova: {
     min: 3000,
@@ -57,8 +57,13 @@ export const MIN_OBJECT_X: number = 10;
 export const MAX_OBJECT_X: number = 90;
 export const MIN_OBJECT_Y: number = 15;
 export const MAX_OBJECT_Y: number = 98;
+export const X_RANGE: number = MAX_OBJECT_X - MIN_OBJECT_X;
+export const Y_RANGE: number = MAX_OBJECT_Y - MIN_OBJECT_Y;
 export const OBJECTS_PER_SECOND: number = 0.6;
-export const MAX_STATIC_OBJECTS: number = 15;
+export const STATIC_ROWS: number = 2;
+export const STATIC_COLUMNS: number = 4;
+export const STATIC_CELLS: number = STATIC_ROWS * STATIC_COLUMNS;
+export const STATIC_OBJECTS_PER_CELL: number = 4;
 export const MAX_DYNAMIC_OBJECTS: number = 10;
 export const FADE_TIME: number = 500;
 export * from '@constants/SkyObjectConfig';
