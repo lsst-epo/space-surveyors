@@ -36,12 +36,14 @@ const onTargetSet: GameSystem = (entities, { events, dispatch }) => {
   const event = events.find((e) => e.type === 'targetSet');
 
   if (event) {
-    const { camera } = entities;
+    const { camera, state } = entities;
+    const { aspectRatio } = state;
     const { physics, nextPosition, exposureRemaining } = camera;
     const { x: currentX, y: currentY } = physics;
     const distance = getDistanceBetweenPoints(
       { x: currentX, y: currentY },
-      nextPosition
+      nextPosition,
+      aspectRatio
     );
     const steps = Math.ceil(distance / MAX_CAMERA_MOVE);
     const xDelta = (nextPosition.x - currentX) / steps;

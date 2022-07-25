@@ -6,14 +6,14 @@ import Score from './score';
 import World from './world';
 import SkyObjects from './skyObjects';
 
-export default (boundingRect, aspectRatio) => {
+export default async (boundingRect, aspectRatio) => {
   const backdrop = Backdrop();
   const timer = Timer();
   const state = State(boundingRect, aspectRatio);
   const camera = Camera(aspectRatio);
   const score = Score();
   const world = World();
-  const skyObjects = SkyObjects(aspectRatio);
+  const skyObjects = await SkyObjects(aspectRatio);
 
   world.system.insert(camera.physics);
 
