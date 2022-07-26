@@ -1,6 +1,6 @@
 import { SPAWN_LOCATION, STARTING_EDGES } from '@constants/index';
 import { SkyObject } from '@modules/SkyObject';
-import { GamePosition, SkyObjectType } from '@shapes/index';
+import { Edge, GamePosition, SkyObjectType } from '@shapes/index';
 import {
   getAngleBetweenPoints,
   getDistanceBetweenPoints,
@@ -34,12 +34,15 @@ export class OccludingObject extends SkyObject {
   private initializeOcclusion = () => {
     const onlyMovesHorizontal = this.type === 'cloud';
 
-    const startOnEdge = onlyMovesHorizontal
+    const startOnEdge: Edge = onlyMovesHorizontal
       ? 'left'
-      : getRandomWeightedValue(STARTING_EDGES);
-    const endOnEdge = onlyMovesHorizontal
+      : (getRandomWeightedValue(STARTING_EDGES) as Edge);
+    const endOnEdge: Edge = onlyMovesHorizontal
       ? 'right'
-      : getRandomWeightedValue({ ...STARTING_EDGES, [startOnEdge]: 0 });
+      : (getRandomWeightedValue({
+          ...STARTING_EDGES,
+          [startOnEdge]: 0,
+        }) as Edge);
 
     const xQuad = Number(getRandomWeightedValue(SPAWN_LOCATION[this.type].x));
     const yQuad = Number(getRandomWeightedValue(SPAWN_LOCATION[this.type].y));
