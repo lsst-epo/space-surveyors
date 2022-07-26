@@ -1,4 +1,5 @@
-import Chance from 'chance';
+import { Random, MersenneTwister19937 } from 'random-js';
+import weighted from 'weighted';
 import {
   ASPECT_RATIOS_FLOAT,
   MAX_OBJECT_X,
@@ -10,7 +11,8 @@ import {
 } from '@constants/index';
 import { WeightedOptions, GamePosition } from '@shapes/index';
 
-const chance = Chance();
+const engine = MersenneTwister19937.autoSeed();
+const random = new Random(engine);
 
 export const convertMsToTime = (milliseconds: number): string => {
   let seconds = Math.floor(milliseconds / 1000);
@@ -53,10 +55,10 @@ export const getDistanceBetweenPoints = (
 };
 
 export const getRandomDecimal = (min: number, max: number, fixed: number = 2) =>
-  chance.floating({ min, max, fixed });
+  parseFloat(random.real(min, max).toFixed(fixed));
 
 export const getRandomInt = (min: number, max: number) =>
-  chance.integer({ min, max });
+  random.integer(min, max);
 
 export const getNewPosition = (offset: number = 0): GamePosition => ({
   x: getRandomDecimal(MIN_OBJECT_X, MAX_OBJECT_X, 1) - offset,
@@ -87,12 +89,10 @@ export const getPositionInCell = (
   };
 };
 
-export const getRandomWeightedValue = (options: WeightedOptions) => {
-  const keys = Object.keys(options);
-  const weights = Object.values(options) as number[];
-
-  return chance.weighted(keys, weights);
-};
+export const getRandomWeightedValue = (items: WeightedOptions) =>
+  weighted.select(items, {
+    rand: () => random.realZeroToOneInclusive(),
+  });
 
 export const closest = (values: number[], test: number) =>
   values.reduce((a, b) => {

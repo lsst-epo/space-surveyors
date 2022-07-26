@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { version } from 'react';
 import styled from 'styled-components';
 import PropTypes from 'prop-types';
 import BaseMenu from '@components/Menus/BaseMenu';
@@ -90,8 +89,6 @@ const LandingMenu = ({ onMenuAction }) => {
     setMenu(false);
     setTimeout(() => onMenuAction('start'), MENU_TRANSITION_TIME);
   };
-
-  console.log(version);
 
   return (
     <BaseMenu {...{ showMenu }}>
