@@ -5883,10 +5883,10 @@ quickselect@^2.0.0:
   resolved "https://registry.yarnpkg.com/quickselect/-/quickselect-2.0.0.tgz#f19680a486a5eefb581303e023e98faaf25dd018"
   integrity sha512-RKJ22hX8mHe3Y6wH/N3wCM6BWtjaxIyyUIkpHOvfFnxdI4yD4tBXEBKSbriGujF6jnSVkJrffuo6vxACiSSxIw==
 
-random-js@^2.1.0:
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/random-js/-/random-js-2.1.0.tgz#0c03238b0a4f701f7a4c7303036ade3083d8ee14"
-  integrity sha512-CRUyWmnzmZBA7RZSVGq0xMqmgCyPPxbiKNLFA5ud7KenojVX2s7Gv+V7eB52beKTPGxWRnVZ7D/tCIgYJJ8vNQ==
+random-js-no-node@^2.1.0-b:
+  version "2.1.0-b"
+  resolved "https://registry.yarnpkg.com/random-js-no-node/-/random-js-no-node-2.1.0-b.tgz#5d39e85101d9c1a737a96f8f1383b0fa91e02b9f"
+  integrity sha512-YpIcJOIo1CSDQ249BU5BzXZhOGcE8egYTCQW3OtpmdddYUuYr5fCcTkOKf3NA8WQts3NMDa22fOPYG6xYmESKg==
 
 randombytes@^2.1.0:
   version "2.1.0"
