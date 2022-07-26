@@ -1,4 +1,4 @@
-import { Random, MersenneTwister19937 } from 'random-js';
+import { Random, MersenneTwister19937 } from 'random-js-no-node';
 import weighted from 'weighted';
 import {
   ASPECT_RATIOS_FLOAT,
