@@ -9,7 +9,6 @@ import { MENU_TRANSITION_TIME } from '@constants/index';
 import ScoreList from '@components/ScoreList';
 
 const SummaryMenuContainer = styled(BaseMenu)`
-  background-color: var(--neutral95);
   justify-content: center;
   color: var(--yellow);
 `;
