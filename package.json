@@ -77,7 +77,6 @@
   "dependencies": {
     "detect-collisions": "^6.0.2",
     "prop-types": "^15.8.1",
-    "random-js": "^2.1.0",
     "random-js-no-node": "^2.1.0-b",
     "react-game-engine": "^1.1.0",
     "react-inlinesvg": "^3.0.0",
