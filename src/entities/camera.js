@@ -12,7 +12,6 @@ export default (aspectRatio) => {
   const nextPosition = null;
   const delta = { x: null, y: null };
   const steps = 0;
-  const path = [];
   const exposures = [];
   const exposureStartTime = null;
   const exposureRemaining = null;
@@ -25,7 +24,6 @@ export default (aspectRatio) => {
   const properties = {
     showEndgame,
     nextPosition,
-    path,
     delta,
     steps,
     exposures,
