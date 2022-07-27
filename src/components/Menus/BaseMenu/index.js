@@ -10,7 +10,7 @@ const BaseMenu = styled.div.attrs(({ showMenu }) => ({
     pointerEvents: showMenu ? 'auto' : 'none',
   },
 }))`
-  background-color: var(--black);
+  background-color: var(--neutral95);
   color: var(--turquoise50);
   display: flex;
   align-items: center;

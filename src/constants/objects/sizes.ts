@@ -14,7 +14,7 @@ const OBJECT_SIZE: {
     max: 30,
   },
   star: {
-    min: 0.5,
+    min: 0.75,
     max: 2.5,
   },
   asteroid: {
@@ -26,7 +26,7 @@ const OBJECT_SIZE: {
     max: 3,
   },
   galaxy: {
-    min: 0.5,
+    min: 0.75,
     max: 2.5,
   },
   supernova: {
