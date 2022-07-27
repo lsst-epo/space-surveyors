@@ -1,6 +1,6 @@
 import { MAX_CAMERA_MOVE, EXPOSURE_TIME } from '@constants/index';
-import { GamePosition, GameSystem } from '@shapes/index';
-import { getDistanceBetweenPoints, getRelativePosition } from '../utils';
+import { GameSystem } from '@shapes/index';
+import { getDistanceBetweenPoints, getRelativePosition, round } from '../utils';
 import { detectCapture } from '@systems/collision';
 
 /** onClick, while the game has started but not end,
@@ -10,17 +10,16 @@ import { detectCapture } from '@systems/collision';
 const setCameraTarget: GameSystem = (entities, { input, dispatch }) => {
   const mouseDown = input.find((x) => x.name === 'onClick');
   const { state } = entities;
-  const { startTime, endTime } = state;
+  const { stage } = state;
 
-  if (mouseDown && startTime && !endTime) {
+  if (mouseDown && stage === 'running') {
     const { payload } = mouseDown;
     const { pageX: x, pageY: y } = payload;
-    const { camera, state } = entities;
+    const { state } = entities;
     const { boundingRect } = state;
     const nextPosition = getRelativePosition(x, y, boundingRect);
 
-    dispatch({ type: 'targetSet' });
-    return { ...entities, camera: { ...camera, nextPosition } };
+    dispatch({ type: 'targetSet', payload: nextPosition });
   }
 
   return entities;
@@ -37,8 +36,9 @@ const onTargetSet: GameSystem = (entities, { events, dispatch }) => {
 
   if (event) {
     const { camera, state } = entities;
+    const { payload: nextPosition } = event;
     const { aspectRatio } = state;
-    const { physics, nextPosition, exposureRemaining } = camera;
+    const { physics, exposureRemaining } = camera;
     const { x: currentX, y: currentY } = physics;
     const distance = getDistanceBetweenPoints(
       { x: currentX, y: currentY },
@@ -46,24 +46,21 @@ const onTargetSet: GameSystem = (entities, { events, dispatch }) => {
       aspectRatio
     );
     const steps = Math.ceil(distance / MAX_CAMERA_MOVE);
-    const xDelta = (nextPosition.x - currentX) / steps;
-    const yDelta = (nextPosition.y - currentY) / steps;
-
-    const path: GamePosition[] = [];
-
-    for (let i = 1; i <= steps; i++) {
-      const movementX = xDelta * i;
-      const movementY = yDelta * i;
-      path.push({
-        x: currentX + movementX,
-        y: currentY + movementY,
-      });
-    }
+    const xDelta = round((nextPosition.x - currentX) / steps);
+    const yDelta = round((nextPosition.y - currentY) / steps);
 
     if (!exposureRemaining) {
       dispatch({ type: 'cameraMoving' });
     }
-    return { ...entities, camera: { ...camera, path } };
+    return {
+      ...entities,
+      camera: {
+        ...camera,
+        delta: { x: xDelta, y: yDelta },
+        steps,
+        nextPosition,
+      },
+    };
   }
 
   return entities;
@@ -77,24 +74,25 @@ const onTargetSet: GameSystem = (entities, { events, dispatch }) => {
 const onCameraMoving: GameSystem = (entities, { events, dispatch, time }) => {
   const event = events.find((e) => e.type === 'cameraMoving');
   const { state } = entities;
-  const { startTime, endTime } = state;
+  const { stage } = state;
 
-  if (event && startTime && !endTime) {
+  if (event && stage === 'running') {
     const { camera } = entities;
-    const { path } = camera;
+    const { delta, physics, steps } = camera;
+    const { x, y } = physics;
+    const { x: deltaX, y: deltaY } = delta;
 
-    if (path.length > 0) {
-      const nextStep = path.shift();
-      camera.physics.setPosition(nextStep.x, nextStep.y);
+    if (steps > 0 && deltaX && deltaY) {
+      const newX = steps === 1 ? round(x + deltaX) : x + deltaX;
+      const newY = steps === 1 ? round(y + deltaY) : y + deltaY;
+      physics.setPosition(newX, newY);
       dispatch({ type: 'cameraMoving' });
       return {
         ...entities,
-        camera: { ...camera, path },
+        camera: { ...camera, steps: steps - 1 },
       };
     } else {
-      const { nextPosition } = camera;
       const { current: exposureStartTime } = time;
-      camera.physics.setPosition(nextPosition.x, nextPosition.y);
       dispatch({ type: 'cameraExposing', payload: { isFirstExposure: true } });
       return {
         ...entities,
@@ -118,10 +116,10 @@ const onCameraMoving: GameSystem = (entities, { events, dispatch, time }) => {
  */
 const onCameraExposing: GameSystem = (entities, { events, time, dispatch }) => {
   const event = events.find((e) => e.type === 'cameraExposing');
-  const isTimeEnd = events.find((e) => e.type === 'timeEnd');
-  const { camera } = entities;
+  const { camera, state } = entities;
+  const { stage } = state;
 
-  if (event && !isTimeEnd) {
+  if (event && stage === 'running') {
     const { payload } = event;
     const { isFirstExposure } = payload;
     const { current } = time;
@@ -171,9 +169,9 @@ const onCameraExposureEnd: GameSystem = (entities, { events, dispatch }) => {
 
   if (event) {
     const { camera } = entities;
-    const { path } = camera;
+    const { steps } = camera;
 
-    if (path.length > 0) {
+    if (steps > 0) {
       dispatch({ type: 'cameraMoving' });
     }
   }
