@@ -50488,7 +50488,6 @@ var Camera = function Camera(aspectRatio) {
     y: null
   };
   var steps = 0;
-  var path = [];
   var exposures = [];
   var exposureStartTime = null;
   var exposureRemaining = null;
@@ -50502,7 +50501,6 @@ var Camera = function Camera(aspectRatio) {
   var properties = {
     showEndgame: showEndgame,
     nextPosition: nextPosition,
-    path: path,
     delta: delta,
     steps: steps,
     exposures: exposures,
