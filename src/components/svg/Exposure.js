@@ -23,19 +23,17 @@ const Exposure = styled(SVG).attrs(({ x, y, size, $pause }) => ({
     left: `${x}%`,
     top: `${y}%`,
     width: `${size}%`,
+    ...($pause && { opacity: 1 }),
   },
   src: ExposureSVG,
 }))`
   position: absolute;
   pointer-events: none;
   transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 500ms;
   aspect-ratio: 1/1;
-  ${({ $pause }) =>
-    $pause
-      ? ''
-      : css`
-          animation: ${expandExposure} ${EXPOSURE_TIME * 4}ms forwards;
-        `}
+  animation: ${expandExposure} ${EXPOSURE_TIME * 4}ms;
 `;
 
 export default Exposure;

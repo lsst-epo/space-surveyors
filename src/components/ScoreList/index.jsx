@@ -21,6 +21,7 @@ const ScoreListItem = styled.li`
 
 const Score = styled.div`
   font-variant-numeric: tabular-nums;
+  width: 3ch;
 `;
 
 const ScoreList = ({ score, className }) => (

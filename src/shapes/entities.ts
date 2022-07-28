@@ -28,6 +28,8 @@ type SkyObjects = {
   staticObjects: SkyObject[];
   capturedObjects: any[];
   showEndgame: boolean;
+  showSunrise: boolean;
+  fade: boolean;
 };
 
 type GameEntities = {

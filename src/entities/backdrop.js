@@ -3,9 +3,11 @@ import BackdropRenderer from '@components/Backdrop';
 
 export default () => {
   const showEndgame = false;
+  const showSunrise = false;
 
   return {
     showEndgame,
-    renderer: <BackdropRenderer showEndgame></BackdropRenderer>,
+    showSunrise,
+    renderer: <BackdropRenderer showEndgame showSunrise></BackdropRenderer>,
   };
 };

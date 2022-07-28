@@ -5,7 +5,7 @@ import BaseMenu from '@components/Menus/BaseMenu';
 import Button from '@components/Button';
 import IconComposer from '@components/svg/IconComposer';
 import IconContainer from '@components/svg/helpers/IconContainer';
-import { GAME_TIME, MENU_TRANSITION_TIME } from '@constants/index';
+import { GAME_DURATION, MENU_TRANSITION_TIME } from '@constants/index';
 import { convertMsToTime } from '../../../utils';
 import fundingLogos from '@assets/image/funding.png';
 import rubinLogo from '@assets/image/rubin_over_black.png';
@@ -96,8 +96,8 @@ const LandingMenu = ({ onMenuAction }) => {
       <Instructions>
         <li>
           In Space Surveyors you will have{' '}
-          <strong>{convertMsToTime(GAME_TIME)}</strong> before the night ends to
-          survey as many objects as possible. Look for these objects:
+          <strong>{convertMsToTime(GAME_DURATION)}</strong> before the night
+          ends to survey as many objects as possible. Look for these objects:
           <IconLegend>
             {Object.keys(icons).map((i) => (
               <IconItem key={i}>

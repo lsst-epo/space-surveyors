@@ -40,7 +40,7 @@ const handleCapturedObject = (collider: SkyObject, entities: GameEntities) => {
   const { skyObjects, world, score } = entities;
   const { system } = world;
 
-  skyObjects.capturedObjects.push({ ...collider });
+  skyObjects.capturedObjects.push({ ...collider, fadeIn: true });
   system.remove(collider.physics);
   collider.captured = true;
   score[collider.type]++;

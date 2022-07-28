@@ -1,21 +1,33 @@
-import styled from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import Star from '@components/svg/Star';
 import Galaxy from '@components/svg/Galaxy';
 import Supernova from '@components/svg/Supernova';
 import CloudNight from '@components/svg/CloudNight';
-import { fadeIn } from '@styles/keyframes';
-import { FADE_TIME } from '@constants/';
+import Cloud from '@components/svg/Cloud';
+import { FADE_TIME, FINISH_SCREEN_START, GAME_END } from '@constants/index';
 import Airplane from '@components/svg/Airplane';
 
 const transitionColor = `${FADE_TIME / 2}ms color`;
-const transitionOpacity = `${FADE_TIME}ms filter`;
-const transitionFilter = `${FADE_TIME}ms opacity`;
+const transitionOpacity = `${FADE_TIME}ms opacity`;
+const transitionFilter = `${FADE_TIME}ms filter`;
 
-const SkyObjectBase = `
+const fadeOut = keyframes`to { opacity: 0}`;
+const fadeIn = keyframes`from { opacity: 0} to { opacity: 1}`;
+const fadeOutAnimation = css`
+  animation: ${fadeOut} ${(FINISH_SCREEN_START - GAME_END) / 2}ms forwards;
+`;
+const fadeInAnimation = css`
+  animation: ${fadeIn} ${(FINISH_SCREEN_START - GAME_END) / 2}ms forwards;
+`;
+
+const SkyObjectBase = css`
   position: absolute;
   transform: translate(-50%, -50%);
   aspect-ratio: 1/1;
-  transition: ${transitionColor}`;
+  transition: ${transitionColor};
+  ${({ $fadeOut }) => ($fadeOut ? fadeOutAnimation : '')}
+  ${({ $fadeIn }) => ($fadeIn ? fadeInAnimation : '')}
+`;
 
 const SkyObjectAttrs = ({ width, x, y, $captured, brightness }) => ({
   style: {
@@ -30,7 +42,7 @@ const StyledSkyObject = (object) => styled(object).attrs(SkyObjectAttrs)`
   ${SkyObjectBase}
 `;
 
-const DynamicSkyObjectBase = `
+const DynamicSkyObjectBase = css`
   ${SkyObjectBase}
   opacity: 0;
   transition: ${transitionColor}, ${transitionOpacity}, ${transitionFilter};
@@ -63,13 +75,14 @@ const StyledDynamicSkyObject = (object) => styled(object).attrs(
 const StyledOccludingObject = (object) =>
   styled(object).attrs(OccludingObjectAttrs)`
     ${SkyObjectBase}
+    transition: ${transitionColor}, ${transitionOpacity};
   `;
 
 const BaseObjects = {
   star: Star,
   galaxy: Galaxy,
   supernova: Supernova,
-  cloud: CloudNight,
+  cloud: Cloud,
   airplane: Airplane,
 };
 
