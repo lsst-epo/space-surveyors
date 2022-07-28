@@ -15,22 +15,29 @@ const NightSkyRenderer = ({
   dynamicObjects,
   occludingObjects,
   capturedObjects,
-  showEndgame,
+  fade,
+  showSunrise,
 }) => {
-  const renderOccludingObjects = (object) => {
-    const { width } = object;
+  const renderOccludingObjects = (object, i) => {
+    const { width, angle } = object;
     const { x, y } = object.physics;
     const Object = Objects[object.type];
 
     return (
       <Object
-        key={`${object.type}-${x}-${y}`}
-        {...{ x, y, width: `${width}%` }}
+        key={`${object.type}-${width}-${i}`}
+        {...{
+          x,
+          y,
+          angle,
+          width: `${width}%`,
+          variant: showSunrise ? 'day' : 'night',
+        }}
       />
     );
   };
   const renderSkyObjects = (object) => {
-    const { width, brightness, captured, angle } = object;
+    const { width, brightness, captured, fadeIn } = object;
     const { x, y } = object.physics;
     const Object = Objects[object.type];
 
@@ -43,7 +50,7 @@ const NightSkyRenderer = ({
           x,
           y,
           width: `${width}%`,
-          angle,
+          ...(fadeIn ? { $fadeIn: fade } : { $fadeOut: fade }),
         }}
       />
     );
@@ -51,10 +58,10 @@ const NightSkyRenderer = ({
 
   return (
     <NightSkyContainer>
-      {!showEndgame && staticObjects.map(renderSkyObjects)}
-      {!showEndgame && dynamicObjects.map(renderSkyObjects)}
-      {!showEndgame && occludingObjects.map(renderSkyObjects)}
-      {showEndgame && capturedObjects.map(renderSkyObjects)}
+      {staticObjects.map(renderSkyObjects)}
+      {dynamicObjects.map(renderSkyObjects)}
+      {fade && capturedObjects.map(renderSkyObjects)}
+      {occludingObjects.map(renderOccludingObjects)}
     </NightSkyContainer>
   );
 };

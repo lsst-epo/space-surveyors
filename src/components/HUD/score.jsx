@@ -29,6 +29,7 @@ const TotalScore = styled.div`
 const TotalScoreCount = styled.span`
   font-size: 2em;
   font-variant-numeric: tabular-nums;
+  width: 2ch;
   margin-left: 0.5ch;
 `;
 
