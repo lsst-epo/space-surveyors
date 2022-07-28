@@ -11,7 +11,8 @@ export default async (aspectRatio) => {
   const occludingObjects = [];
   const staticObjects = [];
   const capturedObjects = [];
-  const showEndgame = false;
+  const fade = false;
+  const showSunrise = false;
 
   const { star, galaxy } = WEIGHTED_GENERATION;
   const totalRows = aspectRatio < 1 ? STATIC_COLUMNS : STATIC_ROWS;
@@ -40,7 +41,8 @@ export default async (aspectRatio) => {
     dynamicObjects,
     occludingObjects,
     capturedObjects,
-    showEndgame,
+    showSunrise,
+    fade,
     renderer: (
       <NightSkyRenderer
         {...{
@@ -48,7 +50,8 @@ export default async (aspectRatio) => {
           dynamicObjects,
           occludingObjects,
           capturedObjects,
-          showEndgame,
+          showSunrise,
+          fade,
         }}
       ></NightSkyRenderer>
     ),

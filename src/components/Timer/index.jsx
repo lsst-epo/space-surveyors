@@ -2,7 +2,7 @@ import React from 'react';
 import useResizeObserver from 'use-resize-observer';
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
-import { GAME_TIME, MIN_OBJECT_Y } from '@constants/index';
+import { GAME_DURATION, MIN_OBJECT_Y } from '@constants/index';
 import { convertMsToTime } from '@utils/';
 import {
   zStack,
@@ -34,7 +34,9 @@ const StyledTimeContainer = styled.div`
 
 const TimerRenderer = ({ timeRemaining }) => {
   const { ref, width } = useResizeObserver();
-  const percentTimeRemaining = +((timeRemaining / GAME_TIME) * 100).toFixed(2);
+  const percentTimeRemaining = +((timeRemaining / GAME_DURATION) * 100).toFixed(
+    2
+  );
   return (
     <StyledTimeContainer role="timer" ref={ref} width={width}>
       Time left: {convertMsToTime(timeRemaining)}

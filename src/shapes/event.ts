@@ -11,13 +11,19 @@ type GameEventName =
   | 'scoreUpdate'
   | 'spawnedObject'
   | 'spawnedOcclusion'
+  | 'dawn'
+  | 'showFinish'
   | 'quit'
   | 'stopped';
 
-type GameEvent = {
+interface GameEvent {
   type: GameEventName;
   payload?: any;
-};
+}
+
+interface TimedEvent extends GameEvent {
+  time: number;
+}
 
 type GameInputEventName =
   | 'onClick'
@@ -52,4 +58,10 @@ type GameInputEvent = {
   payload?: any;
 };
 
-export { GameEventName, GameEvent, GameInputEventName, GameInputEvent };
+export {
+  GameEventName,
+  GameEvent,
+  GameInputEventName,
+  GameInputEvent,
+  TimedEvent,
+};
