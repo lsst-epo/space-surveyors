@@ -1,5 +1,5 @@
 import onResize from './resize';
-import { onGameStart, onTimeEnd, onTimeStart, timeline } from './timer';
+import { onTimeEnd, onTimelineEvent, timeline } from './timer';
 import {
   setCameraTarget,
   onTargetSet,
@@ -16,9 +16,7 @@ import {
 
 const Systems = [
   onResize,
-  onGameStart,
-  onTimeEnd,
-  onTimeStart,
+  onTimelineEvent,
   timeline,
   setCameraTarget,
   onTargetSet,

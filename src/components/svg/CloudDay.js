@@ -1,8 +1,6 @@
 import SVG from 'react-inlinesvg';
 import cloudDaySvg from '@assets/svg/cloudDay.svg';
 
-const CloudDay = ({ style, className }) => (
-  <SVG src={cloudDaySvg} {...{ style, className }} />
-);
+const CloudDay = (props) => <SVG src={cloudDaySvg} {...props} />;
 
 export default CloudDay;

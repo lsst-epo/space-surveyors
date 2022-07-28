@@ -1,101 +1,88 @@
 import { GameSystem } from '@shapes/system';
-import { FINISH_SCREEN_TIME, GAME_TIME, WARMUP_TIME } from '@constants/index';
+import { GAME_DURATION } from '@constants/index';
+import { TimedEvent } from '@shapes/event';
 
 const timeline: GameSystem = (entities, { time, input, dispatch }) => {
   const { timer, state } = entities;
   const { current } = time;
-  const { endTime, gameStart, startTime, stage } = state;
+  const { gameStart, startTime, stage } = state;
+  const { timedEvents } = timer;
 
-  switch (stage) {
-    /** track warmup time, then start gameplay */
-    case 'warmup':
-      if (current - gameStart > WARMUP_TIME) {
-        dispatch({ type: 'timeStart' });
-      }
-      break;
+  if (stage !== 'menu') {
+    if (stage === 'running') {
+      timer.timeRemaining = Math.max(0, GAME_DURATION - (current - startTime));
+    }
 
-    /** track time remaining in gameplay, then end gameplay */
-    case 'running':
-      const timeRemaining = Math.max(0, GAME_TIME - (current - startTime));
-
-      if (timeRemaining === 0) {
-        dispatch({ type: 'timeEnd' });
-      }
-
-      return {
-        ...entities,
-        timer: { ...timer, timeRemaining },
-      };
-    /** if an end time has passed, wait alloted time to display the finished screen then quit,
-     *  if user clicks, quit
-     */
-    case 'finished':
+    if (stage === 'finished') {
       const mouseDown = input.find((x) => x.name === 'onClick');
-      if (current - endTime > FINISH_SCREEN_TIME || mouseDown) {
+      if (mouseDown) {
         dispatch({ type: 'quit' });
       }
-      break;
+    }
+
+    if (timedEvents.length > 0) {
+      const elapsed = current - gameStart;
+      const nextEvent: TimedEvent = timedEvents[0];
+
+      if (nextEvent.time <= elapsed) {
+        const { type, payload } = nextEvent;
+        dispatch({ type, payload });
+        timedEvents.shift();
+      }
+    }
   }
 
   return entities;
 };
 
-/** log the initial start time and enter the warmup state */
-const onGameStart: GameSystem = (entities, { events, time }) => {
-  const event = events.find((e) => e.type === 'gameStart');
+const onTimelineEvent: GameSystem = (entities, { events, time }) => {
+  const event = events.find(
+    (e) =>
+      e.type === 'gameStart' ||
+      e.type === 'timeStart' ||
+      e.type === 'dawn' ||
+      e.type === 'timeEnd' ||
+      e.type === 'showFinish'
+  );
 
   if (event) {
-    const { state } = entities;
+    const { state, skyObjects, camera, backdrop } = entities;
     const { current } = time;
 
-    return {
-      ...entities,
-      state: { ...state, stage: 'warmup', gameStart: current },
-    };
+    switch (event.type) {
+      case 'gameStart':
+        return {
+          ...entities,
+          state: { ...state, stage: 'warmup', gameStart: current },
+        };
+      case 'timeStart':
+        return {
+          ...entities,
+          state: { ...state, stage: 'running', startTime: current },
+        };
+      case 'dawn':
+        return {
+          ...entities,
+          backdrop: { ...backdrop, showSunrise: true },
+          skyObjects: { ...skyObjects, showSunrise: true },
+        };
+      case 'showFinish':
+        return {
+          ...entities,
+          backdrop: { ...backdrop, showEndgame: true },
+          camera: { ...camera, showEndgame: true },
+        };
+      case 'timeEnd':
+        return {
+          ...entities,
+          skyObjects: { ...skyObjects, fade: true },
+          state: { ...state, stage: 'finished', endTime: current },
+          camera: { ...camera, exposureRemaining: null, nextPosition: null },
+        };
+    }
   }
 
   return entities;
 };
 
-const onTimeStart: GameSystem = (entities, { events, time }) => {
-  const event = events.find((e) => e.type === 'timeStart');
-
-  if (event) {
-    const { state } = entities;
-    const { current } = time;
-
-    return {
-      ...entities,
-      state: { ...state, stage: 'running', startTime: current },
-    };
-  }
-
-  return entities;
-};
-
-const onTimeEnd: GameSystem = (entities, { events, time }) => {
-  const event = events.find((e) => e.type === 'timeEnd');
-
-  if (event) {
-    const { current } = time;
-    const { backdrop, state, skyObjects, camera } = entities;
-    const showEndgame = true;
-
-    return {
-      ...entities,
-      camera: {
-        ...camera,
-        exposureRemaining: null,
-        nextPosition: null,
-        showEndgame,
-      },
-      skyObjects: { ...skyObjects, showEndgame },
-      backdrop: { ...backdrop, showEndgame },
-      state: { ...state, stage: 'finished', endTime: current },
-    };
-  }
-
-  return entities;
-};
-
-export { timeline, onGameStart, onTimeStart, onTimeEnd };
+export { timeline, onTimelineEvent };
