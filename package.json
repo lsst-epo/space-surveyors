@@ -83,6 +83,7 @@
     "prop-types": "^15.8.1",
     "react-game-engine": "^1.1.0",
     "react-inlinesvg": "^3.0.0",
+    "regenerator-runtime": "^0.13.9",
     "styled-components": "^5.3.5",
     "use-fit-text": "^2.4.0",
     "use-resize-observer": "^9.0.2"

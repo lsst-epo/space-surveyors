@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import useResizeObserver from 'use-resize-observer';
+import regeneratorRuntime from "regenerator-runtime";
 import { GameEngine } from 'react-game-engine';
 import SpaceSurveyorsContainer from '@components/containers/SpaceSurveyorsContainer';
 import GameMenus from '@components/Menus';
