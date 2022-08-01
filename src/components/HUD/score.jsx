@@ -5,16 +5,25 @@ import styled from 'styled-components';
 import { BREAK_TABLET_MIN, getRawPx } from '@styles/globalStyle';
 import ScoreList from '@components/ScoreList';
 
+const MobileResponsive = `
+gap: 0;
+grid-template-columns: 1fr;
+padding: 0.5em 1em;`;
+const Desktop = `
+gap: 2em;
+grid-template-columns: 1fr auto;
+padding: 1em 2em;`;
+
 const HUDScoreContainer = styled.div`
   display: grid;
-  grid-template-columns: ${({ width }) =>
-    width > getRawPx(BREAK_TABLET_MIN) ? '1fr auto' : '1fr'};
   grid-template-rows: auto;
-  gap: ${({ width }) => (width > getRawPx(BREAK_TABLET_MIN) ? '2em' : '0')};
   width: 100%;
   height: 100%;
   color: var(--yellow);
   font-weight: bold;
+
+  ${({ width }) =>
+    width > getRawPx(BREAK_TABLET_MIN) ? Desktop : MobileResponsive};
 `;
 
 const TotalScore = styled.div`
