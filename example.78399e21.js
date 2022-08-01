@@ -48603,7 +48603,3253 @@ __exportStar(require("./bodies/line"), exports);
 __exportStar(require("./system"), exports);
 __exportStar(require("./utils"), exports);
 
-},{"./model":"../node_modules/detect-collisions/dist/model.js","./bodies/circle":"../node_modules/detect-collisions/dist/bodies/circle.js","./bodies/ellipse":"../node_modules/detect-collisions/dist/bodies/ellipse.js","./bodies/polygon":"../node_modules/detect-collisions/dist/bodies/polygon.js","./bodies/box":"../node_modules/detect-collisions/dist/bodies/box.js","./bodies/point":"../node_modules/detect-collisions/dist/bodies/point.js","./bodies/line":"../node_modules/detect-collisions/dist/bodies/line.js","./system":"../node_modules/detect-collisions/dist/system.js","./utils":"../node_modules/detect-collisions/dist/utils.js"}],"../dist/space-surveyors.cjs.development.js":[function(require,module,exports) {
+},{"./model":"../node_modules/detect-collisions/dist/model.js","./bodies/circle":"../node_modules/detect-collisions/dist/bodies/circle.js","./bodies/ellipse":"../node_modules/detect-collisions/dist/bodies/ellipse.js","./bodies/polygon":"../node_modules/detect-collisions/dist/bodies/polygon.js","./bodies/box":"../node_modules/detect-collisions/dist/bodies/box.js","./bodies/point":"../node_modules/detect-collisions/dist/bodies/point.js","./bodies/line":"../node_modules/detect-collisions/dist/bodies/line.js","./system":"../node_modules/detect-collisions/dist/system.js","./utils":"../node_modules/detect-collisions/dist/utils.js"}],"../node_modules/howler/dist/howler.js":[function(require,module,exports) {
+var define;
+var global = arguments[3];
+/*!
+ *  howler.js v2.2.3
+ *  howlerjs.com
+ *
+ *  (c) 2013-2020, James Simpson of GoldFire Studios
+ *  goldfirestudios.com
+ *
+ *  MIT License
+ */
+
+(function() {
+
+  'use strict';
+
+  /** Global Methods **/
+  /***************************************************************************/
+
+  /**
+   * Create the global controller. All contained methods and properties apply
+   * to all sounds that are currently playing or will be in the future.
+   */
+  var HowlerGlobal = function() {
+    this.init();
+  };
+  HowlerGlobal.prototype = {
+    /**
+     * Initialize the global Howler object.
+     * @return {Howler}
+     */
+    init: function() {
+      var self = this || Howler;
+
+      // Create a global ID counter.
+      self._counter = 1000;
+
+      // Pool of unlocked HTML5 Audio objects.
+      self._html5AudioPool = [];
+      self.html5PoolSize = 10;
+
+      // Internal properties.
+      self._codecs = {};
+      self._howls = [];
+      self._muted = false;
+      self._volume = 1;
+      self._canPlayEvent = 'canplaythrough';
+      self._navigator = (typeof window !== 'undefined' && window.navigator) ? window.navigator : null;
+
+      // Public properties.
+      self.masterGain = null;
+      self.noAudio = false;
+      self.usingWebAudio = true;
+      self.autoSuspend = true;
+      self.ctx = null;
+
+      // Set to false to disable the auto audio unlocker.
+      self.autoUnlock = true;
+
+      // Setup the various state values for global tracking.
+      self._setup();
+
+      return self;
+    },
+
+    /**
+     * Get/set the global volume for all sounds.
+     * @param  {Float} vol Volume from 0.0 to 1.0.
+     * @return {Howler/Float}     Returns self or current volume.
+     */
+    volume: function(vol) {
+      var self = this || Howler;
+      vol = parseFloat(vol);
+
+      // If we don't have an AudioContext created yet, run the setup.
+      if (!self.ctx) {
+        setupAudioContext();
+      }
+
+      if (typeof vol !== 'undefined' && vol >= 0 && vol <= 1) {
+        self._volume = vol;
+
+        // Don't update any of the nodes if we are muted.
+        if (self._muted) {
+          return self;
+        }
+
+        // When using Web Audio, we just need to adjust the master gain.
+        if (self.usingWebAudio) {
+          self.masterGain.gain.setValueAtTime(vol, Howler.ctx.currentTime);
+        }
+
+        // Loop through and change volume for all HTML5 audio nodes.
+        for (var i=0; i<self._howls.length; i++) {
+          if (!self._howls[i]._webAudio) {
+            // Get all of the sounds in this Howl group.
+            var ids = self._howls[i]._getSoundIds();
+
+            // Loop through all sounds and change the volumes.
+            for (var j=0; j<ids.length; j++) {
+              var sound = self._howls[i]._soundById(ids[j]);
+
+              if (sound && sound._node) {
+                sound._node.volume = sound._volume * vol;
+              }
+            }
+          }
+        }
+
+        return self;
+      }
+
+      return self._volume;
+    },
+
+    /**
+     * Handle muting and unmuting globally.
+     * @param  {Boolean} muted Is muted or not.
+     */
+    mute: function(muted) {
+      var self = this || Howler;
+
+      // If we don't have an AudioContext created yet, run the setup.
+      if (!self.ctx) {
+        setupAudioContext();
+      }
+
+      self._muted = muted;
+
+      // With Web Audio, we just need to mute the master gain.
+      if (self.usingWebAudio) {
+        self.masterGain.gain.setValueAtTime(muted ? 0 : self._volume, Howler.ctx.currentTime);
+      }
+
+      // Loop through and mute all HTML5 Audio nodes.
+      for (var i=0; i<self._howls.length; i++) {
+        if (!self._howls[i]._webAudio) {
+          // Get all of the sounds in this Howl group.
+          var ids = self._howls[i]._getSoundIds();
+
+          // Loop through all sounds and mark the audio node as muted.
+          for (var j=0; j<ids.length; j++) {
+            var sound = self._howls[i]._soundById(ids[j]);
+
+            if (sound && sound._node) {
+              sound._node.muted = (muted) ? true : sound._muted;
+            }
+          }
+        }
+      }
+
+      return self;
+    },
+
+    /**
+     * Handle stopping all sounds globally.
+     */
+    stop: function() {
+      var self = this || Howler;
+
+      // Loop through all Howls and stop them.
+      for (var i=0; i<self._howls.length; i++) {
+        self._howls[i].stop();
+      }
+
+      return self;
+    },
+
+    /**
+     * Unload and destroy all currently loaded Howl objects.
+     * @return {Howler}
+     */
+    unload: function() {
+      var self = this || Howler;
+
+      for (var i=self._howls.length-1; i>=0; i--) {
+        self._howls[i].unload();
+      }
+
+      // Create a new AudioContext to make sure it is fully reset.
+      if (self.usingWebAudio && self.ctx && typeof self.ctx.close !== 'undefined') {
+        self.ctx.close();
+        self.ctx = null;
+        setupAudioContext();
+      }
+
+      return self;
+    },
+
+    /**
+     * Check for codec support of specific extension.
+     * @param  {String} ext Audio file extention.
+     * @return {Boolean}
+     */
+    codecs: function(ext) {
+      return (this || Howler)._codecs[ext.replace(/^x-/, '')];
+    },
+
+    /**
+     * Setup various state values for global tracking.
+     * @return {Howler}
+     */
+    _setup: function() {
+      var self = this || Howler;
+
+      // Keeps track of the suspend/resume state of the AudioContext.
+      self.state = self.ctx ? self.ctx.state || 'suspended' : 'suspended';
+
+      // Automatically begin the 30-second suspend process
+      self._autoSuspend();
+
+      // Check if audio is available.
+      if (!self.usingWebAudio) {
+        // No audio is available on this system if noAudio is set to true.
+        if (typeof Audio !== 'undefined') {
+          try {
+            var test = new Audio();
+
+            // Check if the canplaythrough event is available.
+            if (typeof test.oncanplaythrough === 'undefined') {
+              self._canPlayEvent = 'canplay';
+            }
+          } catch(e) {
+            self.noAudio = true;
+          }
+        } else {
+          self.noAudio = true;
+        }
+      }
+
+      // Test to make sure audio isn't disabled in Internet Explorer.
+      try {
+        var test = new Audio();
+        if (test.muted) {
+          self.noAudio = true;
+        }
+      } catch (e) {}
+
+      // Check for supported codecs.
+      if (!self.noAudio) {
+        self._setupCodecs();
+      }
+
+      return self;
+    },
+
+    /**
+     * Check for browser support for various codecs and cache the results.
+     * @return {Howler}
+     */
+    _setupCodecs: function() {
+      var self = this || Howler;
+      var audioTest = null;
+
+      // Must wrap in a try/catch because IE11 in server mode throws an error.
+      try {
+        audioTest = (typeof Audio !== 'undefined') ? new Audio() : null;
+      } catch (err) {
+        return self;
+      }
+
+      if (!audioTest || typeof audioTest.canPlayType !== 'function') {
+        return self;
+      }
+
+      var mpegTest = audioTest.canPlayType('audio/mpeg;').replace(/^no$/, '');
+
+      // Opera version <33 has mixed MP3 support, so we need to check for and block it.
+      var ua = self._navigator ? self._navigator.userAgent : '';
+      var checkOpera = ua.match(/OPR\/([0-6].)/g);
+      var isOldOpera = (checkOpera && parseInt(checkOpera[0].split('/')[1], 10) < 33);
+      var checkSafari = ua.indexOf('Safari') !== -1 && ua.indexOf('Chrome') === -1;
+      var safariVersion = ua.match(/Version\/(.*?) /);
+      var isOldSafari = (checkSafari && safariVersion && parseInt(safariVersion[1], 10) < 15);
+
+      self._codecs = {
+        mp3: !!(!isOldOpera && (mpegTest || audioTest.canPlayType('audio/mp3;').replace(/^no$/, ''))),
+        mpeg: !!mpegTest,
+        opus: !!audioTest.canPlayType('audio/ogg; codecs="opus"').replace(/^no$/, ''),
+        ogg: !!audioTest.canPlayType('audio/ogg; codecs="vorbis"').replace(/^no$/, ''),
+        oga: !!audioTest.canPlayType('audio/ogg; codecs="vorbis"').replace(/^no$/, ''),
+        wav: !!(audioTest.canPlayType('audio/wav; codecs="1"') || audioTest.canPlayType('audio/wav')).replace(/^no$/, ''),
+        aac: !!audioTest.canPlayType('audio/aac;').replace(/^no$/, ''),
+        caf: !!audioTest.canPlayType('audio/x-caf;').replace(/^no$/, ''),
+        m4a: !!(audioTest.canPlayType('audio/x-m4a;') || audioTest.canPlayType('audio/m4a;') || audioTest.canPlayType('audio/aac;')).replace(/^no$/, ''),
+        m4b: !!(audioTest.canPlayType('audio/x-m4b;') || audioTest.canPlayType('audio/m4b;') || audioTest.canPlayType('audio/aac;')).replace(/^no$/, ''),
+        mp4: !!(audioTest.canPlayType('audio/x-mp4;') || audioTest.canPlayType('audio/mp4;') || audioTest.canPlayType('audio/aac;')).replace(/^no$/, ''),
+        weba: !!(!isOldSafari && audioTest.canPlayType('audio/webm; codecs="vorbis"').replace(/^no$/, '')),
+        webm: !!(!isOldSafari && audioTest.canPlayType('audio/webm; codecs="vorbis"').replace(/^no$/, '')),
+        dolby: !!audioTest.canPlayType('audio/mp4; codecs="ec-3"').replace(/^no$/, ''),
+        flac: !!(audioTest.canPlayType('audio/x-flac;') || audioTest.canPlayType('audio/flac;')).replace(/^no$/, '')
+      };
+
+      return self;
+    },
+
+    /**
+     * Some browsers/devices will only allow audio to be played after a user interaction.
+     * Attempt to automatically unlock audio on the first user interaction.
+     * Concept from: http://paulbakaus.com/tutorials/html5/web-audio-on-ios/
+     * @return {Howler}
+     */
+    _unlockAudio: function() {
+      var self = this || Howler;
+
+      // Only run this if Web Audio is supported and it hasn't already been unlocked.
+      if (self._audioUnlocked || !self.ctx) {
+        return;
+      }
+
+      self._audioUnlocked = false;
+      self.autoUnlock = false;
+
+      // Some mobile devices/platforms have distortion issues when opening/closing tabs and/or web views.
+      // Bugs in the browser (especially Mobile Safari) can cause the sampleRate to change from 44100 to 48000.
+      // By calling Howler.unload(), we create a new AudioContext with the correct sampleRate.
+      if (!self._mobileUnloaded && self.ctx.sampleRate !== 44100) {
+        self._mobileUnloaded = true;
+        self.unload();
+      }
+
+      // Scratch buffer for enabling iOS to dispose of web audio buffers correctly, as per:
+      // http://stackoverflow.com/questions/24119684
+      self._scratchBuffer = self.ctx.createBuffer(1, 1, 22050);
+
+      // Call this method on touch start to create and play a buffer,
+      // then check if the audio actually played to determine if
+      // audio has now been unlocked on iOS, Android, etc.
+      var unlock = function(e) {
+        // Create a pool of unlocked HTML5 Audio objects that can
+        // be used for playing sounds without user interaction. HTML5
+        // Audio objects must be individually unlocked, as opposed
+        // to the WebAudio API which only needs a single activation.
+        // This must occur before WebAudio setup or the source.onended
+        // event will not fire.
+        while (self._html5AudioPool.length < self.html5PoolSize) {
+          try {
+            var audioNode = new Audio();
+
+            // Mark this Audio object as unlocked to ensure it can get returned
+            // to the unlocked pool when released.
+            audioNode._unlocked = true;
+
+            // Add the audio node to the pool.
+            self._releaseHtml5Audio(audioNode);
+          } catch (e) {
+            self.noAudio = true;
+            break;
+          }
+        }
+
+        // Loop through any assigned audio nodes and unlock them.
+        for (var i=0; i<self._howls.length; i++) {
+          if (!self._howls[i]._webAudio) {
+            // Get all of the sounds in this Howl group.
+            var ids = self._howls[i]._getSoundIds();
+
+            // Loop through all sounds and unlock the audio nodes.
+            for (var j=0; j<ids.length; j++) {
+              var sound = self._howls[i]._soundById(ids[j]);
+
+              if (sound && sound._node && !sound._node._unlocked) {
+                sound._node._unlocked = true;
+                sound._node.load();
+              }
+            }
+          }
+        }
+
+        // Fix Android can not play in suspend state.
+        self._autoResume();
+
+        // Create an empty buffer.
+        var source = self.ctx.createBufferSource();
+        source.buffer = self._scratchBuffer;
+        source.connect(self.ctx.destination);
+
+        // Play the empty buffer.
+        if (typeof source.start === 'undefined') {
+          source.noteOn(0);
+        } else {
+          source.start(0);
+        }
+
+        // Calling resume() on a stack initiated by user gesture is what actually unlocks the audio on Android Chrome >= 55.
+        if (typeof self.ctx.resume === 'function') {
+          self.ctx.resume();
+        }
+
+        // Setup a timeout to check that we are unlocked on the next event loop.
+        source.onended = function() {
+          source.disconnect(0);
+
+          // Update the unlocked state and prevent this check from happening again.
+          self._audioUnlocked = true;
+
+          // Remove the touch start listener.
+          document.removeEventListener('touchstart', unlock, true);
+          document.removeEventListener('touchend', unlock, true);
+          document.removeEventListener('click', unlock, true);
+          document.removeEventListener('keydown', unlock, true);
+
+          // Let all sounds know that audio has been unlocked.
+          for (var i=0; i<self._howls.length; i++) {
+            self._howls[i]._emit('unlock');
+          }
+        };
+      };
+
+      // Setup a touch start listener to attempt an unlock in.
+      document.addEventListener('touchstart', unlock, true);
+      document.addEventListener('touchend', unlock, true);
+      document.addEventListener('click', unlock, true);
+      document.addEventListener('keydown', unlock, true);
+
+      return self;
+    },
+
+    /**
+     * Get an unlocked HTML5 Audio object from the pool. If none are left,
+     * return a new Audio object and throw a warning.
+     * @return {Audio} HTML5 Audio object.
+     */
+    _obtainHtml5Audio: function() {
+      var self = this || Howler;
+
+      // Return the next object from the pool if one exists.
+      if (self._html5AudioPool.length) {
+        return self._html5AudioPool.pop();
+      }
+
+      //.Check if the audio is locked and throw a warning.
+      var testPlay = new Audio().play();
+      if (testPlay && typeof Promise !== 'undefined' && (testPlay instanceof Promise || typeof testPlay.then === 'function')) {
+        testPlay.catch(function() {
+          console.warn('HTML5 Audio pool exhausted, returning potentially locked audio object.');
+        });
+      }
+
+      return new Audio();
+    },
+
+    /**
+     * Return an activated HTML5 Audio object to the pool.
+     * @return {Howler}
+     */
+    _releaseHtml5Audio: function(audio) {
+      var self = this || Howler;
+
+      // Don't add audio to the pool if we don't know if it has been unlocked.
+      if (audio._unlocked) {
+        self._html5AudioPool.push(audio);
+      }
+
+      return self;
+    },
+
+    /**
+     * Automatically suspend the Web Audio AudioContext after no sound has played for 30 seconds.
+     * This saves processing/energy and fixes various browser-specific bugs with audio getting stuck.
+     * @return {Howler}
+     */
+    _autoSuspend: function() {
+      var self = this;
+
+      if (!self.autoSuspend || !self.ctx || typeof self.ctx.suspend === 'undefined' || !Howler.usingWebAudio) {
+        return;
+      }
+
+      // Check if any sounds are playing.
+      for (var i=0; i<self._howls.length; i++) {
+        if (self._howls[i]._webAudio) {
+          for (var j=0; j<self._howls[i]._sounds.length; j++) {
+            if (!self._howls[i]._sounds[j]._paused) {
+              return self;
+            }
+          }
+        }
+      }
+
+      if (self._suspendTimer) {
+        clearTimeout(self._suspendTimer);
+      }
+
+      // If no sound has played after 30 seconds, suspend the context.
+      self._suspendTimer = setTimeout(function() {
+        if (!self.autoSuspend) {
+          return;
+        }
+
+        self._suspendTimer = null;
+        self.state = 'suspending';
+
+        // Handle updating the state of the audio context after suspending.
+        var handleSuspension = function() {
+          self.state = 'suspended';
+
+          if (self._resumeAfterSuspend) {
+            delete self._resumeAfterSuspend;
+            self._autoResume();
+          }
+        };
+
+        // Either the state gets suspended or it is interrupted.
+        // Either way, we need to update the state to suspended.
+        self.ctx.suspend().then(handleSuspension, handleSuspension);
+      }, 30000);
+
+      return self;
+    },
+
+    /**
+     * Automatically resume the Web Audio AudioContext when a new sound is played.
+     * @return {Howler}
+     */
+    _autoResume: function() {
+      var self = this;
+
+      if (!self.ctx || typeof self.ctx.resume === 'undefined' || !Howler.usingWebAudio) {
+        return;
+      }
+
+      if (self.state === 'running' && self.ctx.state !== 'interrupted' && self._suspendTimer) {
+        clearTimeout(self._suspendTimer);
+        self._suspendTimer = null;
+      } else if (self.state === 'suspended' || self.state === 'running' && self.ctx.state === 'interrupted') {
+        self.ctx.resume().then(function() {
+          self.state = 'running';
+
+          // Emit to all Howls that the audio has resumed.
+          for (var i=0; i<self._howls.length; i++) {
+            self._howls[i]._emit('resume');
+          }
+        });
+
+        if (self._suspendTimer) {
+          clearTimeout(self._suspendTimer);
+          self._suspendTimer = null;
+        }
+      } else if (self.state === 'suspending') {
+        self._resumeAfterSuspend = true;
+      }
+
+      return self;
+    }
+  };
+
+  // Setup the global audio controller.
+  var Howler = new HowlerGlobal();
+
+  /** Group Methods **/
+  /***************************************************************************/
+
+  /**
+   * Create an audio group controller.
+   * @param {Object} o Passed in properties for this group.
+   */
+  var Howl = function(o) {
+    var self = this;
+
+    // Throw an error if no source is provided.
+    if (!o.src || o.src.length === 0) {
+      console.error('An array of source files must be passed with any new Howl.');
+      return;
+    }
+
+    self.init(o);
+  };
+  Howl.prototype = {
+    /**
+     * Initialize a new Howl group object.
+     * @param  {Object} o Passed in properties for this group.
+     * @return {Howl}
+     */
+    init: function(o) {
+      var self = this;
+
+      // If we don't have an AudioContext created yet, run the setup.
+      if (!Howler.ctx) {
+        setupAudioContext();
+      }
+
+      // Setup user-defined default properties.
+      self._autoplay = o.autoplay || false;
+      self._format = (typeof o.format !== 'string') ? o.format : [o.format];
+      self._html5 = o.html5 || false;
+      self._muted = o.mute || false;
+      self._loop = o.loop || false;
+      self._pool = o.pool || 5;
+      self._preload = (typeof o.preload === 'boolean' || o.preload === 'metadata') ? o.preload : true;
+      self._rate = o.rate || 1;
+      self._sprite = o.sprite || {};
+      self._src = (typeof o.src !== 'string') ? o.src : [o.src];
+      self._volume = o.volume !== undefined ? o.volume : 1;
+      self._xhr = {
+        method: o.xhr && o.xhr.method ? o.xhr.method : 'GET',
+        headers: o.xhr && o.xhr.headers ? o.xhr.headers : null,
+        withCredentials: o.xhr && o.xhr.withCredentials ? o.xhr.withCredentials : false,
+      };
+
+      // Setup all other default properties.
+      self._duration = 0;
+      self._state = 'unloaded';
+      self._sounds = [];
+      self._endTimers = {};
+      self._queue = [];
+      self._playLock = false;
+
+      // Setup event listeners.
+      self._onend = o.onend ? [{fn: o.onend}] : [];
+      self._onfade = o.onfade ? [{fn: o.onfade}] : [];
+      self._onload = o.onload ? [{fn: o.onload}] : [];
+      self._onloaderror = o.onloaderror ? [{fn: o.onloaderror}] : [];
+      self._onplayerror = o.onplayerror ? [{fn: o.onplayerror}] : [];
+      self._onpause = o.onpause ? [{fn: o.onpause}] : [];
+      self._onplay = o.onplay ? [{fn: o.onplay}] : [];
+      self._onstop = o.onstop ? [{fn: o.onstop}] : [];
+      self._onmute = o.onmute ? [{fn: o.onmute}] : [];
+      self._onvolume = o.onvolume ? [{fn: o.onvolume}] : [];
+      self._onrate = o.onrate ? [{fn: o.onrate}] : [];
+      self._onseek = o.onseek ? [{fn: o.onseek}] : [];
+      self._onunlock = o.onunlock ? [{fn: o.onunlock}] : [];
+      self._onresume = [];
+
+      // Web Audio or HTML5 Audio?
+      self._webAudio = Howler.usingWebAudio && !self._html5;
+
+      // Automatically try to enable audio.
+      if (typeof Howler.ctx !== 'undefined' && Howler.ctx && Howler.autoUnlock) {
+        Howler._unlockAudio();
+      }
+
+      // Keep track of this Howl group in the global controller.
+      Howler._howls.push(self);
+
+      // If they selected autoplay, add a play event to the load queue.
+      if (self._autoplay) {
+        self._queue.push({
+          event: 'play',
+          action: function() {
+            self.play();
+          }
+        });
+      }
+
+      // Load the source file unless otherwise specified.
+      if (self._preload && self._preload !== 'none') {
+        self.load();
+      }
+
+      return self;
+    },
+
+    /**
+     * Load the audio file.
+     * @return {Howler}
+     */
+    load: function() {
+      var self = this;
+      var url = null;
+
+      // If no audio is available, quit immediately.
+      if (Howler.noAudio) {
+        self._emit('loaderror', null, 'No audio support.');
+        return;
+      }
+
+      // Make sure our source is in an array.
+      if (typeof self._src === 'string') {
+        self._src = [self._src];
+      }
+
+      // Loop through the sources and pick the first one that is compatible.
+      for (var i=0; i<self._src.length; i++) {
+        var ext, str;
+
+        if (self._format && self._format[i]) {
+          // If an extension was specified, use that instead.
+          ext = self._format[i];
+        } else {
+          // Make sure the source is a string.
+          str = self._src[i];
+          if (typeof str !== 'string') {
+            self._emit('loaderror', null, 'Non-string found in selected audio sources - ignoring.');
+            continue;
+          }
+
+          // Extract the file extension from the URL or base64 data URI.
+          ext = /^data:audio\/([^;,]+);/i.exec(str);
+          if (!ext) {
+            ext = /\.([^.]+)$/.exec(str.split('?', 1)[0]);
+          }
+
+          if (ext) {
+            ext = ext[1].toLowerCase();
+          }
+        }
+
+        // Log a warning if no extension was found.
+        if (!ext) {
+          console.warn('No file extension was found. Consider using the "format" property or specify an extension.');
+        }
+
+        // Check if this extension is available.
+        if (ext && Howler.codecs(ext)) {
+          url = self._src[i];
+          break;
+        }
+      }
+
+      if (!url) {
+        self._emit('loaderror', null, 'No codec support for selected audio sources.');
+        return;
+      }
+
+      self._src = url;
+      self._state = 'loading';
+
+      // If the hosting page is HTTPS and the source isn't,
+      // drop down to HTML5 Audio to avoid Mixed Content errors.
+      if (window.location.protocol === 'https:' && url.slice(0, 5) === 'http:') {
+        self._html5 = true;
+        self._webAudio = false;
+      }
+
+      // Create a new sound object and add it to the pool.
+      new Sound(self);
+
+      // Load and decode the audio data for playback.
+      if (self._webAudio) {
+        loadBuffer(self);
+      }
+
+      return self;
+    },
+
+    /**
+     * Play a sound or resume previous playback.
+     * @param  {String/Number} sprite   Sprite name for sprite playback or sound id to continue previous.
+     * @param  {Boolean} internal Internal Use: true prevents event firing.
+     * @return {Number}          Sound ID.
+     */
+    play: function(sprite, internal) {
+      var self = this;
+      var id = null;
+
+      // Determine if a sprite, sound id or nothing was passed
+      if (typeof sprite === 'number') {
+        id = sprite;
+        sprite = null;
+      } else if (typeof sprite === 'string' && self._state === 'loaded' && !self._sprite[sprite]) {
+        // If the passed sprite doesn't exist, do nothing.
+        return null;
+      } else if (typeof sprite === 'undefined') {
+        // Use the default sound sprite (plays the full audio length).
+        sprite = '__default';
+
+        // Check if there is a single paused sound that isn't ended.
+        // If there is, play that sound. If not, continue as usual.
+        if (!self._playLock) {
+          var num = 0;
+          for (var i=0; i<self._sounds.length; i++) {
+            if (self._sounds[i]._paused && !self._sounds[i]._ended) {
+              num++;
+              id = self._sounds[i]._id;
+            }
+          }
+
+          if (num === 1) {
+            sprite = null;
+          } else {
+            id = null;
+          }
+        }
+      }
+
+      // Get the selected node, or get one from the pool.
+      var sound = id ? self._soundById(id) : self._inactiveSound();
+
+      // If the sound doesn't exist, do nothing.
+      if (!sound) {
+        return null;
+      }
+
+      // Select the sprite definition.
+      if (id && !sprite) {
+        sprite = sound._sprite || '__default';
+      }
+
+      // If the sound hasn't loaded, we must wait to get the audio's duration.
+      // We also need to wait to make sure we don't run into race conditions with
+      // the order of function calls.
+      if (self._state !== 'loaded') {
+        // Set the sprite value on this sound.
+        sound._sprite = sprite;
+
+        // Mark this sound as not ended in case another sound is played before this one loads.
+        sound._ended = false;
+
+        // Add the sound to the queue to be played on load.
+        var soundId = sound._id;
+        self._queue.push({
+          event: 'play',
+          action: function() {
+            self.play(soundId);
+          }
+        });
+
+        return soundId;
+      }
+
+      // Don't play the sound if an id was passed and it is already playing.
+      if (id && !sound._paused) {
+        // Trigger the play event, in order to keep iterating through queue.
+        if (!internal) {
+          self._loadQueue('play');
+        }
+
+        return sound._id;
+      }
+
+      // Make sure the AudioContext isn't suspended, and resume it if it is.
+      if (self._webAudio) {
+        Howler._autoResume();
+      }
+
+      // Determine how long to play for and where to start playing.
+      var seek = Math.max(0, sound._seek > 0 ? sound._seek : self._sprite[sprite][0] / 1000);
+      var duration = Math.max(0, ((self._sprite[sprite][0] + self._sprite[sprite][1]) / 1000) - seek);
+      var timeout = (duration * 1000) / Math.abs(sound._rate);
+      var start = self._sprite[sprite][0] / 1000;
+      var stop = (self._sprite[sprite][0] + self._sprite[sprite][1]) / 1000;
+      sound._sprite = sprite;
+
+      // Mark the sound as ended instantly so that this async playback
+      // doesn't get grabbed by another call to play while this one waits to start.
+      sound._ended = false;
+
+      // Update the parameters of the sound.
+      var setParams = function() {
+        sound._paused = false;
+        sound._seek = seek;
+        sound._start = start;
+        sound._stop = stop;
+        sound._loop = !!(sound._loop || self._sprite[sprite][2]);
+      };
+
+      // End the sound instantly if seek is at the end.
+      if (seek >= stop) {
+        self._ended(sound);
+        return;
+      }
+
+      // Begin the actual playback.
+      var node = sound._node;
+      if (self._webAudio) {
+        // Fire this when the sound is ready to play to begin Web Audio playback.
+        var playWebAudio = function() {
+          self._playLock = false;
+          setParams();
+          self._refreshBuffer(sound);
+
+          // Setup the playback params.
+          var vol = (sound._muted || self._muted) ? 0 : sound._volume;
+          node.gain.setValueAtTime(vol, Howler.ctx.currentTime);
+          sound._playStart = Howler.ctx.currentTime;
+
+          // Play the sound using the supported method.
+          if (typeof node.bufferSource.start === 'undefined') {
+            sound._loop ? node.bufferSource.noteGrainOn(0, seek, 86400) : node.bufferSource.noteGrainOn(0, seek, duration);
+          } else {
+            sound._loop ? node.bufferSource.start(0, seek, 86400) : node.bufferSource.start(0, seek, duration);
+          }
+
+          // Start a new timer if none is present.
+          if (timeout !== Infinity) {
+            self._endTimers[sound._id] = setTimeout(self._ended.bind(self, sound), timeout);
+          }
+
+          if (!internal) {
+            setTimeout(function() {
+              self._emit('play', sound._id);
+              self._loadQueue();
+            }, 0);
+          }
+        };
+
+        if (Howler.state === 'running' && Howler.ctx.state !== 'interrupted') {
+          playWebAudio();
+        } else {
+          self._playLock = true;
+
+          // Wait for the audio context to resume before playing.
+          self.once('resume', playWebAudio);
+
+          // Cancel the end timer.
+          self._clearTimer(sound._id);
+        }
+      } else {
+        // Fire this when the sound is ready to play to begin HTML5 Audio playback.
+        var playHtml5 = function() {
+          node.currentTime = seek;
+          node.muted = sound._muted || self._muted || Howler._muted || node.muted;
+          node.volume = sound._volume * Howler.volume();
+          node.playbackRate = sound._rate;
+
+          // Some browsers will throw an error if this is called without user interaction.
+          try {
+            var play = node.play();
+
+            // Support older browsers that don't support promises, and thus don't have this issue.
+            if (play && typeof Promise !== 'undefined' && (play instanceof Promise || typeof play.then === 'function')) {
+              // Implements a lock to prevent DOMException: The play() request was interrupted by a call to pause().
+              self._playLock = true;
+
+              // Set param values immediately.
+              setParams();
+
+              // Releases the lock and executes queued actions.
+              play
+                .then(function() {
+                  self._playLock = false;
+                  node._unlocked = true;
+                  if (!internal) {
+                    self._emit('play', sound._id);
+                  } else {
+                    self._loadQueue();
+                  }
+                })
+                .catch(function() {
+                  self._playLock = false;
+                  self._emit('playerror', sound._id, 'Playback was unable to start. This is most commonly an issue ' +
+                    'on mobile devices and Chrome where playback was not within a user interaction.');
+
+                  // Reset the ended and paused values.
+                  sound._ended = true;
+                  sound._paused = true;
+                });
+            } else if (!internal) {
+              self._playLock = false;
+              setParams();
+              self._emit('play', sound._id);
+            }
+
+            // Setting rate before playing won't work in IE, so we set it again here.
+            node.playbackRate = sound._rate;
+
+            // If the node is still paused, then we can assume there was a playback issue.
+            if (node.paused) {
+              self._emit('playerror', sound._id, 'Playback was unable to start. This is most commonly an issue ' +
+                'on mobile devices and Chrome where playback was not within a user interaction.');
+              return;
+            }
+
+            // Setup the end timer on sprites or listen for the ended event.
+            if (sprite !== '__default' || sound._loop) {
+              self._endTimers[sound._id] = setTimeout(self._ended.bind(self, sound), timeout);
+            } else {
+              self._endTimers[sound._id] = function() {
+                // Fire ended on this audio node.
+                self._ended(sound);
+
+                // Clear this listener.
+                node.removeEventListener('ended', self._endTimers[sound._id], false);
+              };
+              node.addEventListener('ended', self._endTimers[sound._id], false);
+            }
+          } catch (err) {
+            self._emit('playerror', sound._id, err);
+          }
+        };
+
+        // If this is streaming audio, make sure the src is set and load again.
+        if (node.src === 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA') {
+          node.src = self._src;
+          node.load();
+        }
+
+        // Play immediately if ready, or wait for the 'canplaythrough'e vent.
+        var loadedNoReadyState = (window && window.ejecta) || (!node.readyState && Howler._navigator.isCocoonJS);
+        if (node.readyState >= 3 || loadedNoReadyState) {
+          playHtml5();
+        } else {
+          self._playLock = true;
+          self._state = 'loading';
+
+          var listener = function() {
+            self._state = 'loaded';
+            
+            // Begin playback.
+            playHtml5();
+
+            // Clear this listener.
+            node.removeEventListener(Howler._canPlayEvent, listener, false);
+          };
+          node.addEventListener(Howler._canPlayEvent, listener, false);
+
+          // Cancel the end timer.
+          self._clearTimer(sound._id);
+        }
+      }
+
+      return sound._id;
+    },
+
+    /**
+     * Pause playback and save current position.
+     * @param  {Number} id The sound ID (empty to pause all in group).
+     * @return {Howl}
+     */
+    pause: function(id) {
+      var self = this;
+
+      // If the sound hasn't loaded or a play() promise is pending, add it to the load queue to pause when capable.
+      if (self._state !== 'loaded' || self._playLock) {
+        self._queue.push({
+          event: 'pause',
+          action: function() {
+            self.pause(id);
+          }
+        });
+
+        return self;
+      }
+
+      // If no id is passed, get all ID's to be paused.
+      var ids = self._getSoundIds(id);
+
+      for (var i=0; i<ids.length; i++) {
+        // Clear the end timer.
+        self._clearTimer(ids[i]);
+
+        // Get the sound.
+        var sound = self._soundById(ids[i]);
+
+        if (sound && !sound._paused) {
+          // Reset the seek position.
+          sound._seek = self.seek(ids[i]);
+          sound._rateSeek = 0;
+          sound._paused = true;
+
+          // Stop currently running fades.
+          self._stopFade(ids[i]);
+
+          if (sound._node) {
+            if (self._webAudio) {
+              // Make sure the sound has been created.
+              if (!sound._node.bufferSource) {
+                continue;
+              }
+
+              if (typeof sound._node.bufferSource.stop === 'undefined') {
+                sound._node.bufferSource.noteOff(0);
+              } else {
+                sound._node.bufferSource.stop(0);
+              }
+
+              // Clean up the buffer source.
+              self._cleanBuffer(sound._node);
+            } else if (!isNaN(sound._node.duration) || sound._node.duration === Infinity) {
+              sound._node.pause();
+            }
+          }
+        }
+
+        // Fire the pause event, unless `true` is passed as the 2nd argument.
+        if (!arguments[1]) {
+          self._emit('pause', sound ? sound._id : null);
+        }
+      }
+
+      return self;
+    },
+
+    /**
+     * Stop playback and reset to start.
+     * @param  {Number} id The sound ID (empty to stop all in group).
+     * @param  {Boolean} internal Internal Use: true prevents event firing.
+     * @return {Howl}
+     */
+    stop: function(id, internal) {
+      var self = this;
+
+      // If the sound hasn't loaded, add it to the load queue to stop when capable.
+      if (self._state !== 'loaded' || self._playLock) {
+        self._queue.push({
+          event: 'stop',
+          action: function() {
+            self.stop(id);
+          }
+        });
+
+        return self;
+      }
+
+      // If no id is passed, get all ID's to be stopped.
+      var ids = self._getSoundIds(id);
+
+      for (var i=0; i<ids.length; i++) {
+        // Clear the end timer.
+        self._clearTimer(ids[i]);
+
+        // Get the sound.
+        var sound = self._soundById(ids[i]);
+
+        if (sound) {
+          // Reset the seek position.
+          sound._seek = sound._start || 0;
+          sound._rateSeek = 0;
+          sound._paused = true;
+          sound._ended = true;
+
+          // Stop currently running fades.
+          self._stopFade(ids[i]);
+
+          if (sound._node) {
+            if (self._webAudio) {
+              // Make sure the sound's AudioBufferSourceNode has been created.
+              if (sound._node.bufferSource) {
+                if (typeof sound._node.bufferSource.stop === 'undefined') {
+                  sound._node.bufferSource.noteOff(0);
+                } else {
+                  sound._node.bufferSource.stop(0);
+                }
+
+                // Clean up the buffer source.
+                self._cleanBuffer(sound._node);
+              }
+            } else if (!isNaN(sound._node.duration) || sound._node.duration === Infinity) {
+              sound._node.currentTime = sound._start || 0;
+              sound._node.pause();
+
+              // If this is a live stream, stop download once the audio is stopped.
+              if (sound._node.duration === Infinity) {
+                self._clearSound(sound._node);
+              }
+            }
+          }
+
+          if (!internal) {
+            self._emit('stop', sound._id);
+          }
+        }
+      }
+
+      return self;
+    },
+
+    /**
+     * Mute/unmute a single sound or all sounds in this Howl group.
+     * @param  {Boolean} muted Set to true to mute and false to unmute.
+     * @param  {Number} id    The sound ID to update (omit to mute/unmute all).
+     * @return {Howl}
+     */
+    mute: function(muted, id) {
+      var self = this;
+
+      // If the sound hasn't loaded, add it to the load queue to mute when capable.
+      if (self._state !== 'loaded'|| self._playLock) {
+        self._queue.push({
+          event: 'mute',
+          action: function() {
+            self.mute(muted, id);
+          }
+        });
+
+        return self;
+      }
+
+      // If applying mute/unmute to all sounds, update the group's value.
+      if (typeof id === 'undefined') {
+        if (typeof muted === 'boolean') {
+          self._muted = muted;
+        } else {
+          return self._muted;
+        }
+      }
+
+      // If no id is passed, get all ID's to be muted.
+      var ids = self._getSoundIds(id);
+
+      for (var i=0; i<ids.length; i++) {
+        // Get the sound.
+        var sound = self._soundById(ids[i]);
+
+        if (sound) {
+          sound._muted = muted;
+
+          // Cancel active fade and set the volume to the end value.
+          if (sound._interval) {
+            self._stopFade(sound._id);
+          }
+
+          if (self._webAudio && sound._node) {
+            sound._node.gain.setValueAtTime(muted ? 0 : sound._volume, Howler.ctx.currentTime);
+          } else if (sound._node) {
+            sound._node.muted = Howler._muted ? true : muted;
+          }
+
+          self._emit('mute', sound._id);
+        }
+      }
+
+      return self;
+    },
+
+    /**
+     * Get/set the volume of this sound or of the Howl group. This method can optionally take 0, 1 or 2 arguments.
+     *   volume() -> Returns the group's volume value.
+     *   volume(id) -> Returns the sound id's current volume.
+     *   volume(vol) -> Sets the volume of all sounds in this Howl group.
+     *   volume(vol, id) -> Sets the volume of passed sound id.
+     * @return {Howl/Number} Returns self or current volume.
+     */
+    volume: function() {
+      var self = this;
+      var args = arguments;
+      var vol, id;
+
+      // Determine the values based on arguments.
+      if (args.length === 0) {
+        // Return the value of the groups' volume.
+        return self._volume;
+      } else if (args.length === 1 || args.length === 2 && typeof args[1] === 'undefined') {
+        // First check if this is an ID, and if not, assume it is a new volume.
+        var ids = self._getSoundIds();
+        var index = ids.indexOf(args[0]);
+        if (index >= 0) {
+          id = parseInt(args[0], 10);
+        } else {
+          vol = parseFloat(args[0]);
+        }
+      } else if (args.length >= 2) {
+        vol = parseFloat(args[0]);
+        id = parseInt(args[1], 10);
+      }
+
+      // Update the volume or return the current volume.
+      var sound;
+      if (typeof vol !== 'undefined' && vol >= 0 && vol <= 1) {
+        // If the sound hasn't loaded, add it to the load queue to change volume when capable.
+        if (self._state !== 'loaded'|| self._playLock) {
+          self._queue.push({
+            event: 'volume',
+            action: function() {
+              self.volume.apply(self, args);
+            }
+          });
+
+          return self;
+        }
+
+        // Set the group volume.
+        if (typeof id === 'undefined') {
+          self._volume = vol;
+        }
+
+        // Update one or all volumes.
+        id = self._getSoundIds(id);
+        for (var i=0; i<id.length; i++) {
+          // Get the sound.
+          sound = self._soundById(id[i]);
+
+          if (sound) {
+            sound._volume = vol;
+
+            // Stop currently running fades.
+            if (!args[2]) {
+              self._stopFade(id[i]);
+            }
+
+            if (self._webAudio && sound._node && !sound._muted) {
+              sound._node.gain.setValueAtTime(vol, Howler.ctx.currentTime);
+            } else if (sound._node && !sound._muted) {
+              sound._node.volume = vol * Howler.volume();
+            }
+
+            self._emit('volume', sound._id);
+          }
+        }
+      } else {
+        sound = id ? self._soundById(id) : self._sounds[0];
+        return sound ? sound._volume : 0;
+      }
+
+      return self;
+    },
+
+    /**
+     * Fade a currently playing sound between two volumes (if no id is passed, all sounds will fade).
+     * @param  {Number} from The value to fade from (0.0 to 1.0).
+     * @param  {Number} to   The volume to fade to (0.0 to 1.0).
+     * @param  {Number} len  Time in milliseconds to fade.
+     * @param  {Number} id   The sound id (omit to fade all sounds).
+     * @return {Howl}
+     */
+    fade: function(from, to, len, id) {
+      var self = this;
+
+      // If the sound hasn't loaded, add it to the load queue to fade when capable.
+      if (self._state !== 'loaded' || self._playLock) {
+        self._queue.push({
+          event: 'fade',
+          action: function() {
+            self.fade(from, to, len, id);
+          }
+        });
+
+        return self;
+      }
+
+      // Make sure the to/from/len values are numbers.
+      from = Math.min(Math.max(0, parseFloat(from)), 1);
+      to = Math.min(Math.max(0, parseFloat(to)), 1);
+      len = parseFloat(len);
+
+      // Set the volume to the start position.
+      self.volume(from, id);
+
+      // Fade the volume of one or all sounds.
+      var ids = self._getSoundIds(id);
+      for (var i=0; i<ids.length; i++) {
+        // Get the sound.
+        var sound = self._soundById(ids[i]);
+
+        // Create a linear fade or fall back to timeouts with HTML5 Audio.
+        if (sound) {
+          // Stop the previous fade if no sprite is being used (otherwise, volume handles this).
+          if (!id) {
+            self._stopFade(ids[i]);
+          }
+
+          // If we are using Web Audio, let the native methods do the actual fade.
+          if (self._webAudio && !sound._muted) {
+            var currentTime = Howler.ctx.currentTime;
+            var end = currentTime + (len / 1000);
+            sound._volume = from;
+            sound._node.gain.setValueAtTime(from, currentTime);
+            sound._node.gain.linearRampToValueAtTime(to, end);
+          }
+
+          self._startFadeInterval(sound, from, to, len, ids[i], typeof id === 'undefined');
+        }
+      }
+
+      return self;
+    },
+
+    /**
+     * Starts the internal interval to fade a sound.
+     * @param  {Object} sound Reference to sound to fade.
+     * @param  {Number} from The value to fade from (0.0 to 1.0).
+     * @param  {Number} to   The volume to fade to (0.0 to 1.0).
+     * @param  {Number} len  Time in milliseconds to fade.
+     * @param  {Number} id   The sound id to fade.
+     * @param  {Boolean} isGroup   If true, set the volume on the group.
+     */
+    _startFadeInterval: function(sound, from, to, len, id, isGroup) {
+      var self = this;
+      var vol = from;
+      var diff = to - from;
+      var steps = Math.abs(diff / 0.01);
+      var stepLen = Math.max(4, (steps > 0) ? len / steps : len);
+      var lastTick = Date.now();
+
+      // Store the value being faded to.
+      sound._fadeTo = to;
+
+      // Update the volume value on each interval tick.
+      sound._interval = setInterval(function() {
+        // Update the volume based on the time since the last tick.
+        var tick = (Date.now() - lastTick) / len;
+        lastTick = Date.now();
+        vol += diff * tick;
+
+        // Round to within 2 decimal points.
+        vol = Math.round(vol * 100) / 100;
+
+        // Make sure the volume is in the right bounds.
+        if (diff < 0) {
+          vol = Math.max(to, vol);
+        } else {
+          vol = Math.min(to, vol);
+        }
+
+        // Change the volume.
+        if (self._webAudio) {
+          sound._volume = vol;
+        } else {
+          self.volume(vol, sound._id, true);
+        }
+
+        // Set the group's volume.
+        if (isGroup) {
+          self._volume = vol;
+        }
+
+        // When the fade is complete, stop it and fire event.
+        if ((to < from && vol <= to) || (to > from && vol >= to)) {
+          clearInterval(sound._interval);
+          sound._interval = null;
+          sound._fadeTo = null;
+          self.volume(to, sound._id);
+          self._emit('fade', sound._id);
+        }
+      }, stepLen);
+    },
+
+    /**
+     * Internal method that stops the currently playing fade when
+     * a new fade starts, volume is changed or the sound is stopped.
+     * @param  {Number} id The sound id.
+     * @return {Howl}
+     */
+    _stopFade: function(id) {
+      var self = this;
+      var sound = self._soundById(id);
+
+      if (sound && sound._interval) {
+        if (self._webAudio) {
+          sound._node.gain.cancelScheduledValues(Howler.ctx.currentTime);
+        }
+
+        clearInterval(sound._interval);
+        sound._interval = null;
+        self.volume(sound._fadeTo, id);
+        sound._fadeTo = null;
+        self._emit('fade', id);
+      }
+
+      return self;
+    },
+
+    /**
+     * Get/set the loop parameter on a sound. This method can optionally take 0, 1 or 2 arguments.
+     *   loop() -> Returns the group's loop value.
+     *   loop(id) -> Returns the sound id's loop value.
+     *   loop(loop) -> Sets the loop value for all sounds in this Howl group.
+     *   loop(loop, id) -> Sets the loop value of passed sound id.
+     * @return {Howl/Boolean} Returns self or current loop value.
+     */
+    loop: function() {
+      var self = this;
+      var args = arguments;
+      var loop, id, sound;
+
+      // Determine the values for loop and id.
+      if (args.length === 0) {
+        // Return the grou's loop value.
+        return self._loop;
+      } else if (args.length === 1) {
+        if (typeof args[0] === 'boolean') {
+          loop = args[0];
+          self._loop = loop;
+        } else {
+          // Return this sound's loop value.
+          sound = self._soundById(parseInt(args[0], 10));
+          return sound ? sound._loop : false;
+        }
+      } else if (args.length === 2) {
+        loop = args[0];
+        id = parseInt(args[1], 10);
+      }
+
+      // If no id is passed, get all ID's to be looped.
+      var ids = self._getSoundIds(id);
+      for (var i=0; i<ids.length; i++) {
+        sound = self._soundById(ids[i]);
+
+        if (sound) {
+          sound._loop = loop;
+          if (self._webAudio && sound._node && sound._node.bufferSource) {
+            sound._node.bufferSource.loop = loop;
+            if (loop) {
+              sound._node.bufferSource.loopStart = sound._start || 0;
+              sound._node.bufferSource.loopEnd = sound._stop;
+
+              // If playing, restart playback to ensure looping updates.
+              if (self.playing(ids[i])) {
+                self.pause(ids[i], true);
+                self.play(ids[i], true);
+              }
+            }
+          }
+        }
+      }
+
+      return self;
+    },
+
+    /**
+     * Get/set the playback rate of a sound. This method can optionally take 0, 1 or 2 arguments.
+     *   rate() -> Returns the first sound node's current playback rate.
+     *   rate(id) -> Returns the sound id's current playback rate.
+     *   rate(rate) -> Sets the playback rate of all sounds in this Howl group.
+     *   rate(rate, id) -> Sets the playback rate of passed sound id.
+     * @return {Howl/Number} Returns self or the current playback rate.
+     */
+    rate: function() {
+      var self = this;
+      var args = arguments;
+      var rate, id;
+
+      // Determine the values based on arguments.
+      if (args.length === 0) {
+        // We will simply return the current rate of the first node.
+        id = self._sounds[0]._id;
+      } else if (args.length === 1) {
+        // First check if this is an ID, and if not, assume it is a new rate value.
+        var ids = self._getSoundIds();
+        var index = ids.indexOf(args[0]);
+        if (index >= 0) {
+          id = parseInt(args[0], 10);
+        } else {
+          rate = parseFloat(args[0]);
+        }
+      } else if (args.length === 2) {
+        rate = parseFloat(args[0]);
+        id = parseInt(args[1], 10);
+      }
+
+      // Update the playback rate or return the current value.
+      var sound;
+      if (typeof rate === 'number') {
+        // If the sound hasn't loaded, add it to the load queue to change playback rate when capable.
+        if (self._state !== 'loaded' || self._playLock) {
+          self._queue.push({
+            event: 'rate',
+            action: function() {
+              self.rate.apply(self, args);
+            }
+          });
+
+          return self;
+        }
+
+        // Set the group rate.
+        if (typeof id === 'undefined') {
+          self._rate = rate;
+        }
+
+        // Update one or all volumes.
+        id = self._getSoundIds(id);
+        for (var i=0; i<id.length; i++) {
+          // Get the sound.
+          sound = self._soundById(id[i]);
+
+          if (sound) {
+            // Keep track of our position when the rate changed and update the playback
+            // start position so we can properly adjust the seek position for time elapsed.
+            if (self.playing(id[i])) {
+              sound._rateSeek = self.seek(id[i]);
+              sound._playStart = self._webAudio ? Howler.ctx.currentTime : sound._playStart;
+            }
+            sound._rate = rate;
+
+            // Change the playback rate.
+            if (self._webAudio && sound._node && sound._node.bufferSource) {
+              sound._node.bufferSource.playbackRate.setValueAtTime(rate, Howler.ctx.currentTime);
+            } else if (sound._node) {
+              sound._node.playbackRate = rate;
+            }
+
+            // Reset the timers.
+            var seek = self.seek(id[i]);
+            var duration = ((self._sprite[sound._sprite][0] + self._sprite[sound._sprite][1]) / 1000) - seek;
+            var timeout = (duration * 1000) / Math.abs(sound._rate);
+
+            // Start a new end timer if sound is already playing.
+            if (self._endTimers[id[i]] || !sound._paused) {
+              self._clearTimer(id[i]);
+              self._endTimers[id[i]] = setTimeout(self._ended.bind(self, sound), timeout);
+            }
+
+            self._emit('rate', sound._id);
+          }
+        }
+      } else {
+        sound = self._soundById(id);
+        return sound ? sound._rate : self._rate;
+      }
+
+      return self;
+    },
+
+    /**
+     * Get/set the seek position of a sound. This method can optionally take 0, 1 or 2 arguments.
+     *   seek() -> Returns the first sound node's current seek position.
+     *   seek(id) -> Returns the sound id's current seek position.
+     *   seek(seek) -> Sets the seek position of the first sound node.
+     *   seek(seek, id) -> Sets the seek position of passed sound id.
+     * @return {Howl/Number} Returns self or the current seek position.
+     */
+    seek: function() {
+      var self = this;
+      var args = arguments;
+      var seek, id;
+
+      // Determine the values based on arguments.
+      if (args.length === 0) {
+        // We will simply return the current position of the first node.
+        if (self._sounds.length) {
+          id = self._sounds[0]._id;
+        }
+      } else if (args.length === 1) {
+        // First check if this is an ID, and if not, assume it is a new seek position.
+        var ids = self._getSoundIds();
+        var index = ids.indexOf(args[0]);
+        if (index >= 0) {
+          id = parseInt(args[0], 10);
+        } else if (self._sounds.length) {
+          id = self._sounds[0]._id;
+          seek = parseFloat(args[0]);
+        }
+      } else if (args.length === 2) {
+        seek = parseFloat(args[0]);
+        id = parseInt(args[1], 10);
+      }
+
+      // If there is no ID, bail out.
+      if (typeof id === 'undefined') {
+        return 0;
+      }
+
+      // If the sound hasn't loaded, add it to the load queue to seek when capable.
+      if (typeof seek === 'number' && (self._state !== 'loaded' || self._playLock)) {
+        self._queue.push({
+          event: 'seek',
+          action: function() {
+            self.seek.apply(self, args);
+          }
+        });
+
+        return self;
+      }
+
+      // Get the sound.
+      var sound = self._soundById(id);
+
+      if (sound) {
+        if (typeof seek === 'number' && seek >= 0) {
+          // Pause the sound and update position for restarting playback.
+          var playing = self.playing(id);
+          if (playing) {
+            self.pause(id, true);
+          }
+
+          // Move the position of the track and cancel timer.
+          sound._seek = seek;
+          sound._ended = false;
+          self._clearTimer(id);
+
+          // Update the seek position for HTML5 Audio.
+          if (!self._webAudio && sound._node && !isNaN(sound._node.duration)) {
+            sound._node.currentTime = seek;
+          }
+
+          // Seek and emit when ready.
+          var seekAndEmit = function() {
+            // Restart the playback if the sound was playing.
+            if (playing) {
+              self.play(id, true);
+            }
+
+            self._emit('seek', id);
+          };
+
+          // Wait for the play lock to be unset before emitting (HTML5 Audio).
+          if (playing && !self._webAudio) {
+            var emitSeek = function() {
+              if (!self._playLock) {
+                seekAndEmit();
+              } else {
+                setTimeout(emitSeek, 0);
+              }
+            };
+            setTimeout(emitSeek, 0);
+          } else {
+            seekAndEmit();
+          }
+        } else {
+          if (self._webAudio) {
+            var realTime = self.playing(id) ? Howler.ctx.currentTime - sound._playStart : 0;
+            var rateSeek = sound._rateSeek ? sound._rateSeek - sound._seek : 0;
+            return sound._seek + (rateSeek + realTime * Math.abs(sound._rate));
+          } else {
+            return sound._node.currentTime;
+          }
+        }
+      }
+
+      return self;
+    },
+
+    /**
+     * Check if a specific sound is currently playing or not (if id is provided), or check if at least one of the sounds in the group is playing or not.
+     * @param  {Number}  id The sound id to check. If none is passed, the whole sound group is checked.
+     * @return {Boolean} True if playing and false if not.
+     */
+    playing: function(id) {
+      var self = this;
+
+      // Check the passed sound ID (if any).
+      if (typeof id === 'number') {
+        var sound = self._soundById(id);
+        return sound ? !sound._paused : false;
+      }
+
+      // Otherwise, loop through all sounds and check if any are playing.
+      for (var i=0; i<self._sounds.length; i++) {
+        if (!self._sounds[i]._paused) {
+          return true;
+        }
+      }
+
+      return false;
+    },
+
+    /**
+     * Get the duration of this sound. Passing a sound id will return the sprite duration.
+     * @param  {Number} id The sound id to check. If none is passed, return full source duration.
+     * @return {Number} Audio duration in seconds.
+     */
+    duration: function(id) {
+      var self = this;
+      var duration = self._duration;
+
+      // If we pass an ID, get the sound and return the sprite length.
+      var sound = self._soundById(id);
+      if (sound) {
+        duration = self._sprite[sound._sprite][1] / 1000;
+      }
+
+      return duration;
+    },
+
+    /**
+     * Returns the current loaded state of this Howl.
+     * @return {String} 'unloaded', 'loading', 'loaded'
+     */
+    state: function() {
+      return this._state;
+    },
+
+    /**
+     * Unload and destroy the current Howl object.
+     * This will immediately stop all sound instances attached to this group.
+     */
+    unload: function() {
+      var self = this;
+
+      // Stop playing any active sounds.
+      var sounds = self._sounds;
+      for (var i=0; i<sounds.length; i++) {
+        // Stop the sound if it is currently playing.
+        if (!sounds[i]._paused) {
+          self.stop(sounds[i]._id);
+        }
+
+        // Remove the source or disconnect.
+        if (!self._webAudio) {
+          // Set the source to 0-second silence to stop any downloading (except in IE).
+          self._clearSound(sounds[i]._node);
+
+          // Remove any event listeners.
+          sounds[i]._node.removeEventListener('error', sounds[i]._errorFn, false);
+          sounds[i]._node.removeEventListener(Howler._canPlayEvent, sounds[i]._loadFn, false);
+          sounds[i]._node.removeEventListener('ended', sounds[i]._endFn, false);
+
+          // Release the Audio object back to the pool.
+          Howler._releaseHtml5Audio(sounds[i]._node);
+        }
+
+        // Empty out all of the nodes.
+        delete sounds[i]._node;
+
+        // Make sure all timers are cleared out.
+        self._clearTimer(sounds[i]._id);
+      }
+
+      // Remove the references in the global Howler object.
+      var index = Howler._howls.indexOf(self);
+      if (index >= 0) {
+        Howler._howls.splice(index, 1);
+      }
+
+      // Delete this sound from the cache (if no other Howl is using it).
+      var remCache = true;
+      for (i=0; i<Howler._howls.length; i++) {
+        if (Howler._howls[i]._src === self._src || self._src.indexOf(Howler._howls[i]._src) >= 0) {
+          remCache = false;
+          break;
+        }
+      }
+
+      if (cache && remCache) {
+        delete cache[self._src];
+      }
+
+      // Clear global errors.
+      Howler.noAudio = false;
+
+      // Clear out `self`.
+      self._state = 'unloaded';
+      self._sounds = [];
+      self = null;
+
+      return null;
+    },
+
+    /**
+     * Listen to a custom event.
+     * @param  {String}   event Event name.
+     * @param  {Function} fn    Listener to call.
+     * @param  {Number}   id    (optional) Only listen to events for this sound.
+     * @param  {Number}   once  (INTERNAL) Marks event to fire only once.
+     * @return {Howl}
+     */
+    on: function(event, fn, id, once) {
+      var self = this;
+      var events = self['_on' + event];
+
+      if (typeof fn === 'function') {
+        events.push(once ? {id: id, fn: fn, once: once} : {id: id, fn: fn});
+      }
+
+      return self;
+    },
+
+    /**
+     * Remove a custom event. Call without parameters to remove all events.
+     * @param  {String}   event Event name.
+     * @param  {Function} fn    Listener to remove. Leave empty to remove all.
+     * @param  {Number}   id    (optional) Only remove events for this sound.
+     * @return {Howl}
+     */
+    off: function(event, fn, id) {
+      var self = this;
+      var events = self['_on' + event];
+      var i = 0;
+
+      // Allow passing just an event and ID.
+      if (typeof fn === 'number') {
+        id = fn;
+        fn = null;
+      }
+
+      if (fn || id) {
+        // Loop through event store and remove the passed function.
+        for (i=0; i<events.length; i++) {
+          var isId = (id === events[i].id);
+          if (fn === events[i].fn && isId || !fn && isId) {
+            events.splice(i, 1);
+            break;
+          }
+        }
+      } else if (event) {
+        // Clear out all events of this type.
+        self['_on' + event] = [];
+      } else {
+        // Clear out all events of every type.
+        var keys = Object.keys(self);
+        for (i=0; i<keys.length; i++) {
+          if ((keys[i].indexOf('_on') === 0) && Array.isArray(self[keys[i]])) {
+            self[keys[i]] = [];
+          }
+        }
+      }
+
+      return self;
+    },
+
+    /**
+     * Listen to a custom event and remove it once fired.
+     * @param  {String}   event Event name.
+     * @param  {Function} fn    Listener to call.
+     * @param  {Number}   id    (optional) Only listen to events for this sound.
+     * @return {Howl}
+     */
+    once: function(event, fn, id) {
+      var self = this;
+
+      // Setup the event listener.
+      self.on(event, fn, id, 1);
+
+      return self;
+    },
+
+    /**
+     * Emit all events of a specific type and pass the sound id.
+     * @param  {String} event Event name.
+     * @param  {Number} id    Sound ID.
+     * @param  {Number} msg   Message to go with event.
+     * @return {Howl}
+     */
+    _emit: function(event, id, msg) {
+      var self = this;
+      var events = self['_on' + event];
+
+      // Loop through event store and fire all functions.
+      for (var i=events.length-1; i>=0; i--) {
+        // Only fire the listener if the correct ID is used.
+        if (!events[i].id || events[i].id === id || event === 'load') {
+          setTimeout(function(fn) {
+            fn.call(this, id, msg);
+          }.bind(self, events[i].fn), 0);
+
+          // If this event was setup with `once`, remove it.
+          if (events[i].once) {
+            self.off(event, events[i].fn, events[i].id);
+          }
+        }
+      }
+
+      // Pass the event type into load queue so that it can continue stepping.
+      self._loadQueue(event);
+
+      return self;
+    },
+
+    /**
+     * Queue of actions initiated before the sound has loaded.
+     * These will be called in sequence, with the next only firing
+     * after the previous has finished executing (even if async like play).
+     * @return {Howl}
+     */
+    _loadQueue: function(event) {
+      var self = this;
+
+      if (self._queue.length > 0) {
+        var task = self._queue[0];
+
+        // Remove this task if a matching event was passed.
+        if (task.event === event) {
+          self._queue.shift();
+          self._loadQueue();
+        }
+
+        // Run the task if no event type is passed.
+        if (!event) {
+          task.action();
+        }
+      }
+
+      return self;
+    },
+
+    /**
+     * Fired when playback ends at the end of the duration.
+     * @param  {Sound} sound The sound object to work with.
+     * @return {Howl}
+     */
+    _ended: function(sound) {
+      var self = this;
+      var sprite = sound._sprite;
+
+      // If we are using IE and there was network latency we may be clipping
+      // audio before it completes playing. Lets check the node to make sure it
+      // believes it has completed, before ending the playback.
+      if (!self._webAudio && sound._node && !sound._node.paused && !sound._node.ended && sound._node.currentTime < sound._stop) {
+        setTimeout(self._ended.bind(self, sound), 100);
+        return self;
+      }
+
+      // Should this sound loop?
+      var loop = !!(sound._loop || self._sprite[sprite][2]);
+
+      // Fire the ended event.
+      self._emit('end', sound._id);
+
+      // Restart the playback for HTML5 Audio loop.
+      if (!self._webAudio && loop) {
+        self.stop(sound._id, true).play(sound._id);
+      }
+
+      // Restart this timer if on a Web Audio loop.
+      if (self._webAudio && loop) {
+        self._emit('play', sound._id);
+        sound._seek = sound._start || 0;
+        sound._rateSeek = 0;
+        sound._playStart = Howler.ctx.currentTime;
+
+        var timeout = ((sound._stop - sound._start) * 1000) / Math.abs(sound._rate);
+        self._endTimers[sound._id] = setTimeout(self._ended.bind(self, sound), timeout);
+      }
+
+      // Mark the node as paused.
+      if (self._webAudio && !loop) {
+        sound._paused = true;
+        sound._ended = true;
+        sound._seek = sound._start || 0;
+        sound._rateSeek = 0;
+        self._clearTimer(sound._id);
+
+        // Clean up the buffer source.
+        self._cleanBuffer(sound._node);
+
+        // Attempt to auto-suspend AudioContext if no sounds are still playing.
+        Howler._autoSuspend();
+      }
+
+      // When using a sprite, end the track.
+      if (!self._webAudio && !loop) {
+        self.stop(sound._id, true);
+      }
+
+      return self;
+    },
+
+    /**
+     * Clear the end timer for a sound playback.
+     * @param  {Number} id The sound ID.
+     * @return {Howl}
+     */
+    _clearTimer: function(id) {
+      var self = this;
+
+      if (self._endTimers[id]) {
+        // Clear the timeout or remove the ended listener.
+        if (typeof self._endTimers[id] !== 'function') {
+          clearTimeout(self._endTimers[id]);
+        } else {
+          var sound = self._soundById(id);
+          if (sound && sound._node) {
+            sound._node.removeEventListener('ended', self._endTimers[id], false);
+          }
+        }
+
+        delete self._endTimers[id];
+      }
+
+      return self;
+    },
+
+    /**
+     * Return the sound identified by this ID, or return null.
+     * @param  {Number} id Sound ID
+     * @return {Object}    Sound object or null.
+     */
+    _soundById: function(id) {
+      var self = this;
+
+      // Loop through all sounds and find the one with this ID.
+      for (var i=0; i<self._sounds.length; i++) {
+        if (id === self._sounds[i]._id) {
+          return self._sounds[i];
+        }
+      }
+
+      return null;
+    },
+
+    /**
+     * Return an inactive sound from the pool or create a new one.
+     * @return {Sound} Sound playback object.
+     */
+    _inactiveSound: function() {
+      var self = this;
+
+      self._drain();
+
+      // Find the first inactive node to recycle.
+      for (var i=0; i<self._sounds.length; i++) {
+        if (self._sounds[i]._ended) {
+          return self._sounds[i].reset();
+        }
+      }
+
+      // If no inactive node was found, create a new one.
+      return new Sound(self);
+    },
+
+    /**
+     * Drain excess inactive sounds from the pool.
+     */
+    _drain: function() {
+      var self = this;
+      var limit = self._pool;
+      var cnt = 0;
+      var i = 0;
+
+      // If there are less sounds than the max pool size, we are done.
+      if (self._sounds.length < limit) {
+        return;
+      }
+
+      // Count the number of inactive sounds.
+      for (i=0; i<self._sounds.length; i++) {
+        if (self._sounds[i]._ended) {
+          cnt++;
+        }
+      }
+
+      // Remove excess inactive sounds, going in reverse order.
+      for (i=self._sounds.length - 1; i>=0; i--) {
+        if (cnt <= limit) {
+          return;
+        }
+
+        if (self._sounds[i]._ended) {
+          // Disconnect the audio source when using Web Audio.
+          if (self._webAudio && self._sounds[i]._node) {
+            self._sounds[i]._node.disconnect(0);
+          }
+
+          // Remove sounds until we have the pool size.
+          self._sounds.splice(i, 1);
+          cnt--;
+        }
+      }
+    },
+
+    /**
+     * Get all ID's from the sounds pool.
+     * @param  {Number} id Only return one ID if one is passed.
+     * @return {Array}    Array of IDs.
+     */
+    _getSoundIds: function(id) {
+      var self = this;
+
+      if (typeof id === 'undefined') {
+        var ids = [];
+        for (var i=0; i<self._sounds.length; i++) {
+          ids.push(self._sounds[i]._id);
+        }
+
+        return ids;
+      } else {
+        return [id];
+      }
+    },
+
+    /**
+     * Load the sound back into the buffer source.
+     * @param  {Sound} sound The sound object to work with.
+     * @return {Howl}
+     */
+    _refreshBuffer: function(sound) {
+      var self = this;
+
+      // Setup the buffer source for playback.
+      sound._node.bufferSource = Howler.ctx.createBufferSource();
+      sound._node.bufferSource.buffer = cache[self._src];
+
+      // Connect to the correct node.
+      if (sound._panner) {
+        sound._node.bufferSource.connect(sound._panner);
+      } else {
+        sound._node.bufferSource.connect(sound._node);
+      }
+
+      // Setup looping and playback rate.
+      sound._node.bufferSource.loop = sound._loop;
+      if (sound._loop) {
+        sound._node.bufferSource.loopStart = sound._start || 0;
+        sound._node.bufferSource.loopEnd = sound._stop || 0;
+      }
+      sound._node.bufferSource.playbackRate.setValueAtTime(sound._rate, Howler.ctx.currentTime);
+
+      return self;
+    },
+
+    /**
+     * Prevent memory leaks by cleaning up the buffer source after playback.
+     * @param  {Object} node Sound's audio node containing the buffer source.
+     * @return {Howl}
+     */
+    _cleanBuffer: function(node) {
+      var self = this;
+      var isIOS = Howler._navigator && Howler._navigator.vendor.indexOf('Apple') >= 0;
+
+      if (Howler._scratchBuffer && node.bufferSource) {
+        node.bufferSource.onended = null;
+        node.bufferSource.disconnect(0);
+        if (isIOS) {
+          try { node.bufferSource.buffer = Howler._scratchBuffer; } catch(e) {}
+        }
+      }
+      node.bufferSource = null;
+
+      return self;
+    },
+
+    /**
+     * Set the source to a 0-second silence to stop any downloading (except in IE).
+     * @param  {Object} node Audio node to clear.
+     */
+    _clearSound: function(node) {
+      var checkIE = /MSIE |Trident\//.test(Howler._navigator && Howler._navigator.userAgent);
+      if (!checkIE) {
+        node.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+      }
+    }
+  };
+
+  /** Single Sound Methods **/
+  /***************************************************************************/
+
+  /**
+   * Setup the sound object, which each node attached to a Howl group is contained in.
+   * @param {Object} howl The Howl parent group.
+   */
+  var Sound = function(howl) {
+    this._parent = howl;
+    this.init();
+  };
+  Sound.prototype = {
+    /**
+     * Initialize a new Sound object.
+     * @return {Sound}
+     */
+    init: function() {
+      var self = this;
+      var parent = self._parent;
+
+      // Setup the default parameters.
+      self._muted = parent._muted;
+      self._loop = parent._loop;
+      self._volume = parent._volume;
+      self._rate = parent._rate;
+      self._seek = 0;
+      self._paused = true;
+      self._ended = true;
+      self._sprite = '__default';
+
+      // Generate a unique ID for this sound.
+      self._id = ++Howler._counter;
+
+      // Add itself to the parent's pool.
+      parent._sounds.push(self);
+
+      // Create the new node.
+      self.create();
+
+      return self;
+    },
+
+    /**
+     * Create and setup a new sound object, whether HTML5 Audio or Web Audio.
+     * @return {Sound}
+     */
+    create: function() {
+      var self = this;
+      var parent = self._parent;
+      var volume = (Howler._muted || self._muted || self._parent._muted) ? 0 : self._volume;
+
+      if (parent._webAudio) {
+        // Create the gain node for controlling volume (the source will connect to this).
+        self._node = (typeof Howler.ctx.createGain === 'undefined') ? Howler.ctx.createGainNode() : Howler.ctx.createGain();
+        self._node.gain.setValueAtTime(volume, Howler.ctx.currentTime);
+        self._node.paused = true;
+        self._node.connect(Howler.masterGain);
+      } else if (!Howler.noAudio) {
+        // Get an unlocked Audio object from the pool.
+        self._node = Howler._obtainHtml5Audio();
+
+        // Listen for errors (http://dev.w3.org/html5/spec-author-view/spec.html#mediaerror).
+        self._errorFn = self._errorListener.bind(self);
+        self._node.addEventListener('error', self._errorFn, false);
+
+        // Listen for 'canplaythrough' event to let us know the sound is ready.
+        self._loadFn = self._loadListener.bind(self);
+        self._node.addEventListener(Howler._canPlayEvent, self._loadFn, false);
+
+        // Listen for the 'ended' event on the sound to account for edge-case where
+        // a finite sound has a duration of Infinity.
+        self._endFn = self._endListener.bind(self);
+        self._node.addEventListener('ended', self._endFn, false);
+
+        // Setup the new audio node.
+        self._node.src = parent._src;
+        self._node.preload = parent._preload === true ? 'auto' : parent._preload;
+        self._node.volume = volume * Howler.volume();
+
+        // Begin loading the source.
+        self._node.load();
+      }
+
+      return self;
+    },
+
+    /**
+     * Reset the parameters of this sound to the original state (for recycle).
+     * @return {Sound}
+     */
+    reset: function() {
+      var self = this;
+      var parent = self._parent;
+
+      // Reset all of the parameters of this sound.
+      self._muted = parent._muted;
+      self._loop = parent._loop;
+      self._volume = parent._volume;
+      self._rate = parent._rate;
+      self._seek = 0;
+      self._rateSeek = 0;
+      self._paused = true;
+      self._ended = true;
+      self._sprite = '__default';
+
+      // Generate a new ID so that it isn't confused with the previous sound.
+      self._id = ++Howler._counter;
+
+      return self;
+    },
+
+    /**
+     * HTML5 Audio error listener callback.
+     */
+    _errorListener: function() {
+      var self = this;
+
+      // Fire an error event and pass back the code.
+      self._parent._emit('loaderror', self._id, self._node.error ? self._node.error.code : 0);
+
+      // Clear the event listener.
+      self._node.removeEventListener('error', self._errorFn, false);
+    },
+
+    /**
+     * HTML5 Audio canplaythrough listener callback.
+     */
+    _loadListener: function() {
+      var self = this;
+      var parent = self._parent;
+
+      // Round up the duration to account for the lower precision in HTML5 Audio.
+      parent._duration = Math.ceil(self._node.duration * 10) / 10;
+
+      // Setup a sprite if none is defined.
+      if (Object.keys(parent._sprite).length === 0) {
+        parent._sprite = {__default: [0, parent._duration * 1000]};
+      }
+
+      if (parent._state !== 'loaded') {
+        parent._state = 'loaded';
+        parent._emit('load');
+        parent._loadQueue();
+      }
+
+      // Clear the event listener.
+      self._node.removeEventListener(Howler._canPlayEvent, self._loadFn, false);
+    },
+
+    /**
+     * HTML5 Audio ended listener callback.
+     */
+    _endListener: function() {
+      var self = this;
+      var parent = self._parent;
+
+      // Only handle the `ended`` event if the duration is Infinity.
+      if (parent._duration === Infinity) {
+        // Update the parent duration to match the real audio duration.
+        // Round up the duration to account for the lower precision in HTML5 Audio.
+        parent._duration = Math.ceil(self._node.duration * 10) / 10;
+
+        // Update the sprite that corresponds to the real duration.
+        if (parent._sprite.__default[1] === Infinity) {
+          parent._sprite.__default[1] = parent._duration * 1000;
+        }
+
+        // Run the regular ended method.
+        parent._ended(self);
+      }
+
+      // Clear the event listener since the duration is now correct.
+      self._node.removeEventListener('ended', self._endFn, false);
+    }
+  };
+
+  /** Helper Methods **/
+  /***************************************************************************/
+
+  var cache = {};
+
+  /**
+   * Buffer a sound from URL, Data URI or cache and decode to audio source (Web Audio API).
+   * @param  {Howl} self
+   */
+  var loadBuffer = function(self) {
+    var url = self._src;
+
+    // Check if the buffer has already been cached and use it instead.
+    if (cache[url]) {
+      // Set the duration from the cache.
+      self._duration = cache[url].duration;
+
+      // Load the sound into this Howl.
+      loadSound(self);
+
+      return;
+    }
+
+    if (/^data:[^;]+;base64,/.test(url)) {
+      // Decode the base64 data URI without XHR, since some browsers don't support it.
+      var data = atob(url.split(',')[1]);
+      var dataView = new Uint8Array(data.length);
+      for (var i=0; i<data.length; ++i) {
+        dataView[i] = data.charCodeAt(i);
+      }
+
+      decodeAudioData(dataView.buffer, self);
+    } else {
+      // Load the buffer from the URL.
+      var xhr = new XMLHttpRequest();
+      xhr.open(self._xhr.method, url, true);
+      xhr.withCredentials = self._xhr.withCredentials;
+      xhr.responseType = 'arraybuffer';
+
+      // Apply any custom headers to the request.
+      if (self._xhr.headers) {
+        Object.keys(self._xhr.headers).forEach(function(key) {
+          xhr.setRequestHeader(key, self._xhr.headers[key]);
+        });
+      }
+
+      xhr.onload = function() {
+        // Make sure we get a successful response back.
+        var code = (xhr.status + '')[0];
+        if (code !== '0' && code !== '2' && code !== '3') {
+          self._emit('loaderror', null, 'Failed loading audio file with status: ' + xhr.status + '.');
+          return;
+        }
+
+        decodeAudioData(xhr.response, self);
+      };
+      xhr.onerror = function() {
+        // If there is an error, switch to HTML5 Audio.
+        if (self._webAudio) {
+          self._html5 = true;
+          self._webAudio = false;
+          self._sounds = [];
+          delete cache[url];
+          self.load();
+        }
+      };
+      safeXhrSend(xhr);
+    }
+  };
+
+  /**
+   * Send the XHR request wrapped in a try/catch.
+   * @param  {Object} xhr XHR to send.
+   */
+  var safeXhrSend = function(xhr) {
+    try {
+      xhr.send();
+    } catch (e) {
+      xhr.onerror();
+    }
+  };
+
+  /**
+   * Decode audio data from an array buffer.
+   * @param  {ArrayBuffer} arraybuffer The audio data.
+   * @param  {Howl}        self
+   */
+  var decodeAudioData = function(arraybuffer, self) {
+    // Fire a load error if something broke.
+    var error = function() {
+      self._emit('loaderror', null, 'Decoding audio data failed.');
+    };
+
+    // Load the sound on success.
+    var success = function(buffer) {
+      if (buffer && self._sounds.length > 0) {
+        cache[self._src] = buffer;
+        loadSound(self, buffer);
+      } else {
+        error();
+      }
+    };
+
+    // Decode the buffer into an audio source.
+    if (typeof Promise !== 'undefined' && Howler.ctx.decodeAudioData.length === 1) {
+      Howler.ctx.decodeAudioData(arraybuffer).then(success).catch(error);
+    } else {
+      Howler.ctx.decodeAudioData(arraybuffer, success, error);
+    }
+  }
+
+  /**
+   * Sound is now loaded, so finish setting everything up and fire the loaded event.
+   * @param  {Howl} self
+   * @param  {Object} buffer The decoded buffer sound source.
+   */
+  var loadSound = function(self, buffer) {
+    // Set the duration.
+    if (buffer && !self._duration) {
+      self._duration = buffer.duration;
+    }
+
+    // Setup a sprite if none is defined.
+    if (Object.keys(self._sprite).length === 0) {
+      self._sprite = {__default: [0, self._duration * 1000]};
+    }
+
+    // Fire the loaded event.
+    if (self._state !== 'loaded') {
+      self._state = 'loaded';
+      self._emit('load');
+      self._loadQueue();
+    }
+  };
+
+  /**
+   * Setup the audio context when available, or switch to HTML5 Audio mode.
+   */
+  var setupAudioContext = function() {
+    // If we have already detected that Web Audio isn't supported, don't run this step again.
+    if (!Howler.usingWebAudio) {
+      return;
+    }
+
+    // Check if we are using Web Audio and setup the AudioContext if we are.
+    try {
+      if (typeof AudioContext !== 'undefined') {
+        Howler.ctx = new AudioContext();
+      } else if (typeof webkitAudioContext !== 'undefined') {
+        Howler.ctx = new webkitAudioContext();
+      } else {
+        Howler.usingWebAudio = false;
+      }
+    } catch(e) {
+      Howler.usingWebAudio = false;
+    }
+
+    // If the audio context creation still failed, set using web audio to false.
+    if (!Howler.ctx) {
+      Howler.usingWebAudio = false;
+    }
+
+    // Check if a webview is being used on iOS8 or earlier (rather than the browser).
+    // If it is, disable Web Audio as it causes crashing.
+    var iOS = (/iP(hone|od|ad)/.test(Howler._navigator && Howler._navigator.platform));
+    var appVersion = Howler._navigator && Howler._navigator.appVersion.match(/OS (\d+)_(\d+)_?(\d+)?/);
+    var version = appVersion ? parseInt(appVersion[1], 10) : null;
+    if (iOS && version && version < 9) {
+      var safari = /safari/.test(Howler._navigator && Howler._navigator.userAgent.toLowerCase());
+      if (Howler._navigator && !safari) {
+        Howler.usingWebAudio = false;
+      }
+    }
+
+    // Create and expose the master GainNode when using Web Audio (useful for plugins or advanced usage).
+    if (Howler.usingWebAudio) {
+      Howler.masterGain = (typeof Howler.ctx.createGain === 'undefined') ? Howler.ctx.createGainNode() : Howler.ctx.createGain();
+      Howler.masterGain.gain.setValueAtTime(Howler._muted ? 0 : Howler._volume, Howler.ctx.currentTime);
+      Howler.masterGain.connect(Howler.ctx.destination);
+    }
+
+    // Re-run the setup on Howler.
+    Howler._setup();
+  };
+
+  // Add support for AMD (Asynchronous Module Definition) libraries such as require.js.
+  if (typeof define === 'function' && define.amd) {
+    define([], function() {
+      return {
+        Howler: Howler,
+        Howl: Howl
+      };
+    });
+  }
+
+  // Add support for CommonJS libraries such as browserify.
+  if (typeof exports !== 'undefined') {
+    exports.Howler = Howler;
+    exports.Howl = Howl;
+  }
+
+  // Add to global in Node.js (for testing, etc).
+  if (typeof global !== 'undefined') {
+    global.HowlerGlobal = HowlerGlobal;
+    global.Howler = Howler;
+    global.Howl = Howl;
+    global.Sound = Sound;
+  } else if (typeof window !== 'undefined') {  // Define globally in case AMD is not available or unused.
+    window.HowlerGlobal = HowlerGlobal;
+    window.Howler = Howler;
+    window.Howl = Howl;
+    window.Sound = Sound;
+  }
+})();
+
+
+/*!
+ *  Spatial Plugin - Adds support for stereo and 3D audio where Web Audio is supported.
+ *  
+ *  howler.js v2.2.3
+ *  howlerjs.com
+ *
+ *  (c) 2013-2020, James Simpson of GoldFire Studios
+ *  goldfirestudios.com
+ *
+ *  MIT License
+ */
+
+(function() {
+
+  'use strict';
+
+  // Setup default properties.
+  HowlerGlobal.prototype._pos = [0, 0, 0];
+  HowlerGlobal.prototype._orientation = [0, 0, -1, 0, 1, 0];
+
+  /** Global Methods **/
+  /***************************************************************************/
+
+  /**
+   * Helper method to update the stereo panning position of all current Howls.
+   * Future Howls will not use this value unless explicitly set.
+   * @param  {Number} pan A value of -1.0 is all the way left and 1.0 is all the way right.
+   * @return {Howler/Number}     Self or current stereo panning value.
+   */
+  HowlerGlobal.prototype.stereo = function(pan) {
+    var self = this;
+
+    // Stop right here if not using Web Audio.
+    if (!self.ctx || !self.ctx.listener) {
+      return self;
+    }
+
+    // Loop through all Howls and update their stereo panning.
+    for (var i=self._howls.length-1; i>=0; i--) {
+      self._howls[i].stereo(pan);
+    }
+
+    return self;
+  };
+
+  /**
+   * Get/set the position of the listener in 3D cartesian space. Sounds using
+   * 3D position will be relative to the listener's position.
+   * @param  {Number} x The x-position of the listener.
+   * @param  {Number} y The y-position of the listener.
+   * @param  {Number} z The z-position of the listener.
+   * @return {Howler/Array}   Self or current listener position.
+   */
+  HowlerGlobal.prototype.pos = function(x, y, z) {
+    var self = this;
+
+    // Stop right here if not using Web Audio.
+    if (!self.ctx || !self.ctx.listener) {
+      return self;
+    }
+
+    // Set the defaults for optional 'y' & 'z'.
+    y = (typeof y !== 'number') ? self._pos[1] : y;
+    z = (typeof z !== 'number') ? self._pos[2] : z;
+
+    if (typeof x === 'number') {
+      self._pos = [x, y, z];
+
+      if (typeof self.ctx.listener.positionX !== 'undefined') {
+        self.ctx.listener.positionX.setTargetAtTime(self._pos[0], Howler.ctx.currentTime, 0.1);
+        self.ctx.listener.positionY.setTargetAtTime(self._pos[1], Howler.ctx.currentTime, 0.1);
+        self.ctx.listener.positionZ.setTargetAtTime(self._pos[2], Howler.ctx.currentTime, 0.1);
+      } else {
+        self.ctx.listener.setPosition(self._pos[0], self._pos[1], self._pos[2]);
+      }
+    } else {
+      return self._pos;
+    }
+
+    return self;
+  };
+
+  /**
+   * Get/set the direction the listener is pointing in the 3D cartesian space.
+   * A front and up vector must be provided. The front is the direction the
+   * face of the listener is pointing, and up is the direction the top of the
+   * listener is pointing. Thus, these values are expected to be at right angles
+   * from each other.
+   * @param  {Number} x   The x-orientation of the listener.
+   * @param  {Number} y   The y-orientation of the listener.
+   * @param  {Number} z   The z-orientation of the listener.
+   * @param  {Number} xUp The x-orientation of the top of the listener.
+   * @param  {Number} yUp The y-orientation of the top of the listener.
+   * @param  {Number} zUp The z-orientation of the top of the listener.
+   * @return {Howler/Array}     Returns self or the current orientation vectors.
+   */
+  HowlerGlobal.prototype.orientation = function(x, y, z, xUp, yUp, zUp) {
+    var self = this;
+
+    // Stop right here if not using Web Audio.
+    if (!self.ctx || !self.ctx.listener) {
+      return self;
+    }
+
+    // Set the defaults for optional 'y' & 'z'.
+    var or = self._orientation;
+    y = (typeof y !== 'number') ? or[1] : y;
+    z = (typeof z !== 'number') ? or[2] : z;
+    xUp = (typeof xUp !== 'number') ? or[3] : xUp;
+    yUp = (typeof yUp !== 'number') ? or[4] : yUp;
+    zUp = (typeof zUp !== 'number') ? or[5] : zUp;
+
+    if (typeof x === 'number') {
+      self._orientation = [x, y, z, xUp, yUp, zUp];
+
+      if (typeof self.ctx.listener.forwardX !== 'undefined') {
+        self.ctx.listener.forwardX.setTargetAtTime(x, Howler.ctx.currentTime, 0.1);
+        self.ctx.listener.forwardY.setTargetAtTime(y, Howler.ctx.currentTime, 0.1);
+        self.ctx.listener.forwardZ.setTargetAtTime(z, Howler.ctx.currentTime, 0.1);
+        self.ctx.listener.upX.setTargetAtTime(xUp, Howler.ctx.currentTime, 0.1);
+        self.ctx.listener.upY.setTargetAtTime(yUp, Howler.ctx.currentTime, 0.1);
+        self.ctx.listener.upZ.setTargetAtTime(zUp, Howler.ctx.currentTime, 0.1);
+      } else {
+        self.ctx.listener.setOrientation(x, y, z, xUp, yUp, zUp);
+      }
+    } else {
+      return or;
+    }
+
+    return self;
+  };
+
+  /** Group Methods **/
+  /***************************************************************************/
+
+  /**
+   * Add new properties to the core init.
+   * @param  {Function} _super Core init method.
+   * @return {Howl}
+   */
+  Howl.prototype.init = (function(_super) {
+    return function(o) {
+      var self = this;
+
+      // Setup user-defined default properties.
+      self._orientation = o.orientation || [1, 0, 0];
+      self._stereo = o.stereo || null;
+      self._pos = o.pos || null;
+      self._pannerAttr = {
+        coneInnerAngle: typeof o.coneInnerAngle !== 'undefined' ? o.coneInnerAngle : 360,
+        coneOuterAngle: typeof o.coneOuterAngle !== 'undefined' ? o.coneOuterAngle : 360,
+        coneOuterGain: typeof o.coneOuterGain !== 'undefined' ? o.coneOuterGain : 0,
+        distanceModel: typeof o.distanceModel !== 'undefined' ? o.distanceModel : 'inverse',
+        maxDistance: typeof o.maxDistance !== 'undefined' ? o.maxDistance : 10000,
+        panningModel: typeof o.panningModel !== 'undefined' ? o.panningModel : 'HRTF',
+        refDistance: typeof o.refDistance !== 'undefined' ? o.refDistance : 1,
+        rolloffFactor: typeof o.rolloffFactor !== 'undefined' ? o.rolloffFactor : 1
+      };
+
+      // Setup event listeners.
+      self._onstereo = o.onstereo ? [{fn: o.onstereo}] : [];
+      self._onpos = o.onpos ? [{fn: o.onpos}] : [];
+      self._onorientation = o.onorientation ? [{fn: o.onorientation}] : [];
+
+      // Complete initilization with howler.js core's init function.
+      return _super.call(this, o);
+    };
+  })(Howl.prototype.init);
+
+  /**
+   * Get/set the stereo panning of the audio source for this sound or all in the group.
+   * @param  {Number} pan  A value of -1.0 is all the way left and 1.0 is all the way right.
+   * @param  {Number} id (optional) The sound ID. If none is passed, all in group will be updated.
+   * @return {Howl/Number}    Returns self or the current stereo panning value.
+   */
+  Howl.prototype.stereo = function(pan, id) {
+    var self = this;
+
+    // Stop right here if not using Web Audio.
+    if (!self._webAudio) {
+      return self;
+    }
+
+    // If the sound hasn't loaded, add it to the load queue to change stereo pan when capable.
+    if (self._state !== 'loaded') {
+      self._queue.push({
+        event: 'stereo',
+        action: function() {
+          self.stereo(pan, id);
+        }
+      });
+
+      return self;
+    }
+
+    // Check for PannerStereoNode support and fallback to PannerNode if it doesn't exist.
+    var pannerType = (typeof Howler.ctx.createStereoPanner === 'undefined') ? 'spatial' : 'stereo';
+
+    // Setup the group's stereo panning if no ID is passed.
+    if (typeof id === 'undefined') {
+      // Return the group's stereo panning if no parameters are passed.
+      if (typeof pan === 'number') {
+        self._stereo = pan;
+        self._pos = [pan, 0, 0];
+      } else {
+        return self._stereo;
+      }
+    }
+
+    // Change the streo panning of one or all sounds in group.
+    var ids = self._getSoundIds(id);
+    for (var i=0; i<ids.length; i++) {
+      // Get the sound.
+      var sound = self._soundById(ids[i]);
+
+      if (sound) {
+        if (typeof pan === 'number') {
+          sound._stereo = pan;
+          sound._pos = [pan, 0, 0];
+
+          if (sound._node) {
+            // If we are falling back, make sure the panningModel is equalpower.
+            sound._pannerAttr.panningModel = 'equalpower';
+
+            // Check if there is a panner setup and create a new one if not.
+            if (!sound._panner || !sound._panner.pan) {
+              setupPanner(sound, pannerType);
+            }
+
+            if (pannerType === 'spatial') {
+              if (typeof sound._panner.positionX !== 'undefined') {
+                sound._panner.positionX.setValueAtTime(pan, Howler.ctx.currentTime);
+                sound._panner.positionY.setValueAtTime(0, Howler.ctx.currentTime);
+                sound._panner.positionZ.setValueAtTime(0, Howler.ctx.currentTime);
+              } else {
+                sound._panner.setPosition(pan, 0, 0);
+              }
+            } else {
+              sound._panner.pan.setValueAtTime(pan, Howler.ctx.currentTime);
+            }
+          }
+
+          self._emit('stereo', sound._id);
+        } else {
+          return sound._stereo;
+        }
+      }
+    }
+
+    return self;
+  };
+
+  /**
+   * Get/set the 3D spatial position of the audio source for this sound or group relative to the global listener.
+   * @param  {Number} x  The x-position of the audio source.
+   * @param  {Number} y  The y-position of the audio source.
+   * @param  {Number} z  The z-position of the audio source.
+   * @param  {Number} id (optional) The sound ID. If none is passed, all in group will be updated.
+   * @return {Howl/Array}    Returns self or the current 3D spatial position: [x, y, z].
+   */
+  Howl.prototype.pos = function(x, y, z, id) {
+    var self = this;
+
+    // Stop right here if not using Web Audio.
+    if (!self._webAudio) {
+      return self;
+    }
+
+    // If the sound hasn't loaded, add it to the load queue to change position when capable.
+    if (self._state !== 'loaded') {
+      self._queue.push({
+        event: 'pos',
+        action: function() {
+          self.pos(x, y, z, id);
+        }
+      });
+
+      return self;
+    }
+
+    // Set the defaults for optional 'y' & 'z'.
+    y = (typeof y !== 'number') ? 0 : y;
+    z = (typeof z !== 'number') ? -0.5 : z;
+
+    // Setup the group's spatial position if no ID is passed.
+    if (typeof id === 'undefined') {
+      // Return the group's spatial position if no parameters are passed.
+      if (typeof x === 'number') {
+        self._pos = [x, y, z];
+      } else {
+        return self._pos;
+      }
+    }
+
+    // Change the spatial position of one or all sounds in group.
+    var ids = self._getSoundIds(id);
+    for (var i=0; i<ids.length; i++) {
+      // Get the sound.
+      var sound = self._soundById(ids[i]);
+
+      if (sound) {
+        if (typeof x === 'number') {
+          sound._pos = [x, y, z];
+
+          if (sound._node) {
+            // Check if there is a panner setup and create a new one if not.
+            if (!sound._panner || sound._panner.pan) {
+              setupPanner(sound, 'spatial');
+            }
+
+            if (typeof sound._panner.positionX !== 'undefined') {
+              sound._panner.positionX.setValueAtTime(x, Howler.ctx.currentTime);
+              sound._panner.positionY.setValueAtTime(y, Howler.ctx.currentTime);
+              sound._panner.positionZ.setValueAtTime(z, Howler.ctx.currentTime);
+            } else {
+              sound._panner.setPosition(x, y, z);
+            }
+          }
+
+          self._emit('pos', sound._id);
+        } else {
+          return sound._pos;
+        }
+      }
+    }
+
+    return self;
+  };
+
+  /**
+   * Get/set the direction the audio source is pointing in the 3D cartesian coordinate
+   * space. Depending on how direction the sound is, based on the `cone` attributes,
+   * a sound pointing away from the listener can be quiet or silent.
+   * @param  {Number} x  The x-orientation of the source.
+   * @param  {Number} y  The y-orientation of the source.
+   * @param  {Number} z  The z-orientation of the source.
+   * @param  {Number} id (optional) The sound ID. If none is passed, all in group will be updated.
+   * @return {Howl/Array}    Returns self or the current 3D spatial orientation: [x, y, z].
+   */
+  Howl.prototype.orientation = function(x, y, z, id) {
+    var self = this;
+
+    // Stop right here if not using Web Audio.
+    if (!self._webAudio) {
+      return self;
+    }
+
+    // If the sound hasn't loaded, add it to the load queue to change orientation when capable.
+    if (self._state !== 'loaded') {
+      self._queue.push({
+        event: 'orientation',
+        action: function() {
+          self.orientation(x, y, z, id);
+        }
+      });
+
+      return self;
+    }
+
+    // Set the defaults for optional 'y' & 'z'.
+    y = (typeof y !== 'number') ? self._orientation[1] : y;
+    z = (typeof z !== 'number') ? self._orientation[2] : z;
+
+    // Setup the group's spatial orientation if no ID is passed.
+    if (typeof id === 'undefined') {
+      // Return the group's spatial orientation if no parameters are passed.
+      if (typeof x === 'number') {
+        self._orientation = [x, y, z];
+      } else {
+        return self._orientation;
+      }
+    }
+
+    // Change the spatial orientation of one or all sounds in group.
+    var ids = self._getSoundIds(id);
+    for (var i=0; i<ids.length; i++) {
+      // Get the sound.
+      var sound = self._soundById(ids[i]);
+
+      if (sound) {
+        if (typeof x === 'number') {
+          sound._orientation = [x, y, z];
+
+          if (sound._node) {
+            // Check if there is a panner setup and create a new one if not.
+            if (!sound._panner) {
+              // Make sure we have a position to setup the node with.
+              if (!sound._pos) {
+                sound._pos = self._pos || [0, 0, -0.5];
+              }
+
+              setupPanner(sound, 'spatial');
+            }
+
+            if (typeof sound._panner.orientationX !== 'undefined') {
+              sound._panner.orientationX.setValueAtTime(x, Howler.ctx.currentTime);
+              sound._panner.orientationY.setValueAtTime(y, Howler.ctx.currentTime);
+              sound._panner.orientationZ.setValueAtTime(z, Howler.ctx.currentTime);
+            } else {
+              sound._panner.setOrientation(x, y, z);
+            }
+          }
+
+          self._emit('orientation', sound._id);
+        } else {
+          return sound._orientation;
+        }
+      }
+    }
+
+    return self;
+  };
+
+  /**
+   * Get/set the panner node's attributes for a sound or group of sounds.
+   * This method can optionall take 0, 1 or 2 arguments.
+   *   pannerAttr() -> Returns the group's values.
+   *   pannerAttr(id) -> Returns the sound id's values.
+   *   pannerAttr(o) -> Set's the values of all sounds in this Howl group.
+   *   pannerAttr(o, id) -> Set's the values of passed sound id.
+   *
+   *   Attributes:
+   *     coneInnerAngle - (360 by default) A parameter for directional audio sources, this is an angle, in degrees,
+   *                      inside of which there will be no volume reduction.
+   *     coneOuterAngle - (360 by default) A parameter for directional audio sources, this is an angle, in degrees,
+   *                      outside of which the volume will be reduced to a constant value of `coneOuterGain`.
+   *     coneOuterGain - (0 by default) A parameter for directional audio sources, this is the gain outside of the
+   *                     `coneOuterAngle`. It is a linear value in the range `[0, 1]`.
+   *     distanceModel - ('inverse' by default) Determines algorithm used to reduce volume as audio moves away from
+   *                     listener. Can be `linear`, `inverse` or `exponential.
+   *     maxDistance - (10000 by default) The maximum distance between source and listener, after which the volume
+   *                   will not be reduced any further.
+   *     refDistance - (1 by default) A reference distance for reducing volume as source moves further from the listener.
+   *                   This is simply a variable of the distance model and has a different effect depending on which model
+   *                   is used and the scale of your coordinates. Generally, volume will be equal to 1 at this distance.
+   *     rolloffFactor - (1 by default) How quickly the volume reduces as source moves from listener. This is simply a
+   *                     variable of the distance model and can be in the range of `[0, 1]` with `linear` and `[0, ∞]`
+   *                     with `inverse` and `exponential`.
+   *     panningModel - ('HRTF' by default) Determines which spatialization algorithm is used to position audio.
+   *                     Can be `HRTF` or `equalpower`.
+   *
+   * @return {Howl/Object} Returns self or current panner attributes.
+   */
+  Howl.prototype.pannerAttr = function() {
+    var self = this;
+    var args = arguments;
+    var o, id, sound;
+
+    // Stop right here if not using Web Audio.
+    if (!self._webAudio) {
+      return self;
+    }
+
+    // Determine the values based on arguments.
+    if (args.length === 0) {
+      // Return the group's panner attribute values.
+      return self._pannerAttr;
+    } else if (args.length === 1) {
+      if (typeof args[0] === 'object') {
+        o = args[0];
+
+        // Set the grou's panner attribute values.
+        if (typeof id === 'undefined') {
+          if (!o.pannerAttr) {
+            o.pannerAttr = {
+              coneInnerAngle: o.coneInnerAngle,
+              coneOuterAngle: o.coneOuterAngle,
+              coneOuterGain: o.coneOuterGain,
+              distanceModel: o.distanceModel,
+              maxDistance: o.maxDistance,
+              refDistance: o.refDistance,
+              rolloffFactor: o.rolloffFactor,
+              panningModel: o.panningModel
+            };
+          }
+
+          self._pannerAttr = {
+            coneInnerAngle: typeof o.pannerAttr.coneInnerAngle !== 'undefined' ? o.pannerAttr.coneInnerAngle : self._coneInnerAngle,
+            coneOuterAngle: typeof o.pannerAttr.coneOuterAngle !== 'undefined' ? o.pannerAttr.coneOuterAngle : self._coneOuterAngle,
+            coneOuterGain: typeof o.pannerAttr.coneOuterGain !== 'undefined' ? o.pannerAttr.coneOuterGain : self._coneOuterGain,
+            distanceModel: typeof o.pannerAttr.distanceModel !== 'undefined' ? o.pannerAttr.distanceModel : self._distanceModel,
+            maxDistance: typeof o.pannerAttr.maxDistance !== 'undefined' ? o.pannerAttr.maxDistance : self._maxDistance,
+            refDistance: typeof o.pannerAttr.refDistance !== 'undefined' ? o.pannerAttr.refDistance : self._refDistance,
+            rolloffFactor: typeof o.pannerAttr.rolloffFactor !== 'undefined' ? o.pannerAttr.rolloffFactor : self._rolloffFactor,
+            panningModel: typeof o.pannerAttr.panningModel !== 'undefined' ? o.pannerAttr.panningModel : self._panningModel
+          };
+        }
+      } else {
+        // Return this sound's panner attribute values.
+        sound = self._soundById(parseInt(args[0], 10));
+        return sound ? sound._pannerAttr : self._pannerAttr;
+      }
+    } else if (args.length === 2) {
+      o = args[0];
+      id = parseInt(args[1], 10);
+    }
+
+    // Update the values of the specified sounds.
+    var ids = self._getSoundIds(id);
+    for (var i=0; i<ids.length; i++) {
+      sound = self._soundById(ids[i]);
+
+      if (sound) {
+        // Merge the new values into the sound.
+        var pa = sound._pannerAttr;
+        pa = {
+          coneInnerAngle: typeof o.coneInnerAngle !== 'undefined' ? o.coneInnerAngle : pa.coneInnerAngle,
+          coneOuterAngle: typeof o.coneOuterAngle !== 'undefined' ? o.coneOuterAngle : pa.coneOuterAngle,
+          coneOuterGain: typeof o.coneOuterGain !== 'undefined' ? o.coneOuterGain : pa.coneOuterGain,
+          distanceModel: typeof o.distanceModel !== 'undefined' ? o.distanceModel : pa.distanceModel,
+          maxDistance: typeof o.maxDistance !== 'undefined' ? o.maxDistance : pa.maxDistance,
+          refDistance: typeof o.refDistance !== 'undefined' ? o.refDistance : pa.refDistance,
+          rolloffFactor: typeof o.rolloffFactor !== 'undefined' ? o.rolloffFactor : pa.rolloffFactor,
+          panningModel: typeof o.panningModel !== 'undefined' ? o.panningModel : pa.panningModel
+        };
+
+        // Update the panner values or create a new panner if none exists.
+        var panner = sound._panner;
+        if (panner) {
+          panner.coneInnerAngle = pa.coneInnerAngle;
+          panner.coneOuterAngle = pa.coneOuterAngle;
+          panner.coneOuterGain = pa.coneOuterGain;
+          panner.distanceModel = pa.distanceModel;
+          panner.maxDistance = pa.maxDistance;
+          panner.refDistance = pa.refDistance;
+          panner.rolloffFactor = pa.rolloffFactor;
+          panner.panningModel = pa.panningModel;
+        } else {
+          // Make sure we have a position to setup the node with.
+          if (!sound._pos) {
+            sound._pos = self._pos || [0, 0, -0.5];
+          }
+
+          // Create a new panner node.
+          setupPanner(sound, 'spatial');
+        }
+      }
+    }
+
+    return self;
+  };
+
+  /** Single Sound Methods **/
+  /***************************************************************************/
+
+  /**
+   * Add new properties to the core Sound init.
+   * @param  {Function} _super Core Sound init method.
+   * @return {Sound}
+   */
+  Sound.prototype.init = (function(_super) {
+    return function() {
+      var self = this;
+      var parent = self._parent;
+
+      // Setup user-defined default properties.
+      self._orientation = parent._orientation;
+      self._stereo = parent._stereo;
+      self._pos = parent._pos;
+      self._pannerAttr = parent._pannerAttr;
+
+      // Complete initilization with howler.js core Sound's init function.
+      _super.call(this);
+
+      // If a stereo or position was specified, set it up.
+      if (self._stereo) {
+        parent.stereo(self._stereo);
+      } else if (self._pos) {
+        parent.pos(self._pos[0], self._pos[1], self._pos[2], self._id);
+      }
+    };
+  })(Sound.prototype.init);
+
+  /**
+   * Override the Sound.reset method to clean up properties from the spatial plugin.
+   * @param  {Function} _super Sound reset method.
+   * @return {Sound}
+   */
+  Sound.prototype.reset = (function(_super) {
+    return function() {
+      var self = this;
+      var parent = self._parent;
+
+      // Reset all spatial plugin properties on this sound.
+      self._orientation = parent._orientation;
+      self._stereo = parent._stereo;
+      self._pos = parent._pos;
+      self._pannerAttr = parent._pannerAttr;
+
+      // If a stereo or position was specified, set it up.
+      if (self._stereo) {
+        parent.stereo(self._stereo);
+      } else if (self._pos) {
+        parent.pos(self._pos[0], self._pos[1], self._pos[2], self._id);
+      } else if (self._panner) {
+        // Disconnect the panner.
+        self._panner.disconnect(0);
+        self._panner = undefined;
+        parent._refreshBuffer(self);
+      }
+
+      // Complete resetting of the sound.
+      return _super.call(this);
+    };
+  })(Sound.prototype.reset);
+
+  /** Helper Methods **/
+  /***************************************************************************/
+
+  /**
+   * Create a new panner node and save it on the sound.
+   * @param  {Sound} sound Specific sound to setup panning on.
+   * @param {String} type Type of panner to create: 'stereo' or 'spatial'.
+   */
+  var setupPanner = function(sound, type) {
+    type = type || 'spatial';
+
+    // Create the new panner node.
+    if (type === 'spatial') {
+      sound._panner = Howler.ctx.createPanner();
+      sound._panner.coneInnerAngle = sound._pannerAttr.coneInnerAngle;
+      sound._panner.coneOuterAngle = sound._pannerAttr.coneOuterAngle;
+      sound._panner.coneOuterGain = sound._pannerAttr.coneOuterGain;
+      sound._panner.distanceModel = sound._pannerAttr.distanceModel;
+      sound._panner.maxDistance = sound._pannerAttr.maxDistance;
+      sound._panner.refDistance = sound._pannerAttr.refDistance;
+      sound._panner.rolloffFactor = sound._pannerAttr.rolloffFactor;
+      sound._panner.panningModel = sound._pannerAttr.panningModel;
+
+      if (typeof sound._panner.positionX !== 'undefined') {
+        sound._panner.positionX.setValueAtTime(sound._pos[0], Howler.ctx.currentTime);
+        sound._panner.positionY.setValueAtTime(sound._pos[1], Howler.ctx.currentTime);
+        sound._panner.positionZ.setValueAtTime(sound._pos[2], Howler.ctx.currentTime);
+      } else {
+        sound._panner.setPosition(sound._pos[0], sound._pos[1], sound._pos[2]);
+      }
+
+      if (typeof sound._panner.orientationX !== 'undefined') {
+        sound._panner.orientationX.setValueAtTime(sound._orientation[0], Howler.ctx.currentTime);
+        sound._panner.orientationY.setValueAtTime(sound._orientation[1], Howler.ctx.currentTime);
+        sound._panner.orientationZ.setValueAtTime(sound._orientation[2], Howler.ctx.currentTime);
+      } else {
+        sound._panner.setOrientation(sound._orientation[0], sound._orientation[1], sound._orientation[2]);
+      }
+    } else {
+      sound._panner = Howler.ctx.createStereoPanner();
+      sound._panner.pan.setValueAtTime(sound._stereo, Howler.ctx.currentTime);
+    }
+
+    sound._panner.connect(sound._node);
+
+    // Update the connections.
+    if (!sound._paused) {
+      sound._parent.pause(sound._id, true).play(sound._id, true);
+    }
+  };
+})();
+
+},{}],"../dist/space-surveyors.cjs.development.js":[function(require,module,exports) {
 var define;
 'use strict';
 
@@ -48643,6 +51889,8 @@ var SVG = _interopDefault(require('react-inlinesvg'));
 
 var detectCollisions = require('detect-collisions');
 
+var howler = require('howler');
+
 var fullScreenAbsolute = "\nwidth: 100%;\nheight: 100%;\nposition: absolute;";
 var flexCentered = "\ndisplay: flex;\njustify-content: center;\nalign-items: center;";
 
@@ -48680,13 +51928,13 @@ var aButtonTheme = function aButtonTheme(style) {
 };
 
 var aButton = /*#__PURE__*/styled.css(["", " border:1px solid var(--button-border-color);border-radius:6px;background-color:var(--button-background-color);padding:15px 32px;color:var(--button-color) !important;font-weight:bold;text-decoration:none;transition:background-color 0.2s,color 0.2s,border-color 0.2s;", " &:hover{outline:3px solid var(--button-border-color);outline-offset:1px;}&:disabled,&[aria-disabled]{background-color:var(--neutral40);border-color:var(--neutral40);pointer-events:none;&.focus-visible,&:hover{outline:0;}}"], /*#__PURE__*/protoButton(), /*#__PURE__*/aFocus());
-var SourceSansProWoff = "d7d27662cbcf39ff.woff";
+var SourceSansProWoff = "assets/d7d27662cbcf39ff.woff";
 var SourceSansProWoff2 = "data:font/woff2;base64,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";
-var SourceSansProItalicWoff = "340e2b5e7e30f70e.woff";
+var SourceSansProItalicWoff = "assets/340e2b5e7e30f70e.woff";
 var SourceSansProItalicWoff2 = "data:font/woff2;base64,d09GMgABAAAAADEkAA0AAAAAbywAADDNAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGkYbsSIchHYGYACFCgqBgijnLguEOgABNgIkA4hwBCAFhQQHiiwbj14lY9xt7HYgoKKcVYxE2AzKqXvw/58W6BjrkO2gmg8RQuSytosKMLOfSTUzwFjbdqtrLvaynPF2vGIPe/YH7J+r7USRRLFa/M4NN+lF+vDGRTrHqGdg28if5OTl4fn9Pd/a5z5cP/DLAyIJzUisdEhTFfKkyYCzdIeHufVvQY7IDcbG1qyiYGPQY1QqLVhBpGhjRF0YeWfkpRVfve6v/P/HPfzWvk/+zIdAP2DjYZJAGv1pEkwggVATa4IO//xzwLzvf+ycpI5HmFRhCUxnNKWRDGi4/f+1uY1l7MrUxzbbymi6mo1mmpqjQe7QQODSk1B+LdeCIGPaIWD8gY24Mb4ms1lBwxHyXlEZO3Upp2XfsRQfUcBuXUpShMAyaEaTjK9egscHMF/7u4jgNgXwf/1+DSqEpJHpRJPppq3cVajnwnc59/1vkQJcvDK1fPlp7I24OA/hDf9loRf1xkIuvpWz72M5my+mB5ydHSwdSB0X9MA7gLqiweEcZLBY4gvkG29DyRPHd7x3fPKNnHOZsUGkUIoUKpSCTOGHCpXExmcuzxWlCmLpMDULPDoWJYQoXH/nu2Hg70VWdxUqEoqE4IIEEZHirvv/ZUztQdu94ycYkJPwdCtUplNjzkMV5hpoz/RLVABqACQxoMQgVFQgXNwgSpSAqFEDolkLiC7dIHr1gerXDwICKPGYQM96dwUA+j3c2QoSwAG6twKEGwGk2360czxrBaBAJDH/3SNb/k7bTRwIKCAHnbwCODD7mPwOAixAy7pD+vWGS79ysL87cASmdXlo5ML2WqiA5Sk5j0lRrB16eDFO5gFhQxdvTwKnmF6ZUCoBZr3nGCu5oMEDo9QTZXKBzQUlgvk8642a/njGWqGFDli8zCNzRxTdZ95MV0hOXAFxKuTJ19suOExXcUdKD1NifNdf7Mrz1wCZVB2TgzIoUfMgu9yLz/3980k2y91ew1Sk6wIftJg0pdZs3UNkTFUir2JF61hZrc66iFXMFTrlQjbiBg5rL6eiWTcdi0VQ6bnuA9ydXMiPRZdR2PzNeXLhjV1s0AeHTERf0Sk7ROxr4rYoE462uF6bWlpQaoczfvMqtGRIJUuBlJCjREaflSLhBODyTBhT4anT6i3A05y4kY9rjM0Vt5++fGh+lex18ndu8/58NIJpjMtWHtnzaG5YU+M3nJkopJ+7SKMhL3ff/T+Zc28xFa3iPDeVW0MB1vSutQA7Su4Hr+sXO5Rmw9LmO41FjVDuQSH91awP3xeFaqXUVFTlV3ruBEHmRDG13tEMDKLL4Clz2f5ZSywuN9CH8akxsp8LhScl3ojoEXXQWJUsOVGcCkT/HiZnwZMvAf8B8w2CvPAfEJXJDrhnv+L1gPPiW3KwfWtqrGuiacO0/H+YTgRaPpCyXtIXmdyy9ohJFmNRFba0lnYr842Z3DDuyAuHDw6uBNd+RKtO1X3mY8wNHJl71ibEAn6effjVmdxUpCwUYxOQ2PahY+zPAg5qmRvBrL3SvZJ0Wzc0UEgcOoWbjeOeF4/tR/wdTigQ0Ogeg0ktetBhSOQMaqQxJ/nkJNwmkYuneGOjh4IVVP509kxlbO6OVvFZyYfRJF8Zt5JxcXx3fh2GLGnRPiQ+C65yHITMWHh1vEFs1byXinaG500ZK7indU6Vg228f3rPWcTLc0Yv8uG9B5Uq3g16wLTLB/FnK/CdO9wYU7xUk21E7cjEPHfVdJsqNH5HA6Gi41Hx7r8mccUrst4PWqP4kCX6bu8V47YuBvR49waXS6MM77g1RJZ1sdLN8mAcLo3y5yNFuy0puTx7J0o9vENNkiz1eVor03+y6ZGnj+G7b2ADWSGJbvz6X/AR5IyzdmiHfNUfOtX6mzyntOS3YTt2QdCh8af9cJM3SbVf6xGAoWhwCPEiJckWA48kAxUVBo0Slpoan5WLgEcFmRqdnLp1K9GrX6lJq1RYY41a6+xWZ7/9uh10UI/DDusFAXUSBZAD5MfZCPBIcytAxIFKlAQmBRaw5ZCRiAAMXbbDwaKLKradl58gS7IcFEL18jDmNC4EA5bdUo3hHADYbsRuAlSQrAFtsNdgANgBNNOtTcSQiikdqTTwiEVdOHSo7BBGAc27ECEDltAH0WuZIKAOSVgKKcU5BIDGaRcAmapzRcqQBSMbHhEZFUQyeENbRokVBy1zjLW7dpp0KGgQvHwcAhIKaCLseLHsdBNgc4osxXIpGiLBRVKQCAMCDZFiQIAUDUwAQ+hHFoD9gebSMRUOkYcjxcWLWNTFwoZiBA0074P4HGXQH9Eg/g8uAioHf/d/5DNNbe0f55xV5RsAxKP3ApDD+3ZPzzhrBzZ9E6bzXygrXi52f1yu5PXQ4y7VlJqROBD02HPgnSS0WS3M3cPS1tsGEWG1tfY46jgIqD4IwAwAfXOAx5TNHfY6OlqCWImSeX9VCtdHkmIJ0vUtIEWIEi8GUCWiclkYZxT+7GNBAJPqpFANYJxsAiwhxjPYI5NAwa1GCGJtCGZPCOpoM3xQQhCMP2TAuIXNqDhd1NL84zNn7bbVtDEzVNKBgllmEvCSFRBe+VKcaMsmDEgwiGZImuFxI9KMThifADMgzaBYw2JFWTYwuJShRQ3v2chSRseMTwczOjA2xcQ4CApcVjtNhIEJgwNDE0bWHNu7CENiwwVi5UQqv6LdGMvErFEzywxPrjrMmuT0+alIA6o93EQBwKWeULmZS4iOZOTVwgxQEPkgwvAgyHFwi9k0uKGHHLYwMjg2HaSFl4QASqVuf6XioRGhL2FuAzEQ8KCnf/lsIOPLC5VU1hOiTidSpsAY2NELc6Xrf7a1gOas9H+lthBU7uC9oS4MSu/XVtUMgtv73tXSDnzyx2gHDmwHECI0iAYgUmU2FZy/OVDR8VKBGCGtMZ9HiuwjFQ2KLDE2uuiSD3zosiuuuua6G2665bY7oKAgIIC3PAEB1yAQzCMwaRLmMgsUVy8ogj4wBFx5E6EqWlSxqivmWAoY7irFm/liqGxpICQhBQwFsYe6wUcgsRHsfBgQKYVoTgGzoYvuDP7sWwkSYwZAHIgQHniCkpdUH/XnxF0SjtRtd85SARBNvGUf+8SnPvO5u+6574HHnnjoEShY29HPWy7Wfgc8JrTQbDBg8XUTIoD0xBSewZn/yJgqJ4gEpKqfZb2sSD3Avs9fvUtP/2zwAgj8/7fQHy4HgOyjkl8A5EWA+GFWALaDARIAOZ8Kgl+08HQP4Bh4cEhzvYXw88/puTwP5/FLDP4B/4xH47PxRDwVL8Qr8CZ8J37/gEiYHEwNU4jpb96+PWy3OX55c0q+5RM+A4/ZIwK8/GdaJwL++/NGlWFlct4SXzw+/wXw1c+v2p7ffN7wfMdX7ufKZ2u/bHrW+PTZ08+hGBASvwDxusvTHS+30zWFVdY745XvzLauG+/9d/xkuZ0mHTXHXPPMt8BCiyy2xFJTVvjdb/6wxmlQsO+DyIgWs1uquMg2JpV8qLRnSKE2rP8vhJbloOMO+cu+ANgMKxsOHgERCRkFVQ4aOgYmFjYOLh4+ASERscOOOeJvEKt95bWXvnDCu8G976nt/rHTySL8z5/OOR/Ev96zpyhnPbPD937wo7UkpGTkFJRU1DS0dPQMjEzM/CysbOwcnH7h4uHlkytPQKt8QQUKFSlWolSZciEVwipVqdalVp16DRo1+VWzNjPM1K5Dt05uLaZtsNlGm2wBiM0A6TjAH8D4N2D1AYD+GMieAtAHDB8ro4SO773IXP3wlPiqVqc9bp7WGpaOKPITTpSO2huvVqnRuo03ggFjGeUSKvHEcys4zBtL/B2F+JiPm8Z8Dfl653uU79MEI43fOsuI8jFVqWAUenb5QHJVxnS75HLvZ0SgJZREMygzgZcx+6NreDEQqlKdxnUaht4sDWJx7AvXewPZbjzgJhmSlUFATiwfGP8AFPVoy/TlZZPkdP/PCBvkguE+0FzGcQaWcS5uGJFpaAzGMFMU1io8ICsR5+53NVl6iQp5PhbmbKD8xdGhSX1va8Is9jEMwY1ICVnJuj4s+LqfnMdO4WUKRO9PzgyItOKAc706jYeZit2DvuWVkRmEQimBiGVJU6uN8jCphYuwZDX+D88p0cfQM0DU/UcnvzIoY4hmhQB4L+sXBmTUwo9Y65wZ3jLj9BQCwIDBG7llsmNvAhRCgOTNVaJvUYyQgCzqOklqYSAxf9TI4KKSurayNHqgY0paPHG2v3X2vknPQ9aoomnr4nKkEpSJGtv6kSkJ5NnDDqANpJiVJOyFhGrdI+iCDR3vIDi6IPrWSHY8x7UqMasXlHbFRItHX5AIiByV+NJ0zsOw/HeNCsTQlr7Fqq3jZrPs90xzUN6Ww21CSFH/LJMBcQuyCH1gi8BDPSod16j2aiisMckwlg55NXgFu2J7hW26D4LzauaLfMY7CMoVtGEvNCvQZRS7kv/imVacUZVA7s79ByfrTYS8tr7PS+IFbLvqJQT26hhbiRUWCXdd/6QFu1ABw13oDLHI5z1oLdha01ZoBx+J8E6BuyMxz2XQPG2Ozk0kptM52obALZ1vlB17EkZdODKjp87ru8HMH7GDHgzp6C/jjviwZfB+1ODe2eRptPr2UAmCeoLQAfWT1OD4U1a8IJfvAph3/AjK9xdroI/k4INNDdtVoPfEJxNKUTCgiZxUBOuVHR+9rQGD5MJ/1wQKU1BCxyIp57CRfxrPbzjHd624ycKlMA7ph+K05KNj8VcCgmkGiLTbz3ghM2x3Aq9VCyRwwd2n7Vlbu0q3YJEqnJmV6rTbS47Wp3P0UI57Kv1uIUw+diQZ/9vlCt2c3rmG4n9XR0DdhB2nrdyZxgBFFljzTcpxuhHd2Ln0ANolHZbS0H6SgsQ8GdwjBEkQXt/pfiMUlP7qKm6G2NUG/cNacRYisJeDayWWoLOcUMNDWLK6GF1WjIEGCi+ZaB/O0yV7FpBW3rK3PDMlSnZdKfXfklMTy5lVKK93EfpMvhANNuscmCZMAJlEMVlMHA+yzdyV1Z7s7/Qqpw2nuBMJ1I4nRGp3Pn5fXlnMeTke+ah4y9by89j3URk+v70Vl/PTdE60X7FJZq8+x6/D1VyJqKp3ao9IPqSd+WxMMWshtfXM+FMDDFf9/P37511GePDggjH2OGgd/hHqFot37541cLfu2Vhx6UpW+ZmlvGiuu2X0mVJ8upopWos0J+lRLlXrc0olTP/JpEBv6AoWMWzZPnoRWBoUFAG/ouBfLMoxmtQ0Ad0PCaVESJtwayN34EcAkQWKXTgJtSEOsbeH6S17d2ZPFvNwwlvcPnQ5KjENZ9d/ycs/wC6MYMy7w/bh/V2QWxYV+TT3SedNW4vqNOG8Xc52HVFcvUEPHbCro2DZ11+oOV/RLqBa9yyEsNzvxJPxHU3jRBcZr2Zt2AKOuctRoQOLkPegXV8ESHyVGmrT4IdFQCeMmyCIM9PveLmtPv1T6RmPUTeTXhLzHMfYcjA2LnCHzNP/jzC4e4pxjHod+o5hlqH9Khw92Uw3RwdfOkBpUnYVd/hXT42jElr7khD1QdivYosm/LaxfRjNcgZYdLdqFKEKXUrdWdnQw5L2MlkjKZpoi4pf7V/z+Ah++fKERffoNxWY88PHj1FiPppjnhio2uLgofRDQyXNSd4DaescniIdlI786cmbYPwaUcTq1B00g08NqTCtdDlNgjMsh4TDLlqwyM+M5EnlAz9d8S2l7eIy21MD0c+fuymTYrD6b1bIaGr6JdcME+sxAWvsfcjG9WCtuamqqxnra7mhcyF+AN3qCg9PGbiJvZA4WO82ipRTWWqhhM6w5tKF9pFWn3mcluLSALlTmf4GcugE5tl/9oITzYHW4xrxPX4n1uFa/TV+5dm56AzLNsE9xEkS/VIEpHBMiJqZFf716/eX3aHtMcfrIJkSN10ZGXlEt7Zt0dYqxzfj3av0jZpZqb5/n7nqLvTRKzOnDfGoOZZGNO0jHLDY0Zz1by5GD9tGRK/kNLZ893UrxPhZ+bm1lk/nG9g6AbLKEGalDdAa3EyXQiGOVESZw6axExOyy4KgmoKT48NC3gHaSHuTwovX1NE3LdF7eM1YYd5WwQM7fm3C0odnHVjqAz5/ZFprVwaRW92Lw5bqZ+ENpxEV2hR4UWA2FRg+dQLhzAtIZiha8Yw1raTC0QVfdwcnrWMH6t3XGi71ktHMtMFgoyEJsVytkiWt1mVe9EvuKM9npYc0WCIxxagtE22nuRB005nR5NxbrCIfJjIfIXKe06u+v0MRw1EM1BlFbnRG/GEvYTOkjcIu1ZDFWdwlnWxWGFUvBWdF6uie3NnfDzrwg22S4rwOyfkDtmbJQtDsC4Y4uycKCUOoy/qm1IlaHHqSoCUieaZGGxXYcLKfCmdZP8F4OaczGhOqkG0T1SmqAtLR+rBhp2AVli2yXODtqXo6O6441iYjBmnO0z56WJPIyZP9bnIISJoAoxuCr5PM7ORhPk6+f39etzqZka5N0jNaOaeT7z6hSU8gtE1d3W+Cy7tTDz/J3dV8nU3+iw7cWnLGJYMM9lfxcEKytgpyTBidLckMTN6TjrtxVTA2zt2a+EcYdQtn2bwLgrmv+rRj/0E+CA3qxKix4xu6qbzF69FXIaLVuIJNMNFEAwFtWgYXWBYF50nkZHc1eaa63PUjWbzIXGwQGUKwyWxKaS40IIEGtcYSPIbnlgf2/dsM7BwUZvITYN27haETH2DHi82YaX1F/tHZguKs/yNa+DUVluPSnPxq4bKi+Bq/4vwSncf7fcnCkvn3KfBYv5UMF6Lol+AP/jT/Zp3zpyFgE5OO8Gbtc6cwFOyJByGH04lHAafkSz/tsItOrTis6RtcjV04rAnAirMJMiVIJvVQCGuKjhJFnbWVYb4/+RfJvnIja9OWhGiNPRnTn5EXTF39/D23dh7cUFo093XO3E3b/2Yuy66GW6rnB3d/4/jm289Dn+/9BvyvV952KaZNGNMgha8R1AoPVo0XO8dzk29+VX8TkBaOHwo12a0shtHAlMKYZp3MbintZ3rkXeXlRRYp28R3lDSmt5e3mFwCl8reCQgIZ51B3ONxc6eKumdbXDKfZFYhN0hVlKv0VaQelZJQahcpaQbcPwRNKUvR7PsGR5bO6gkc21jdlq8N5vf7DSvDZbX1VZJRkzfG6bD0z36O1/8o+J3qGvveGayXP8fpf1LSABPRPXui18OdKu6eb85V+iSD9dxamiasMimdjYJY5hRrycu45OMDd27LstRlZKB+jzSN9indG4MaKU0t7TNl7mAjQpErcTM+HaAL1I44XclNT9m9xEB167Rr1hlhNmPh7/+umMqdEx5Ywno0mOlyp8Whm6xMFk5fBjcvuxguu8/Z6Zw5nNlwEu6ZPF/CUpWkT8JL4uv77TPnTrpyG30A7otvXm4qcW6//u6prYwReF5Cw6S5AmQjWjtXzXayx/M7O00WR7VR2OfvZOJqO0wGgzioVIcJnfKwvdMzA4q0osLWBf3GvV860x702Wvn8wINwiidJVTT4PXKnQJbDSCKlpyuktClWE4qvyl/3PX3OjO8eSnBsaaVZ2FjDLtnNtv0EbEBhihx20VX7Fr/CTleOsPsL2lpyUtqx/ib0tsl6cZAVXlVrkXi4NgqwBcIY5t81tD1AF+q8hll5AtmJ3utwiYViHJL+EplSPgle9RM41A8d7KoCWIn61uhRapQFNcIwc5O19k4w404w7lOF8Aiqhvra9PLZfY2j6N7hGjRusyyopK0Rt+kK3dF1uiCXjCqGPeim0xRzRT4YlHr1PGmQHAchKLHfTH1JGiTCF7NbfJvq7dG18OaJHAxo1E4Wu+OH6+KnCBDPJHwu3hn5NEJQP7X36QMSA/UnJoFi0p63bM37zt9pzugfLf+l1kwuiV63jEwLHh767iPdXpRgmkJrJpp6eg/5U8eF77Vxt04VrxucMMOnDNBD44idM7ifAuz115SJhDmXAFwlqbitTbKCicXcHBUD1vDvG9OxpANdJEtu1SgjQNfI3KuAJhKO3rFTT2THoKq/Ay2zlkUhFLeOT8fsaVCzX90oo9OZn8hJoB7CG9VTZmJ2e4KVHDErCOFd6gBLC/fKG4zGmRmBb7IlzzlIqO6ilU4WGI55Yx7/MrTbrrZnj/YLxHB+oawmdXmyC1h8qQ6NtYrwBx1q8ZwXgOZgR2o+OQDX/Ya8tuN23hM0hhJXBYAzMAu7W4dPNGXYHfnqdHT6J2r9iQTFvQl5VWeqQrsAnsf8fMpLNE7JgJNY3c+y6jL9zO5am9+vpHRYSss4fOp9wCMpa35L6W8vUaGJ/kYmYw7+RAMSUcTmLEFPOU3ADd6xc395j/4wlwOSyPSyXAdarFLyRRK4502jJX+xFQw9lMk9D/oX6DwwvVOtKf0u7aZmX2gGaHXJhf2Nbpnt0ZGw1KSYb5w7JQf4CpeayNtcH8ej6qItH5bIKCoxTpZslqoFrtV8nVrOjkTV6ZbkHAgvvysLMrlcfBc46cIb1ldiZnZbg+UsQXe8i5wTLaJ7dML2kwGsUUwNcPXbwYxNwePakMwT4DFCdk3Q0B9hwNNrsveuB3Q4DtDYX8pwgP8TfxGbDfUXMDhsO7MBo9uBOHFDXzpxZbCbzhV7Ewb2vgnmuzUfKMSgK0Ifqlw2e+tf1IZt0jopXMfjNKZTJ2NzOLYSWfukegEahwuO//nj5UsNteYSwbvIXQadqI8TpZs3e2Ek5bo0Uv6z8yRpRNSss8QE9Zuj/zjB7AXoRbrpckagVN1gSxsw1pYSrzj7fB2vwAstLx2kTIEEQ4BHEaykcYy3NDXoIH42pWIhQAjBP4Cbfx5HtaZhE2GhPrHma/vXKzt8etQfAwUWGHwlxjr/7piAOsBpPilh97Udbd676vzr1eBJv+V3yp/8jJndsWvhP+eRS1rBxEfxf5xdyAjhaJTLUjJ+8JFSdJFuYhwKNmZPJzkwiaMKVxWJojtN/Q/uaWebeh7cwbI+v39u40BmMXeOO/o9fHl8bpk+mev4/SvBL+j4/R11AuXF14A7vbyapy+JG9ekSxAPV5YLqioe1ZcrK/DKsmjXEj+SHaqoIV7hH564erEHP56Z4VM+S2sCZA3MLp0Vm/g2Maqtr3xuhjGZ8/i9U8Ev6e5vF5tTkOSdS8kld9udUCsM1oHzFA5rlp+ZrGer1q/EpAWTnmQ7R1FLY58n71uPi/QiF3NvFte2+DzyO0CawOYRgjtKrk51z9GLYWyU2NZrWycGUWyBooxLIGOMy8rKOBI9QXgXceLyzNVaLFrfJ8c92RzRX5p1H+VgmmcjzGkhXqbof1aNelE1Je/ZFHLQjr7Ls/MubfCHX4N2k6R66Ax70speprAginMg9zQ6sf0MbKG79XtRwZTiyYOdTj8WfeLBQhqgZin4+ILoNE7wB2Eq7SuxMyoXVUJm6926B7/W6XnI7zl7LYs7zYKdqDi4jEXjqUOGON12AbLjyxPvC1ienOMVz8GM7X8n4QfCIA8BMWa8RWxkoLLqaBi71+49BCHP1DbfRBPzMohFpHNQzX/uOrj3pEW5YtlKr/OSN3RULUDhfrk0IlPKEyG1UEHM46K5A4Jz2ZmdcLM7Lk5QqeKVlb7C9/DZeWJRbiw0hNgS8ivfZHtYvdy1V9LpZQ/jqhJH49MKP9aLEmi9LmshPm66jI5iLmJ6FiZ/0sLwePeqQmR2V+9ebz7KHr0wEpJEgasayW5W4nxZkM+kAZ2ncvf5SrKtyjekmj35Wmxp+W73nk/jfRxX4LtfKEOj9B3kaFQ1a1KUcjFtMbzgexK9PQffzzFlgI9k3XKb8vfpX4Wu8hLdJlL+m/NlqVH42OzzxAT4Yf/gNV62FnFXd8eyKxB8K1knXQypxyiTosVvMsiGNrSZYGSz3erx+gmzJRhNTLYt/m0EZye4EUvnQGdo1VTjoFXz6j7gt/XkVAz0Ey5g0d1FOdZJByvU70HLZFxg24eR1LKEYpdfvVjo67SOqSqWmvJ1jv7fm16/v9Ln02GqGNbOcs4JFPWX436utqnOhu4ghBYpORKTRF9s60/ZBH3FjkpnFExbZOtr9wcl2MwCmdglpmMzCBnaiZi+OcKQN8ZDj2ZORlAhJUd6oXnQOyckG+0ryzMKeSwmGK8Dp/ddiJI4+UVFJrE9LLcUH9bnjUNoQcnEfpq3eOcsF3INwUdcqFfX/O+t5jWnM1IF2INWZcr8zRlvqDXoHaU2NPgOoVVoFYV1vOA00Y8hFpUtjbgHfef8QP1h5TTpcm6CriyQwpOIfRlmpsZPp1QxrDSmS6h5lsR7txPMV4WM07/tfBU1PpMW3nA7zK0tqhA3zWzIiCgniXaaVKBTpDpIWhiUfUvJF4po0Jbydrq7W7W68QmnlaWqRIEDZq+eH+En0SwBgo8GklDuRb0Ynrsl1v3+7ySeP3YZGVp1ynDh8hm8ATBCZKkNhmfYTeKKuCnHuZIha4gXUC34dg6gc6c3wpX9b5LVCjzKliYaqvSLuB2MFhmhVjwEGsm/9dDoyw00Kqz9A6Z1KYCI/ulQp0gw0vgxKLikL8zKWdJ9sTnIhOXJ/tbI8g3aPricuF5RIIlUODRSurLtEqpR8IIa8OsbRt5e4KPERKHnBpWFzE3O/srLVKJXUGpVBczNjn7wmYW3WIUz8heZjLygkLRTG+jgRsE1c3Y9sl8RFg5bw6InVPqG+orCbMKOaxvuYENuvzRtDJvqKfNa421G9yygYb9bm9OnH7+ZHnpzFP60zvbjEAOI9FNGORsZKYTpG478GK4Cop8gMykYtHHsu1FbaDmUu5Dd0pJ/lzdHeT6OTqqOa0Eae8NWRKm3yZANr/rHRjk8E9FKZi4SqTb1y4upNCf0DBNwdFbPirbkmvT86mWPdeYBrX59rotUxdlqV3PW2PvVaZRpY8g/GLSdYuKKLTbNGxTwZyzrVWpPsGUBNa/vebtQa5JKHGmlNDXgK1HUJ/izc5Qz++f84wYKBSS/k466mMw9+RvX8Rbz4JAoch3kHbm6BvlCoExQ+2GA+unTo+uD2wGAsPpES/Fe8MA8cnJR9fdFs93zDnxfjq8AwxNMBs5+JsFFHofh3AzCEj9W65NglmH5uG35nVJrtadtJdebVjShN/Iia5JDX0OwKFr2/WN+A3c/uTy1ynHYcuMr9W9D6JWx14q3dM8M2YKOmM/4K2ebos5FrTO3pe+38HS1ZyVDEySPc2VZESmb2VuIfaI+OOIkuUJ7t0qzjSaht3UF1c8OlFDg/dokOhEW6o70ZSRWYfPmAbC1SPczpjz++KL52zJDy7jaNZ10QX4zGkWdxV9hfu6k0zI1Nd3GUkwHlu6LdG1Swmsm7JItbIsYS0o//sr0Vfg+qaoyBVF+ePfg/hboltC9B3RHXDoyH+mggIeqhKf0XAsqrE2vrE2m1LRLSwAJ5TsYA5xwXojmUxlEdG/Z7cif6VIVI6XzSNJ+nyPnuWm3dlvnYnH/UHCvK+n6FinWQqpHlnSmMSkG23UhqlsesW5TpaDhkUbtyyK3wSY3sln7uXP8gTK6hylRx50t82RWHjB/YAe6+626GfnOoSDoZbFulxPl9nQkqEbsUTnplk65IFK9iytVdRUpba0gH+pRdT8ASgr1+W67VJy8LENTyZ9/5v+oxcovJ7N9IgkFjbm8vjS19+BbwwsO4PpFMiElUUauQBrOlFVkTqXbeUzcnlKs0c5dbrvHwKjd5h2zYDFYpDL67I8tHQzMcGcVoVErUzJJmSCvhYhrGrL35MVQtiYWmxCtsf64Dk+S7tZJZZmDePa4F03SJQb8Ng2zDAIrQsOOXJHa+qsB/sWrLcFQotc5sXBsHJpyCQh/VUJa9pJ4JgsOlZ2QGS00mjc5dDrQv79DUU0gk7CaHTZRe0thqBpkaZxpnZNUZG5v0NrcR5v8TI0UeybpM3XLibnXCHm5bCbAFV303s5j73SdzegeE8of2/Oj1bv3b01c+/ma2+KdDfnotMHmxdvcB4YRCh0QT0XVcJxGdnMrqUcVOmVGthhzPEniTYy51/K/fMK9Kqlxd01z+dxXUsApCZXXh3gWsjYn/DpQyTSyWMU8Zd8Tbi1wrZtOViC4Bu5iSMPthBISAI2Uz7AtvpTMv+PpU/s7tHzL7IoX5/JSkZTa/8D7hWdCc7MJrjB/3daw+GKz//Rc3+SD8mQA0sRfBPUn/gLFEInk1yARyawa4Un7yzfiKm+chfBfyxmM4xGCsgdk5/HYl8ycKnYtC9kpi1ie64lX9ZZohSq8tNP0jlOT6wTQscI+jnsHMOnwJZRUbjN5r6wPIL/yNnB6PwBLEGITDIO4ywX9qYLxXeqRNwPWNQ/zsI972WTanTYpC+PMjEJmdj2LEwV6jIBSSC9eftBEOMWgRAUl4pN/5MWKT+fjX0ZJVPlp1+ncV3eGOfPCix/mMPJ0b8k4nqXFSuBz0NDhsWm7Jn6VmW+IVezpZAWV/4rSPBUG/M0mwvpcWW/bpdNrN2ubwGoZFEy6ikyyeQ+jgBq5rb/OhXwRH9yxr3U1OYModoOji5kKBVqQaVPwUbVvgu/y9bouOXw3tFzGRWlmUuuvkzObiE6mLRX4MZCsc6o1grL8gSsIGjQ1M4VzMUrcFYmHYHHOeanKi0O3DnEucXP0e4kc04LqETdTgT5JAUbnU0+RcFEA3Y73aJu60Kycd4z3x1/MzmFw6XibRq6TfMzg5XtnhYZt4mNyy/jdZKmFNI/NDtHeJlB1DGavzrBaEtqzXsO/sbEFjOXLTVrReRXscG4L6l8lsvLJqaGZWm1tBulGNVqEu8+m7Ltv5cMs0jE9ucJF6WGAXzUQrR122ARsIodXjhSlWoSVZaKlQIjP9f2zwWc1BZwp8rSp0+OQEzM6utwGEIPVuM3Tw9OI0zrhwaKDR7aoYoEQwesmmYINR1y3zMMrFsfZ5peO43bDBIQwZr5oE+z2p8i4AmXGZCu3JlNWqXUILWu+GEVSVPVmOn/Z/g/rTD5k+nroNhQoSBtXlau9+eA6/FpDYYYT1W+hl5ltgXox1Jr+Km1JrPkO1hOh6n058K2bS8tuE/S6ivlMrpjyFRYaxYzguATxMt9os/XAzypvXJQfuiS6tIh+eErgMuWr5OD+qW9U+u63fPUuWzFOnQPTK0f03nzJhJWuppDpl96G5G3fn39b4FrS9fvUKzfqb/unc2Fz+Zd9wDuUsMNTz8P3s+94dUTr4cCPFnw/kHFoROqE4cUh9//eoFinQLkoScXauSm63RHWIthnMXaI8AJy3oQLkpDshL3jX2N67oVqrev9HwDRmuvlMvXARBzdun2x+mlZvqtBc7QzIhWLhVzd19cHmYliEZfOH9xVRQ8QqxVG9u4ACjoqIjUee35/k/JCNB2xPHWia/QbwQr5Iu26XkzD4Pp40vmhmcNgwIDa9eab0Hj2UfbO5wgSvpicNBfONJa1gEHqJOI/tYC/4z6olI4uKBDx8xfm4p81FF5UuHi//rDQz2u9O+Ru8CnH2SK961MpqUa/Cf1Wjaacrp6EF248s0S0ONIvYvMxKPSrrjr5AK0K7k6FfUsPaUmDfnDji6SP/AU8K+vTuRH6bJPWvpHOy4kMOV50MmkNdDYer2I/rLGr2gFNn09KlNmjhwCY6eIFhr9AYskoTGubkMRMtOL0lHE9k6oB4teII8Mo1Jf+pWlEpqR1l05XdeEeAC6Vw1gEJPPy7yewBtAL2MYhcdoRGNFmiXLjh+VjJ+BLjR4eFWaFrnLwktjRZolyzozqFizhyku5patNmsuPjW7TyTaXBCVlnTcIqassSLNksuOH5U4M2jIXRbRGivSLOk6ZwYH3az2voY5bu4uGUtjbWyNUzrXssNLtzX8LnPXjKWxplM+HCQX3LLlsrU2deg2ta80xnFz94OxNNbGlk413i5znxhLY02nmmiXpd2Bac7A/L/Z/AWv9Qv/Aej8RbQlsHSNfSbpmgnGSbJct9f9BEDW2hKQYfJun2odwuvs0KbptLYhsEEmP7D2f0dE2+xsLtW2yq1grLaNbENhdpKsDB+5xN0w/YB+SC9HLhIUSy/RD+iH9DK9Qq/Sa/Q6vUFv0lv0duBORqTnzqkXGf16bWCfizglyFRfVwwYutjh+00uydJcm1xugKI0SfiDtjd/qOe0ytS6vmZ/1ijSRa9E9QYwbNoxdnjSkta0pVM6pnO1hBwAL+/gGuyP+/XPj//+/Cdw8q/STR2AveHtW6e+QDoBbAP8fUev+XL9ie36gHh/a8O/bOhuf695n3Tg2nmHUX7dreSzDHumkYA03lqiIWoOMNpjY9nCuCUYd3MoRoi+ce1Ui005Bw1p5uZwCDF4Za1woiFqNiXrB9LWnOTs01+bSPNi5s+rfSYxvc07+xH9PcosHe0XE/JcnZH8HAzyPhjkx7UsDoiGYyQvBYO8AgyJC9GRdtRxHtmgr+iXNBmeg0z+yPN8XkwMHA+6/9Dl9XJjYrHUZP0XZggaiI9m7qXsmhoklN/mkgB4CElwhaAewNWe3NsVtfDjnbJBzea3t1WzSWtH2zXHtHWqPXP64tdsRAv0+MPRGBuOkyhA39re4pxvsT1p1rPJPIietVju5tUjg0+YM73em9pn2lixceRMEEJeGUuBQCkoybUIOUPBITsFOuFB0MoqkTJA5ZpFTpU2j6E16G5tblADlUu0xmiLzm9R4/OZIJn3EGe9WObZrFMH5yfogfegCj4CDlx/U3gudb2Pzeho++aor0/Rhk2MJp3Zx/CRk4V3nj5849wzv3NF3ZtxPxyrD+Z7ebMUC9Y9AJ3g4wAEEOvvrdWe26FE1d9oSPYTwEdfN/sB4PNvXOmbM5kn0di9BgoGCiCA7KP/PwKQn0YFzdPH+8rF32b0Bsfm6UR2FYj/78ZYkY5Kfj6k/kTqQQwu0hr0X/bqZYar8nYuL1hocmdRVXmQTHzg/xEX/yu7et5+kne/CfXDPXeL/8Dbt5Mp5zLgOoZyKDm9QAmNeakgqYLzvWZ/WHOP5T5/YT241ouHhNVTqAOdYMGZLj+RmeqSyDpPeZdYOnA30ahDrTtoyzdNL+leWsU2BSE8EC36YNSZy6MKHiDyK3FPgNSqL6X+hm8fWy8lRBkI+MEF2UE+xYTzwEMMDOmJw/SM+dk6lMjiq/6oa/Yd/FkkxlcYjaCDBySOdwCkENAABDepv/hIQKhPR946rdfQXqWw6VXhl/ILlF/2Auk9x9/bmL1PemuV7+yEX8xvdUxkK2RbJFthtUHfnyY29x9aBNU0munZSEXfQXogSH6ZSQ56L+85En2Uu4ksWkZcKCJ8vKa/wB34UkgXKJx+ypyeSEwr9luL3Kr2hlZxPRzsnsmo2p7CPIW4qxSsRmIGpQABoGLgXiMD0gCIrx3ppRz/G7V3ppVSHfQwBkIQgBIE4IBO0IKMFOnQOm6rRL4wv1LBqsJIuZqeQygkAxwwkHZ/j8Cs0y6K+r7T88BV3X844vBQrefqOKFn/AH2OpfQ/T65srE1v5jRmvqL8LUeTdAR2Ak34A78EMkDTGAFR5Pzgt0D+BNuJ54h6Fzya1BJlrrjkl0fItUA8AiQ0b+hzUbEqRUF4qjvgZE5QWDBXtHzZoVcA0R2igaouDikAcbguwY4lvMNEaqVNkSiEcmEmQVu1mkiMyhwR3ao0q4hlp0a4uiQzV62pbXqcHlZuPhVdq3aVWr4hbXq4MPINmx2nZiqWYMqQTXatWQbOx0eHwePnJhSPWQnWEFzd5QcYUexUouwJjWnrPVurxqAAMSuhBgg91hqxkcHHw14r43XnJ6JgZeyKS6R3jXOrFqJAbXHtOK11YfHZkHm6lWTTqVczpqyM1ItKoN2rap8VzMyFS6R1XMiWs9UT9LHEVZVHAXZwmTpWPArukGnenh5qqMrTreqsnQAOnMeYS2WDveW0doUb5mAAwp0vw/6EQtccMJ9fLKBTCIuK/+i8Ospduni3j2/wHYPuOaKg3IChTfUuOq6DD94W61PJfitH1Jn0mEMb0q9b33te40aNGnRrNVmbWaacZcWd+nUrce9+qFh1tRzzLbFEYPmmatj/yR956Rv/BA0suhFPwZiROt8TFGRR/E9pl0/8hfFKMaSJUrXkX3gtk29VawI73jXcSfU/j9NZ52zx15JjjrmkmUMEOJo6JSrkCJE6yvxlhowbMgIksiYlFJqaaWHDFVGmaHLChO27HDhI0SMFDlK1HKiRY8RM1bsOHHj2WBj/AQWOSPKEqsSWux0osSipfMvhAQ/+sl78HAIpuiFbbc6SdJkyRmNuu+BMQ898TRFylSp06RNlz5Dxs5ggpghFogVYoPYIQ6IE+KCuKO6Wht4AqEUVhuqtXpnRGzlYGFOOKartKx2ib2j21prRoQ7e9pUrAk5lnZM7eTxrKOhe/6NOxp6sS52nqC1OvfM7r5kC1t0dM3owBEcjAg6vkvh6tY25hCEgxFBhzAQdByMHARBl0joZz0zNsfRWmJz+wIJhLU6X09j/9rvwPeQ2XEwcAQD4WBE0CEIAx0HIwdB0An4DKXg+Dg4joMuGRk+hYnI02vDuyPBrvn6BAK+OLajOdxRzzEa6YwKt+dWz0EVM8xM3XHmHp5QQEDYwBPyeDEdnKoplF/Hp4I6ARXWCR0RVOrI5qyTOfrkrvqgQIoJh7XXECdpiDWtx0Nik9IWs8UCAA==";
-var SourceSansProBoldWoff = "17ff7a56f912403e.woff";
+var SourceSansProBoldWoff = "assets/17ff7a56f912403e.woff";
 var SourceSansProBoldWoff2 = "data:font/woff2;base64,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";
-var SourceSansProBoldItalicWoff = "6a24661eba8b3e73.woff";
+var SourceSansProBoldItalicWoff = "assets/6a24661eba8b3e73.woff";
 var SourceSansProBoldItalicWoff2 = "data:font/woff2;base64,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";
 var fontFace = "\n  @font-face {\n    font-family: 'Source Sans Pro';\n    src: url(" + SourceSansProWoff2 + ") format('woff2'),\n        url(" + SourceSansProWoff + ") format('woff');\n    font-weight: normal;\n    font-style: normal;\n  }\n  @font-face {\n    font-family: 'Source Sans Pro';\n    src: url(" + SourceSansProItalicWoff + ") format('woff2'),\n        url(" + SourceSansProItalicWoff2 + ") format('woff');\n    font-weight: normal;\n    font-style: italic;\n  }\n  @font-face {\n    font-family: 'Source Sans Pro';\n    src: url(" + SourceSansProBoldWoff2 + ") format('woff2'),\n        url(" + SourceSansProBoldWoff + ") format('woff');\n    font-weight: bold;\n    font-style: normal;\n  }\n  @font-face {\n    font-family: 'Source Sans Pro';\n    src: url(" + SourceSansProBoldItalicWoff2 + ") format('woff2'),\n        url(" + SourceSansProBoldItalicWoff + ") format('woff');\n    font-weight: bold;\n    font-style: italic;\n  }\n";
 
@@ -49979,7 +53227,7 @@ LandingMenu.propTypes = {
 var ScoreListContainer = /*#__PURE__*/styled__default.ul.withConfig({
   displayName: "ScoreList__ScoreListContainer",
   componentId: "space-surveyors__sc-57etaq-0"
-})(["display:grid;grid-template-columns:repeat(5,1fr);grid-gap:1rem;grid-template-rows:auto;grid-auto-flow:dense;list-style:none;"]);
+})(["display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:auto;grid-auto-flow:dense;list-style:none;"]);
 var ScoreListItem = /*#__PURE__*/styled__default.li.withConfig({
   displayName: "ScoreList__ScoreListItem",
   componentId: "space-surveyors__sc-57etaq-1"
@@ -50908,9 +54156,32 @@ var SkyObjects = /*#__PURE__*/function () {
   };
 }();
 
+var backgroundAudio = "assets/8630bf3d12bdc7ea.webm";
+
+var Audio = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee() {
+  var background;
+  return _regeneratorRuntime().wrap(function _callee$(_context) {
+    while (1) {
+      switch (_context.prev = _context.next) {
+        case 0:
+          background = new howler.Howl({
+            src: backgroundAudio
+          });
+          return _context.abrupt("return", {
+            background: background
+          });
+
+        case 2:
+        case "end":
+          return _context.stop();
+      }
+    }
+  }, _callee);
+}));
+
 var Entities = /*#__PURE__*/function () {
   var _ref = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee(boundingRect, aspectRatio) {
-    var backdrop, timer, state, camera, score, world, skyObjects;
+    var backdrop, timer, state, camera, score, world, skyObjects, audio;
     return _regeneratorRuntime().wrap(function _callee$(_context) {
       while (1) {
         switch (_context.prev = _context.next) {
@@ -50926,6 +54197,11 @@ var Entities = /*#__PURE__*/function () {
 
           case 8:
             skyObjects = _context.sent;
+            _context.next = 11;
+            return Audio();
+
+          case 11:
+            audio = _context.sent;
             world.system.insert(camera.physics);
             skyObjects.staticObjects.forEach(function (object) {
               world.system.insert(object.physics);
@@ -50937,10 +54213,11 @@ var Entities = /*#__PURE__*/function () {
               camera: camera,
               score: score,
               world: world,
-              skyObjects: skyObjects
+              skyObjects: skyObjects,
+              audio: audio
             });
 
-          case 12:
+          case 15:
           case "end":
             return _context.stop();
         }
@@ -51401,7 +54678,6 @@ var onCameraExposureEnd = function onCameraExposureEnd(entities, _ref5) {
   if (event) {
     var camera = entities.camera;
     var steps = camera.steps;
-    console.log(steps);
 
     if (steps > 0) {
       dispatch({
@@ -51715,7 +54991,26 @@ var cullOccludingObjects = function cullOccludingObjects(entities) {
   return entities;
 };
 
-var Systems = [onResize, onTimelineEvent, timeline, setCameraTarget, onTargetSet, onCameraMoving, onCameraExposing, onCameraExposureEnd, spawnObjects, cullSkyObjects, cullOccludingObjects, moveOccludingObjects];
+var GameAudio = function GameAudio(entities, _ref) {
+  var events = _ref.events;
+  var event = events.find(function (e) {
+    return e.type === 'gameStart';
+  });
+
+  if (event) {
+    var audio = entities.audio;
+
+    switch (event.type) {
+      case 'gameStart':
+        audio.background.play();
+        break;
+    }
+  }
+
+  return entities;
+};
+
+var Systems = [onResize, onTimelineEvent, timeline, setCameraTarget, onTargetSet, onCameraMoving, onCameraExposing, onCameraExposureEnd, spawnObjects, cullSkyObjects, cullOccludingObjects, moveOccludingObjects, GameAudio];
 var GameStageContainer = /*#__PURE__*/styled__default.div.attrs(function (_ref) {
   var aspectRatio = _ref.aspectRatio;
   return {
@@ -51774,21 +55069,20 @@ var Dome = function Dome(_ref4) {
   });
 };
 
+var MobileResponsive = "\ngap: 0;\ngrid-template-columns: 1fr;\npadding: 0.5em 1em;";
+var Desktop = "\ngap: 2em;\ngrid-template-columns: 1fr auto;\npadding: 1em 2em;";
 var HUDScoreContainer = /*#__PURE__*/styled__default.div.withConfig({
   displayName: "score__HUDScoreContainer",
   componentId: "space-surveyors__sc-hq03fc-0"
-})(["display:grid;grid-template-columns:", ";grid-template-rows:auto;gap:", ";width:100%;height:100%;color:var(--yellow);font-weight:bold;"], function (_ref) {
+})(["display:grid;grid-template-rows:auto;width:100%;height:100%;color:var(--yellow);font-weight:bold;", ";"], function (_ref) {
   var width = _ref.width;
-  return width > getRawPx(BREAK_TABLET_MIN) ? '1fr auto' : '1fr';
-}, function (_ref2) {
-  var width = _ref2.width;
-  return width > getRawPx(BREAK_TABLET_MIN) ? '2em' : '0';
+  return width > getRawPx(BREAK_TABLET_MIN) ? Desktop : MobileResponsive;
 });
 var TotalScore = /*#__PURE__*/styled__default.div.withConfig({
   displayName: "score__TotalScore",
   componentId: "space-surveyors__sc-hq03fc-1"
-})(["display:flex;", " align-items:center;line-height:1;font-size:2em;"], function (_ref3) {
-  var width = _ref3.width;
+})(["display:flex;", " align-items:center;line-height:1;font-size:2em;"], function (_ref2) {
+  var width = _ref2.width;
   return width > getRawPx(BREAK_TABLET_MIN) ? 'justify-content: flex-end;' : '';
 });
 var TotalScoreCount = /*#__PURE__*/styled__default.span.withConfig({
@@ -51796,8 +55090,8 @@ var TotalScoreCount = /*#__PURE__*/styled__default.span.withConfig({
   componentId: "space-surveyors__sc-hq03fc-2"
 })(["font-size:2em;font-variant-numeric:tabular-nums;width:2ch;margin-left:0.5ch;"]);
 
-var HUDScore = function HUDScore(_ref5) {
-  var score = _ref5.score;
+var HUDScore = function HUDScore(_ref4) {
+  var score = _ref4.score;
 
   var _useResizeObserver = useResizeObserver(),
       ref = _useResizeObserver.ref,
@@ -51827,7 +55121,7 @@ HUDScore.propTypes = {
 var HUDBackdrop = /*#__PURE__*/styled__default.div.withConfig({
   displayName: "hud__HUDBackdrop",
   componentId: "space-surveyors__sc-7o2oke-0"
-})(["background-color:#021a18;display:flex;justify-content:right;align-items:center;padding:1em 2em;width:100%;height:20%;bottom:0;position:absolute;z-index:", ";"], zStack.hud);
+})(["background-color:#021a18;display:flex;justify-content:right;align-items:center;width:100%;height:20%;bottom:0;position:absolute;z-index:", ";"], zStack.hud);
 
 var HUD = function HUD(_ref) {
   var score = _ref.score;
@@ -51986,7 +55280,7 @@ var index = function index() {
 };
 
 exports.default = index;
-},{"react":"../node_modules/react/index.js","styled-components":"../node_modules/styled-components/dist/styled-components.browser.esm.js","@castiron/style-mixins":"../node_modules/@castiron/style-mixins/dist/index.js","use-resize-observer":"../node_modules/use-resize-observer/dist/bundle.esm.js","react-game-engine":"../node_modules/react-game-engine/build/index.js","random-js-no-node":"../node_modules/random-js-no-node/dist/random-js.esm.js","weighted":"../node_modules/weighted/index.js","prop-types":"../node_modules/prop-types/index.js","react/jsx-runtime":"../node_modules/react/jsx-runtime.js","react-inlinesvg":"../node_modules/react-inlinesvg/esm/index.js","detect-collisions":"../node_modules/detect-collisions/dist/index.js"}],"../dist/index.js":[function(require,module,exports) {
+},{"react":"../node_modules/react/index.js","styled-components":"../node_modules/styled-components/dist/styled-components.browser.esm.js","@castiron/style-mixins":"../node_modules/@castiron/style-mixins/dist/index.js","use-resize-observer":"../node_modules/use-resize-observer/dist/bundle.esm.js","react-game-engine":"../node_modules/react-game-engine/build/index.js","random-js-no-node":"../node_modules/random-js-no-node/dist/random-js.esm.js","weighted":"../node_modules/weighted/index.js","prop-types":"../node_modules/prop-types/index.js","react/jsx-runtime":"../node_modules/react/jsx-runtime.js","react-inlinesvg":"../node_modules/react-inlinesvg/esm/index.js","detect-collisions":"../node_modules/detect-collisions/dist/index.js","howler":"../node_modules/howler/dist/howler.js"}],"../dist/index.js":[function(require,module,exports) {
 'use strict';
 
 if ("development" === 'production') {
@@ -52141,7 +55435,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "56244" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "53475" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
