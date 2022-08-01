@@ -1,5 +1,5 @@
 import onResize from './resize';
-import { onTimeEnd, onTimelineEvent, timeline } from './timer';
+import { onTimelineEvent, timeline } from './timer';
 import {
   setCameraTarget,
   onTargetSet,
