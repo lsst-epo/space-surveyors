@@ -49478,7 +49478,9 @@ var MENU_SLIDE_TIME = 500;
 var MENU_SLIDE_DELAY = 200;
 var MENU_TRANSITION_TIME = MENU_SLIDE_TIME + MENU_SLIDE_DELAY; // Camera
 
-var MAX_CAMERA_MOVE = 0.25;
+var MIN_CAMERA_MOVE = 0.25;
+var CAMERA_MOVE = 0.35;
+var MAX_CAMERA_MOVE = 0.5;
 var EXPOSURE_TIME = 3500; // Collision
 
 var MIN_OVERLAP = 0.5; // Spawn
@@ -50531,6 +50533,7 @@ var Camera = function Camera(aspectRatio) {
     x: null,
     y: null
   };
+  var maxMove = Math.min(Math.max(CAMERA_MOVE / aspectRatio, MIN_CAMERA_MOVE), MAX_CAMERA_MOVE);
   var steps = 0;
   var exposures = [];
   var exposureStartTime = null;
@@ -50547,6 +50550,7 @@ var Camera = function Camera(aspectRatio) {
     nextPosition: nextPosition,
     delta: delta,
     steps: steps,
+    maxMove: maxMove,
     exposures: exposures,
     exposureStartTime: exposureStartTime,
     exposureRemaining: exposureRemaining,
@@ -51225,14 +51229,15 @@ var onTargetSet = function onTargetSet(entities, _ref2) {
     var nextPosition = event.payload;
     var aspectRatio = state.aspectRatio;
     var physics = camera.physics,
-        exposureRemaining = camera.exposureRemaining;
+        exposureRemaining = camera.exposureRemaining,
+        maxMove = camera.maxMove;
     var currentX = physics.x,
         currentY = physics.y;
     var distance = getDistanceBetweenPoints({
       x: currentX,
       y: currentY
     }, nextPosition, aspectRatio);
-    var steps = Math.ceil(distance / MAX_CAMERA_MOVE);
+    var steps = Math.ceil(distance / maxMove);
     var xDelta = round((nextPosition.x - currentX) / steps);
     var yDelta = round((nextPosition.y - currentY) / steps);
 
@@ -51283,7 +51288,7 @@ var onCameraMoving = function onCameraMoving(entities, _ref3) {
     var deltaX = delta.x,
         deltaY = delta.y;
 
-    if (steps > 0 && deltaX && deltaY) {
+    if (steps > 0) {
       var newX = steps === 1 ? round(x + deltaX) : x + deltaX;
       var newY = steps === 1 ? round(y + deltaY) : y + deltaY;
       physics.setPosition(newX, newY);
@@ -51396,6 +51401,7 @@ var onCameraExposureEnd = function onCameraExposureEnd(entities, _ref5) {
   if (event) {
     var camera = entities.camera;
     var steps = camera.steps;
+    console.log(steps);
 
     if (steps > 0) {
       dispatch({
@@ -52135,7 +52141,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "61043" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "56244" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
