@@ -10,7 +10,6 @@ const HUDBackdrop = styled.div`
   display: flex;
   justify-content: right;
   align-items: center;
-  padding: 1em 2em;
   width: 100%;
   height: 20%;
   bottom: 0;

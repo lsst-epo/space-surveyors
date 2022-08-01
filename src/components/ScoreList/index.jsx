@@ -6,7 +6,6 @@ import IconContainer from '@components/svg/helpers/IconContainer';
 const ScoreListContainer = styled.ul`
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  grid-gap: 1rem;
   grid-template-rows: auto;
   grid-auto-flow: dense;
   list-style: none;
