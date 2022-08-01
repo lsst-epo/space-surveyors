@@ -2,7 +2,12 @@ import React from 'react';
 import CameraRenderer from '@components/Camera';
 import { Polygon } from 'detect-collisions';
 import { FocalPlaneBounding } from '@constants/objects/boundings/FocalPlaneBounding';
-import { getScaledObjectSize } from '@constants/index';
+import {
+  CAMERA_MOVE,
+  getScaledObjectSize,
+  MAX_CAMERA_MOVE,
+  MIN_CAMERA_MOVE,
+} from '@constants/index';
 import { round } from '../utils';
 
 export default (aspectRatio) => {
@@ -11,6 +16,10 @@ export default (aspectRatio) => {
   const offset = round(size / 2);
   const nextPosition = null;
   const delta = { x: null, y: null };
+  const maxMove = Math.min(
+    Math.max(CAMERA_MOVE / aspectRatio, MIN_CAMERA_MOVE),
+    MAX_CAMERA_MOVE
+  );
   const steps = 0;
   const exposures = [];
   const exposureStartTime = null;
@@ -26,6 +35,7 @@ export default (aspectRatio) => {
     nextPosition,
     delta,
     steps,
+    maxMove,
     exposures,
     exposureStartTime,
     exposureRemaining,

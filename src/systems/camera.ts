@@ -1,4 +1,4 @@
-import { MAX_CAMERA_MOVE, EXPOSURE_TIME } from '@constants/index';
+import { EXPOSURE_TIME } from '@constants/index';
 import { GameSystem } from '@shapes/index';
 import { getDistanceBetweenPoints, getRelativePosition, round } from '../utils';
 import { detectCapture } from '@systems/collision';
@@ -38,14 +38,14 @@ const onTargetSet: GameSystem = (entities, { events, dispatch }) => {
     const { camera, state } = entities;
     const { payload: nextPosition } = event;
     const { aspectRatio } = state;
-    const { physics, exposureRemaining } = camera;
+    const { physics, exposureRemaining, maxMove } = camera;
     const { x: currentX, y: currentY } = physics;
     const distance = getDistanceBetweenPoints(
       { x: currentX, y: currentY },
       nextPosition,
       aspectRatio
     );
-    const steps = Math.ceil(distance / MAX_CAMERA_MOVE);
+    const steps = Math.ceil(distance / maxMove);
     const xDelta = round((nextPosition.x - currentX) / steps);
     const yDelta = round((nextPosition.y - currentY) / steps);
 
@@ -82,7 +82,7 @@ const onCameraMoving: GameSystem = (entities, { events, dispatch, time }) => {
     const { x, y } = physics;
     const { x: deltaX, y: deltaY } = delta;
 
-    if (steps > 0 && deltaX && deltaY) {
+    if (steps > 0) {
       const newX = steps === 1 ? round(x + deltaX) : x + deltaX;
       const newY = steps === 1 ? round(y + deltaY) : y + deltaY;
       physics.setPosition(newX, newY);
