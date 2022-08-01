@@ -1,3 +1,4 @@
+import { Howl } from 'howler';
 import { System } from 'detect-collisions';
 import { SkyObject } from '@modules/SkyObject/';
 import { DynamicSkyObject } from '@modules/DynamicSkyObject';
@@ -32,6 +33,10 @@ type SkyObjects = {
   fade: boolean;
 };
 
+interface GameAudio {
+  background: Howl;
+}
+
 type GameEntities = {
   state: GameState;
   backdrop: any;
@@ -40,6 +45,7 @@ type GameEntities = {
   world: GameWorld;
   score: any;
   skyObjects: SkyObjects;
+  audio: GameAudio;
 };
 
 export { GameEntities, GameState, GameWorld };

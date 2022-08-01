@@ -13,6 +13,7 @@ import {
   moveOccludingObjects,
   cullOccludingObjects,
 } from './sky';
+import { GameAudio } from './audio';
 
 const Systems = [
   onResize,
@@ -27,6 +28,7 @@ const Systems = [
   cullSkyObjects,
   cullOccludingObjects,
   moveOccludingObjects,
+  GameAudio,
 ];
 
 export default Systems;
