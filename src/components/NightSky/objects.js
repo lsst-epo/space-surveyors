@@ -34,7 +34,7 @@ const SkyObjectAttrs = ({ width, x, y, $captured, brightness }) => ({
     color: $captured ? 'var(--yellow)' : 'var(--neutral10)',
     left: `${x}%`,
     top: `${y}%`,
-    opacity: brightness,
+    opacity: $captured && brightness > 0 ? 0.85 : brightness,
   },
 });
 

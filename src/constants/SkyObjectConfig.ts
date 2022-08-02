@@ -1,4 +1,9 @@
-import { SkyObjectType, WeightedOptions } from '@shapes/index';
+import {
+  RangedValue,
+  SkyObjectType,
+  WeightedBins,
+  WeightedOptions,
+} from '@shapes/index';
 
 export const OBJECT_LIFESPAN: {
   [key: string]: { min: number; max: number };
@@ -17,7 +22,7 @@ export const OBJECT_LIFESPAN: {
   },
 };
 export const OBJECT_BRIGHTNESS: {
-  [Key in SkyObjectType]: { min: number; max: number };
+  [Key in SkyObjectType]: RangedValue | WeightedBins;
 } = {
   star: {
     min: 0.5,
@@ -32,8 +37,17 @@ export const OBJECT_BRIGHTNESS: {
     max: 1,
   },
   galaxy: {
-    min: 0.5,
-    max: 1,
+    bins: [
+      [0, 0.125],
+      [0.125, 0.25],
+      [0.25, 0.375],
+      [0.375, 0.5],
+      [0.5, 0.625],
+      [0.625, 0.75],
+      [0.75, 0.875],
+      [0.875, 1],
+    ],
+    weights: [0, 0.05, 0.11, 0.31, 0.78, 1, 0.09, 0],
   },
   supernova: {
     min: 0.5,

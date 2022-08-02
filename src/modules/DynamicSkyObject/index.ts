@@ -1,7 +1,7 @@
 import { SkyObject } from '@modules/SkyObject';
 import { GamePosition, SkyObjectType } from '@shapes/index';
 import { OBJECT_BRIGHTNESS, OBJECT_LIFESPAN } from '@constants/index';
-import { getRandomDecimal, getRandomInt } from '../../utils';
+import { getBrightness, getRandomInt } from '../../utils';
 
 export class DynamicSkyObject extends SkyObject {
   public expiration: number;
@@ -25,11 +25,7 @@ export class DynamicSkyObject extends SkyObject {
 
   private setObjectBrightness = (type: SkyObjectType) => {
     setTimeout(() => {
-      this.brightness = getRandomDecimal(
-        OBJECT_BRIGHTNESS[type].min,
-        OBJECT_BRIGHTNESS[type].max,
-        1
-      );
+      this.brightness = getBrightness(OBJECT_BRIGHTNESS[type]);
     });
   };
 }
