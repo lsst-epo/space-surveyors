@@ -9,7 +9,12 @@ import {
   X_RANGE,
   Y_RANGE,
 } from '@constants/index';
-import { WeightedOptions, GamePosition } from '@shapes/index';
+import {
+  WeightedOptions,
+  GamePosition,
+  RangedValue,
+  WeightedBins,
+} from '@shapes/index';
 
 const engine = MersenneTwister19937.autoSeed();
 const random = new Random(engine);
@@ -114,3 +119,21 @@ export const round = (number: number, fixed: number = 2) =>
 
 export const sum = (values: number[]): number =>
   values.reduce((accumulator, value) => accumulator + value, 0);
+
+export const getBrightness = (
+  brightnessDefinition: RangedValue | WeightedBins
+): number => {
+  if (
+    (brightnessDefinition as RangedValue).min &&
+    (brightnessDefinition as RangedValue).max
+  ) {
+    const { min, max } = brightnessDefinition as RangedValue;
+    return getRandomDecimal(min, max, 1);
+  } else {
+    const { bins, weights } = brightnessDefinition as WeightedBins;
+    const [min, max] = weighted.select(bins, weights, {
+      rand: () => random.realZeroToOneInclusive(),
+    });
+    return getRandomDecimal(min, max, 1);
+  }
+};
