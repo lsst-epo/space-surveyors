@@ -8,6 +8,7 @@ export default (boundingRect, aspectRatio) => {
   const stage = 'menu';
   const windSpeed = getRandomDecimal(MIN_WIND_SPEED, MAX_WIND_SPEED, 3);
   const nextSpawn = FIRST_SPAWN;
+  const lastScore = 0;
 
   return {
     nextSpawn,
@@ -18,5 +19,6 @@ export default (boundingRect, aspectRatio) => {
     endTime,
     stage,
     windSpeed,
+    lastScore,
   };
 };

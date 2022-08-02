@@ -9,7 +9,7 @@ export const DAY_TRANSITION_DURATION: number = 2000;
 export const FINISH_SCREEN_DURATION: number = 10000;
 
 // Starts
-export const TIMER_START: number = 1000;
+export const TIMER_START: number = 3500;
 export const SUNRISE_START: number =
   TIMER_START + GAME_DURATION - SUNRISE_DURATION;
 export const GAME_END: number = TIMER_START + GAME_DURATION;

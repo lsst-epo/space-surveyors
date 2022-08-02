@@ -7,6 +7,7 @@ import BaseMenu from '@components/Menus/BaseMenu';
 import Button from '@components/Button';
 import { MENU_TRANSITION_TIME } from '@constants/index';
 import ScoreList from '@components/ScoreList';
+import { sum } from '../../../utils';
 
 const SummaryMenuContainer = styled(BaseMenu)`
   justify-content: center;
@@ -69,10 +70,7 @@ const LinkContainer = styled(ButtonContainer)`
 const SummaryMenu = ({ onMenuAction, score }) => {
   const { ref, width } = useResizeObserver();
   const [showMenu, setMenu] = useState(false);
-  const sum = Object.values(score).reduce(
-    (accumulator, value) => accumulator + value,
-    0
-  );
+  const scoreSum = sum(Object.values(score));
 
   useEffect(() => {
     const timer = setTimeout(() => setMenu(true), MENU_TRANSITION_TIME);
@@ -86,7 +84,7 @@ const SummaryMenu = ({ onMenuAction, score }) => {
       <SummaryMenuResponsive>
         <SummaryTitle>Congratulations!</SummaryTitle>
         <ScoreSummary $width={width}>
-          You discovered <ScoreStandout>{sum}</ScoreStandout> new objects!
+          You discovered <ScoreStandout>{scoreSum}</ScoreStandout> new objects!
         </ScoreSummary>
         <ScaledScoreList $width={width} {...{ score }} />
         <ButtonContainer>
