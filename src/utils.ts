@@ -111,3 +111,6 @@ export const getAngleBetweenPoints = (
 
 export const round = (number: number, fixed: number = 2) =>
   parseFloat(number.toFixed(fixed));
+
+export const sum = (values: number[]): number =>
+  values.reduce((accumulator, value) => accumulator + value, 0);

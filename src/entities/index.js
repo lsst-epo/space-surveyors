@@ -5,6 +5,7 @@ import Camera from './camera';
 import Score from './score';
 import World from './world';
 import SkyObjects from './skyObjects';
+import Audio from './audio';
 
 export default async (boundingRect, aspectRatio) => {
   const backdrop = Backdrop();
@@ -14,6 +15,7 @@ export default async (boundingRect, aspectRatio) => {
   const score = Score();
   const world = World();
   const skyObjects = await SkyObjects(aspectRatio);
+  const audio = Audio;
 
   world.system.insert(camera.physics);
 
@@ -21,5 +23,5 @@ export default async (boundingRect, aspectRatio) => {
     world.system.insert(object.physics);
   });
 
-  return { backdrop, timer, state, camera, score, world, skyObjects };
+  return { backdrop, timer, state, camera, score, world, skyObjects, audio };
 };

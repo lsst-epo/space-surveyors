@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import useResizeObserver from 'use-resize-observer';
 import styled from 'styled-components';
 import { BREAK_TABLET_MIN, getRawPx } from '@styles/globalStyle';
+import { sum } from '../../utils';
 import ScoreList from '@components/ScoreList';
 
 const MobileResponsive = `
@@ -51,14 +52,12 @@ const Score = styled.div`
 const HUDScore = ({ score }) => {
   const { ref, width, height } = useResizeObserver();
 
-  const values = Object.values(score);
-
-  const sum = values.reduce((accumulator, value) => accumulator + value, 0);
+  const scoreSum = sum(Object.values(score));
 
   return (
     <HUDScoreContainer ref={ref} width={width}>
       <TotalScore width={width}>
-        Discovered objects tonight <TotalScoreCount>{sum}</TotalScoreCount>
+        Discovered objects tonight <TotalScoreCount>{scoreSum}</TotalScoreCount>
       </TotalScore>
       <ScoreList {...{ score }} />
     </HUDScoreContainer>
