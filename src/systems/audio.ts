@@ -1,4 +1,3 @@
-import { SUNRISE_DURATION } from '@constants/index';
 import { GameSystem } from '@shapes/system';
 
 const audioHandler: GameSystem = (entities, { events }) => {
@@ -6,7 +5,6 @@ const audioHandler: GameSystem = (entities, { events }) => {
     (e) =>
       e.type === 'gameStart' ||
       e.type === 'timeStart' ||
-      e.type === 'dawn' ||
       e.type === 'timeEnd' ||
       e.type === 'cameraExposing' ||
       e.type === 'scoreUpdate' ||
@@ -24,11 +22,7 @@ const audioHandler: GameSystem = (entities, { events }) => {
       case 'timeStart':
         audio.background.play();
         break;
-      case 'dawn':
-        audio.background.fade(1, 0, SUNRISE_DURATION);
-        break;
       case 'timeEnd':
-        audio.background.stop();
         audio.moving.stop();
         break;
       case 'cameraExposing':
