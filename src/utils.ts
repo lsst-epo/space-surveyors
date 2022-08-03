@@ -8,12 +8,14 @@ import {
   MIN_OBJECT_Y,
   X_RANGE,
   Y_RANGE,
+  OBJECT_SIZE,
 } from '@constants/index';
 import {
   WeightedOptions,
   GamePosition,
   RangedValue,
   WeightedBins,
+  SkyObjectType,
 } from '@shapes/index';
 
 const engine = MersenneTwister19937.autoSeed();
@@ -128,12 +130,39 @@ export const getBrightness = (
     (brightnessDefinition as RangedValue).max
   ) {
     const { min, max } = brightnessDefinition as RangedValue;
-    return getRandomDecimal(min, max, 1);
+    return getRandomDecimal(min, max);
   } else {
     const { bins, weights } = brightnessDefinition as WeightedBins;
     const [min, max] = weighted.select(bins, weights, {
       rand: () => random.realZeroToOneInclusive(),
     });
-    return getRandomDecimal(min, max, 1);
+    return getRandomDecimal(min, max);
+  }
+};
+
+export const getScaledObjectSize = (
+  type: SkyObjectType | 'camera',
+  aspectRatio: number
+): number => {
+  const { [type]: object } = OBJECT_SIZE;
+
+  if ((object as WeightedBins).bins && (object as WeightedBins).weights) {
+    const { bins, weights } = object as WeightedBins;
+    const [min, max] = weighted.select(bins, weights, {
+      rand: () => random.realZeroToOneInclusive(),
+    });
+    const size: number = getRandomDecimal(min, max);
+    const scaledSize: number = round(size / aspectRatio);
+
+    return scaledSize;
+  } else {
+    const { min, max, target } = object as any;
+    const size: number = target ? target : getRandomDecimal(min, max, 1);
+
+    const scaledSize: number = round(size / aspectRatio);
+
+    return target
+      ? Math.min(Math.max(scaledSize, min), max)
+      : Math.max(scaledSize, min);
   }
 };

@@ -4,11 +4,10 @@ import { Polygon } from 'detect-collisions';
 import { FocalPlaneBounding } from '@constants/objects/boundings/FocalPlaneBounding';
 import {
   CAMERA_MOVE,
-  getScaledObjectSize,
   MAX_CAMERA_MOVE,
   MIN_CAMERA_MOVE,
 } from '@constants/index';
-import { round } from '../utils';
+import { round, getScaledObjectSize } from '../utils';
 
 export default (aspectRatio) => {
   const size = getScaledObjectSize('camera', aspectRatio);
