@@ -74,6 +74,7 @@ const BackdropNight = styled(Backdrop)`
   mask-position: top;
   min-width: 100%;
   min-height: 100%;
+  object-fit: cover;
   transition: ${DAY_TRANSITION_DURATION}ms opacity;
   z-index: 2;
 
