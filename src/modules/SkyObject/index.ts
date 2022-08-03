@@ -1,7 +1,11 @@
 import { GamePosition, SkyObjectType } from '@shapes/index';
 import { Polygon, Ellipse } from 'detect-collisions';
-import { getBrightness, getNewPosition } from '../../utils';
-import { OBJECT_BRIGHTNESS, getScaledObjectSize } from '@constants/index';
+import {
+  getBrightness,
+  getNewPosition,
+  getScaledObjectSize,
+} from '../../utils';
+import { OBJECT_BRIGHTNESS } from '@constants/index';
 import boundings from '@constants/objects/boundings';
 
 export class SkyObject {
