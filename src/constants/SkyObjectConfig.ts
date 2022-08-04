@@ -4,6 +4,8 @@ import {
   WeightedBins,
   WeightedOptions,
 } from '@shapes/index';
+import StarConfig from '@constants/objects/star';
+import GalaxyConfig from '@constants/objects/galaxy';
 
 export const OBJECT_LIFESPAN: {
   [key: string]: { min: number; max: number };
@@ -71,4 +73,9 @@ export const WEIGHTED_GENERATION: WeightedOptions = {
   galaxy: 2,
   supernova: 1,
   cloud: 1,
+};
+
+export const SkyObjectConfigs = {
+  star: StarConfig,
+  galaxy: GalaxyConfig,
 };

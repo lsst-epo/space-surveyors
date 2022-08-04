@@ -94,6 +94,7 @@ export const spawnObjects: GameSystem = (entities, { dispatch, time }) => {
     cloud: 'occlusion',
     airplane: 'occlusion',
     supernova: 'dynamicObject',
+    asteroid: 'dynamicObject',
   };
 
   const objects = {
