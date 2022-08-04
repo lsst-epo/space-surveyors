@@ -1,8 +1,12 @@
 import { Howl } from 'howler';
 
 export default {
-  background: new Howl({
+  soundtrack: new Howl({
     src: 'https://storage.googleapis.com/space-surveyors/Space%20Surveyors.mp3',
+    sprite: {
+      background: [0, 60000],
+      ambient: [60000, 72000],
+    },
   }),
   capture: new Howl({
     src: 'https://storage.googleapis.com/space-surveyors/Capturing%20a%20new%20object.mp3',

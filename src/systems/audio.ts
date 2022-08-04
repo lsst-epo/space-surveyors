@@ -9,7 +9,8 @@ const audioHandler: GameSystem = (entities, { events }) => {
       e.type === 'cameraExposing' ||
       e.type === 'scoreUpdate' ||
       e.type === 'cameraExposureEnd' ||
-      e.type === 'cameraMoving'
+      e.type === 'cameraMoving' ||
+      e.type === 'quit'
   );
 
   if (event) {
@@ -20,7 +21,7 @@ const audioHandler: GameSystem = (entities, { events }) => {
         audio.countdown.play();
         break;
       case 'timeStart':
-        audio.background.play();
+        audio.soundtrack.play('background');
         break;
       case 'timeEnd':
         audio.moving.stop();
@@ -42,6 +43,9 @@ const audioHandler: GameSystem = (entities, { events }) => {
         if (!audio.moving.playing()) {
           audio.moving.play();
         }
+        break;
+      case 'quit':
+        audio.soundtrack.play('ambient');
         break;
       default:
         break;
