@@ -46,6 +46,9 @@ const audioHandler: GameSystem = (entities, { events }) => {
         break;
       case 'quit':
         audio.soundtrack.play('ambient');
+        Object.keys(audio).forEach((key) => {
+          audio[key].stop();
+        });
         break;
       default:
         break;

@@ -4,7 +4,7 @@ import { TIMED_EVENTS } from '@constants/timeline';
 
 export default () => {
   const timeRemaining = GAME_DURATION;
-  const timedEvents = TIMED_EVENTS;
+  const timedEvents = [...TIMED_EVENTS];
 
   return {
     timeRemaining,
