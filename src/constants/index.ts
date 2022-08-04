@@ -32,6 +32,7 @@ export const FIRST_SPAWN: any = {
   cloud: 0,
   airplane: 5000,
   supernova: 3000,
+  asteroid: 5000,
 };
 export const SPAWN_INTERVAL: any = {
   cloud: {
