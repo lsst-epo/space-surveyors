@@ -1,5 +1,5 @@
 {
-  "version": "0.7.9-alpha",
+  "version": "0.7.10-alpha",
   "name": "space-surveyors",
   "author": "Rubin EPO",
   "module": "dist/space-surveyors.esm.js",
@@ -58,7 +58,6 @@
     "@rollup/plugin-url": "^7.0.0",
     "@rushstack/eslint-patch": "^1.1.4",
     "@size-limit/preset-small-lib": "^7.0.8",
-    "@types/chance": "^1.1.3",
     "@types/howler": "^2.2.7",
     "@types/react": "^18.0.12",
     "@types/react-dom": "^18.0.5",
