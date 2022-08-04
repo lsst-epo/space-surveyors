@@ -1,4 +1,11 @@
+import { GameAudio } from '@shapes/entities';
 import { GameSystem } from '@shapes/system';
+
+const stopAllAudio = (audio: GameAudio) => {
+  Object.keys(audio).forEach((key) => {
+    audio[key].stop();
+  });
+};
 
 const audioHandler: GameSystem = (entities, { events }) => {
   const event = events.find(
@@ -10,7 +17,8 @@ const audioHandler: GameSystem = (entities, { events }) => {
       e.type === 'scoreUpdate' ||
       e.type === 'cameraExposureEnd' ||
       e.type === 'cameraMoving' ||
-      e.type === 'quit'
+      e.type === 'quit' ||
+      e.type === 'swapped'
   );
 
   if (event) {
@@ -45,10 +53,11 @@ const audioHandler: GameSystem = (entities, { events }) => {
         }
         break;
       case 'quit':
+        stopAllAudio(audio);
         audio.soundtrack.play('ambient');
-        Object.keys(audio).forEach((key) => {
-          audio[key].stop();
-        });
+        break;
+      case 'swapped':
+        stopAllAudio(audio);
         break;
       default:
         break;

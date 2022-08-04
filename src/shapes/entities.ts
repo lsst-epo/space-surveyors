@@ -49,4 +49,4 @@ interface GameEntities {
   audio: GameAudio;
 }
 
-export { GameEntities, GameState, GameWorld };
+export { GameEntities, GameState, GameWorld, GameAudio };

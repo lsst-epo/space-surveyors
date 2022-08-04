@@ -19,9 +19,9 @@ export const MENU_SLIDE_DELAY: number = 200;
 export const MENU_TRANSITION_TIME: number = MENU_SLIDE_TIME + MENU_SLIDE_DELAY;
 
 // Camera
-export const MIN_CAMERA_MOVE: number = 0.25;
-export const CAMERA_MOVE: number = 0.35;
-export const MAX_CAMERA_MOVE: number = 0.5;
+export const MIN_CAMERA_MOVE: number = 0.2;
+export const CAMERA_MOVE: number = 0.3;
+export const MAX_CAMERA_MOVE: number = 0.4;
 export const EXPOSURE_TIME: number = 3500;
 
 // Collision

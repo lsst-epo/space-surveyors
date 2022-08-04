@@ -4,8 +4,8 @@ export default {
   soundtrack: new Howl({
     src: 'https://storage.googleapis.com/space-surveyors/Space%20Surveyors.mp3',
     sprite: {
-      background: [0, 60000],
-      ambient: [60000, 72000],
+      background: [0, 60660],
+      ambient: [60660, 72000],
     },
   }),
   capture: new Howl({
