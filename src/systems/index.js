@@ -7,12 +7,8 @@ import {
   onCameraExposing,
   onCameraExposureEnd,
 } from './camera';
-import {
-  cullSkyObjects,
-  spawnObjects,
-  moveOccludingObjects,
-  cullOccludingObjects,
-} from './sky';
+import { cullSkyObjects, spawnObjects } from './sky';
+import { moveDynamicObjects, cullDynamicObjects } from './dynamicObjects';
 import { audioHandler } from './audio';
 
 const Systems = [
@@ -26,8 +22,8 @@ const Systems = [
   onCameraExposureEnd,
   spawnObjects,
   cullSkyObjects,
-  cullOccludingObjects,
-  moveOccludingObjects,
+  cullDynamicObjects,
+  moveDynamicObjects,
   audioHandler,
 ];
 

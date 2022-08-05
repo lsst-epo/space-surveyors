@@ -29,22 +29,16 @@ export const MIN_OVERLAP: number = 0.5;
 
 // Spawn
 export const FIRST_SPAWN: any = {
-  cloud: 0,
-  airplane: 5000,
-  supernova: 3000,
-  asteroid: 5000,
+  occlusion: 0,
+  dynamic: 1000,
 };
 export const SPAWN_INTERVAL: any = {
-  cloud: {
+  occlusion: {
     min: 5000,
-    max: 12000,
+    max: 10000,
   },
-  airplane: {
-    min: 12000,
-    max: 24000,
-  },
-  supernova: {
-    min: 3000,
+  dynamic: {
+    min: 4000,
     max: 5000,
   },
 };
@@ -61,15 +55,10 @@ export const STATIC_COLUMNS: number = 4;
 export const STATIC_CELLS: number = STATIC_ROWS * STATIC_COLUMNS;
 export const STATIC_OBJECTS_PER_CELL: number = 3;
 export const MAX_DYNAMIC_OBJECTS: number = 10;
+export const MAX_TIMED_OBJECTS: number = 10;
 export const FADE_TIME: number = 500;
 export * from '@constants/SkyObjectConfig';
 
 // Occlusions
 export const MAX_OCCLUDING_OBJECTS: number = 8;
-export const MIN_WIND_SPEED: number = 0.015;
-export const MAX_WIND_SPEED: number = 0.035;
-export const AIRPLANE_SPEED: number = 0.035;
-export * from '@constants/OcclusionConfig';
-
-export * from '@constants/objects/sizes';
 export * from '@constants/timeline';

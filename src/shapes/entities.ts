@@ -1,8 +1,8 @@
 import { System } from 'detect-collisions';
 import { Howl } from 'howler';
 import { SkyObject } from '@modules/SkyObject/';
-import { DynamicSkyObject } from '@modules/DynamicSkyObject';
-import { OccludingObject } from '@modules/OccludingObject';
+import { TimedSkyObject } from '@modules/TimedSkyObject';
+import { DynamicObject } from '@modules/DynamicObject';
 import { SkyObjectType } from './objects';
 
 type GameStage = 'menu' | 'warmup' | 'running' | 'finished';
@@ -13,7 +13,6 @@ interface GameState {
   gameStart: number;
   startTime: number;
   endTime: number;
-  windSpeed: number;
   stage: GameStage;
   lastScore: any;
   nextSpawn: { [Key in SkyObjectType]: number };
@@ -25,8 +24,9 @@ interface GameWorld {
 }
 
 interface SkyObjects {
-  dynamicObjects: DynamicSkyObject[];
-  occludingObjects: OccludingObject[];
+  timedObjects: TimedSkyObject[];
+  movingObjects: DynamicObject[];
+  occludingObjects: DynamicObject[];
   staticObjects: SkyObject[];
   capturedObjects: any[];
   showEndgame: boolean;
