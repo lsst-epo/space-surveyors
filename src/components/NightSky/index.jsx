@@ -19,14 +19,14 @@ const NightSkyRenderer = ({
   fade,
   showSunrise,
 }) => {
-  const renderOccludingObjects = (object, i) => {
-    const { width, angle } = object;
+  const renderOccludingObjects = (object) => {
+    const { width, angle, uuid } = object;
     const { x, y } = object.physics;
     const Object = Objects[object.type];
 
     return (
       <Object
-        key={`${object.type}-${width}-${i}`}
+        key={uuid}
         {...{
           x,
           y,
@@ -37,14 +37,14 @@ const NightSkyRenderer = ({
       />
     );
   };
-  const renderSkyObjects = (object, i) => {
-    const { width, brightness, captured, fadeIn, angle } = object;
+  const renderSkyObjects = (object) => {
+    const { width, brightness, captured, fadeIn, angle, uuid } = object;
     const { x, y } = object.physics;
     const Object = Objects[object.type];
 
     return (
       <Object
-        key={`${object.type}-${width}-${i}`}
+        key={uuid}
         {...{
           brightness,
           $captured: captured,

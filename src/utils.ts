@@ -138,6 +138,8 @@ export const getBrightness = (
   }
 };
 
+export const getUuid = (): string => random.uuid4();
+
 export const getScaledObjectSize = (
   sizeConfig: RangedValue | WeightedBins,
   aspectRatio: number
