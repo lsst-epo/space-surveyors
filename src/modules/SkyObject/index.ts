@@ -1,11 +1,17 @@
-import { GamePosition, SkyObjectType } from '@shapes/index';
+import {
+  DynamicObjectConfig,
+  GamePosition,
+  ObjectConfig,
+  SkyObjectType,
+  TimedObjectConfig,
+} from '@shapes/index';
 import { Polygon, Ellipse } from 'detect-collisions';
 import {
   getBrightness,
   getNewPosition,
   getScaledObjectSize,
 } from '../../utils';
-import { OBJECT_BRIGHTNESS } from '@constants/index';
+import { SkyObjectConfigs } from '@constants/index';
 import boundings from '@constants/objects/boundings';
 
 export class SkyObject {
@@ -15,6 +21,7 @@ export class SkyObject {
   public physics: Polygon | Ellipse;
   public captured: boolean = false;
   public aspectRatio: number;
+  public config: ObjectConfig | TimedObjectConfig | DynamicObjectConfig;
 
   constructor(
     type: SkyObjectType,
@@ -22,15 +29,11 @@ export class SkyObject {
     position?: GamePosition
   ) {
     this.type = type;
-    this.width = getScaledObjectSize(type, aspectRatio);
+    this.config = SkyObjectConfigs[type];
+    this.width = getScaledObjectSize(this.config.size, aspectRatio);
     this.aspectRatio = aspectRatio;
     this.physics = this.getPhysics(type, this.width, aspectRatio, position);
-    // this.brightness = getRandomDecimal(
-    //   OBJECT_BRIGHTNESS[type].min,
-    //   OBJECT_BRIGHTNESS[type].max,
-    //   1
-    // );
-    this.brightness = getBrightness(OBJECT_BRIGHTNESS[type]);
+    this.brightness = getBrightness(this.config.brightness);
   }
 
   private getPhysics = (

@@ -1,37 +1,38 @@
 import { GameSystem, GameState, SkyObjectType } from '@shapes/index';
 import {
   FADE_TIME,
-  MAX_DYNAMIC_OBJECTS,
-  MAX_OCCLUDING_OBJECTS,
+  MAX_TIMED_OBJECTS,
   SPAWN_INTERVAL,
+  WEIGHTS_SPAWN,
 } from '@constants/index';
-import { getRandomInt } from '../utils';
+import { getRandomInt, getRandomWeightedValue } from '../utils';
 import { System } from 'detect-collisions';
-import { DynamicSkyObject } from '@modules/DynamicSkyObject';
-import { OccludingObject } from '@modules/OccludingObject';
+import { TimedSkyObject } from '@modules/TimedSkyObject';
+import { spawnDynamicObject } from '@systems/dynamicObjects';
 
 const spawnObject = (
   type: SkyObjectType,
-  objects: DynamicSkyObject[],
+  objects: TimedSkyObject[],
   system: System,
   state: GameState,
+  group: string,
   timestamp: number
 ) => {
-  if (objects.length < MAX_DYNAMIC_OBJECTS) {
+  if (objects.length < MAX_TIMED_OBJECTS) {
     const { aspectRatio } = state;
-    const newObject = new DynamicSkyObject(type, timestamp, aspectRatio);
+    const newObject = new TimedSkyObject(type, timestamp, aspectRatio);
     objects.push(newObject);
     system.insert(newObject.physics);
   }
 
-  state.nextSpawn[type] += getRandomInt(
-    SPAWN_INTERVAL[type].min,
-    SPAWN_INTERVAL[type].max
+  state.nextSpawn[group] += getRandomInt(
+    SPAWN_INTERVAL[group].min,
+    SPAWN_INTERVAL[group].max
   );
 };
 
 const prepareExpiringObjects = (
-  object: DynamicSkyObject,
+  object: TimedSkyObject,
   currentTime: number
 ) => {
   if (!object.isExpiringSoon) {
@@ -46,7 +47,7 @@ export const cullSkyObjects: GameSystem = (entities, { time }) => {
   const { current } = time;
   const { skyObjects, world } = entities;
 
-  const remainingObjects = skyObjects.dynamicObjects
+  const remainingObjects = skyObjects.timedObjects
     .map((object) => prepareExpiringObjects(object, current))
     .filter((object) => {
       if (!object.isExpiringSoon) return true;
@@ -59,28 +60,9 @@ export const cullSkyObjects: GameSystem = (entities, { time }) => {
       return isActive;
     });
 
-  skyObjects.dynamicObjects = remainingObjects;
+  skyObjects.timedObjects = remainingObjects;
 
   return entities;
-};
-
-const spawnOcclusion = (
-  type: SkyObjectType,
-  objects: OccludingObject[],
-  system: System,
-  state: GameState
-) => {
-  if (objects.length < MAX_OCCLUDING_OBJECTS) {
-    const { aspectRatio, windSpeed } = state;
-    const newOcclusion = new OccludingObject(type, aspectRatio, windSpeed);
-    objects.push(newOcclusion);
-    system.insert(newOcclusion.physics);
-  }
-
-  state.nextSpawn[type] += getRandomInt(
-    SPAWN_INTERVAL[type].min,
-    SPAWN_INTERVAL[type].max
-  );
 };
 
 export const spawnObjects: GameSystem = (entities, { dispatch, time }) => {
@@ -88,100 +70,58 @@ export const spawnObjects: GameSystem = (entities, { dispatch, time }) => {
   const { skyObjects, world, state } = entities;
   const { stage, nextSpawn, startTime } = state;
   const { system, occlusions } = world;
-  const { occludingObjects, dynamicObjects } = skyObjects;
+  const { occludingObjects, timedObjects, movingObjects } = skyObjects;
 
   const objectTypes = {
     cloud: 'occlusion',
     airplane: 'occlusion',
-    supernova: 'dynamicObject',
+    supernova: 'timedObject',
     asteroid: 'dynamicObject',
+    comet: 'dynamicObject',
   };
 
   const objects = {
     occlusion: occludingObjects,
-    dynamicObject: dynamicObjects,
+    timedObject: timedObjects,
+    dynamicObject: movingObjects,
   };
 
   const physics = {
     occlusion: occlusions,
+    timedObject: system,
     dynamicObject: system,
   };
 
   const spawners = {
-    occlusion: spawnOcclusion,
-    dynamicObject: spawnObject,
+    occlusion: spawnDynamicObject,
+    dynamicObject: spawnDynamicObject,
+    timedObject: spawnObject,
   };
 
   const event = {
     occlusion: 'spawnedOcclusion',
+    timedObject: 'spawnedObject',
     dynamicObject: 'spawnedObject',
   };
 
   if (stage === 'running') {
-    Object.keys(nextSpawn).forEach((object) => {
-      if (nextSpawn[object] < current - startTime) {
+    Object.keys(nextSpawn).forEach((group) => {
+      if (nextSpawn[group] < current - startTime) {
+        const weights = WEIGHTS_SPAWN[group];
+        const object = getRandomWeightedValue(weights) as SkyObjectType;
         const objectType = objectTypes[object];
         const spawner = spawners[objectType];
-
         spawner(
           object as SkyObjectType,
           objects[objectType],
           physics[objectType],
           state,
+          group,
           current
         );
-
         dispatch({ type: event[objectType] });
       }
     });
-  }
-
-  return entities;
-};
-
-export const moveOccludingObjects: GameSystem = (entities) => {
-  const { skyObjects, state } = entities;
-  const { stage } = state;
-  const { occludingObjects } = skyObjects;
-
-  if (stage !== 'menu' && occludingObjects.length > 0) {
-    occludingObjects.forEach((object) => {
-      const { x: deltaX, y: deltaY } = object.delta;
-      const { x, y } = object.physics;
-      object.physics.setPosition(x + deltaX, y + deltaY);
-    });
-  }
-
-  return entities;
-};
-
-export const cullOccludingObjects: GameSystem = (entities) => {
-  const { skyObjects, world } = entities;
-  const { occlusions } = world;
-  const { occludingObjects } = skyObjects;
-
-  if (occludingObjects.length > 0) {
-    const remainingObjects = occludingObjects.filter((object) => {
-      const { xOffset, yOffset } = object;
-      const { x, y } = object.physics;
-
-      if (
-        x >= 0 - xOffset &&
-        x <= 100 + xOffset &&
-        y >= 0 - yOffset &&
-        y <= 100 + yOffset
-      ) {
-        return true;
-      }
-
-      occlusions.remove(object.physics);
-      return true;
-    });
-
-    return {
-      ...entities,
-      skyObjects: { ...skyObjects, occludingObjects: remainingObjects },
-    };
   }
 
   return entities;
