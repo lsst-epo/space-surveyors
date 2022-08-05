@@ -52446,128 +52446,162 @@ function _objectWithoutPropertiesLoose(source, excluded) {
   return target;
 }
 
-var OBJECT_LIFESPAN = {
-  asteroid: {
-    min: 5000,
-    max: 10000
+var StarConfig = {
+  brightness: {
+    min: 0.5,
+    max: 1
   },
-  comet: {
-    min: 5000,
-    max: 10000
-  },
-  supernova: {
-    min: 5000,
-    max: 10000
+  size: {
+    min: 0.75,
+    max: 2.5
   }
 };
-var OBJECT_BRIGHTNESS = {
-  star: {
-    min: 0.5,
-    max: 1
-  },
-  asteroid: {
-    min: 0.5,
-    max: 1
-  },
-  comet: {
-    min: 0.5,
-    max: 1
-  },
-  galaxy: {
+var GalaxyConfig = {
+  brightness: {
     bins: [[0, 0.1], [0.1, 0.2], [0.2, 0.3], [0.3, 0.4], [0.4, 0.5], [0.5, 0.6], [0.6, 0.7], [0.7, 0.8], [0.8, 0.9], [0.9, 1]],
     weights: [0, 0.01, 0.03, 0.17, 0.4, 0.57, 0.42, 0.22, 0.04, 0.01]
   },
-  supernova: {
+  size: {
+    bins: [[0.75, 0.925], [0.925, 1.1], [1.1, 1.275], [1.275, 1.45], [1.45, 1.625], [1.625, 1.8], [1.8, 1.975], [1.975, 2.15], [2.15, 2.325], [2.325, 2.5]],
+    weights: [0.05, 0.3, 0.5, 0.46, 0.25, 0.15, 0.08, 0.06, 0.03, 0.02]
+  }
+};
+var SupernovaConfig = {
+  brightness: {
     min: 0.5,
     max: 1
   },
-  cloud: {
+  lifespan: {
+    min: 5000,
+    max: 10000
+  },
+  size: {
+    min: 1,
+    max: 3
+  }
+};
+var CloudConfig = {
+  brightness: {
     min: 1,
     max: 1
   },
-  airplane: {
-    min: 1,
-    max: 1
-  }
-};
-var WEIGHTED_GENERATION = {
-  star: 5,
-  asteroid: 0,
-  comet: 0,
-  galaxy: 2,
-  supernova: 1,
-  cloud: 1
-};
-var SPAWN_LOCATION = {
-  cloud: {
-    x: {
-      1: 4,
-      2: 3,
-      3: 1,
-      4: 0
-    },
-    y: {
-      1: 1,
-      2: 2,
-      3: 2,
-      4: 1
-    }
-  },
-  airplane: {
-    x: {
-      1: 1,
-      2: 1,
-      3: 1,
-      4: 1
-    },
-    y: {
-      1: 1,
-      2: 1,
-      3: 1,
-      4: 1
-    }
-  }
-};
-var STARTING_EDGES = {
-  left: 1,
-  right: 1,
-  top: 3,
-  bottom: 3
-};
-var OBJECT_SIZE = {
-  camera: {
-    min: 15,
-    target: 25,
-    max: 30
-  },
-  star: {
-    min: 0.75,
-    max: 2.5
-  },
-  asteroid: {
-    min: 1,
-    max: 3
-  },
-  comet: {
-    min: 1,
-    max: 3
-  },
-  galaxy: {
-    bins: [[0.75, 0.925], [0.925, 1.1], [1.1, 1.275], [1.275, 1.45], [1.45, 1.625], [1.625, 1.8], [1.8, 1.975], [1.975, 2.15], [2.15, 2.325], [2.325, 2.5]],
-    weights: [0.05, 0.3, 0.5, 0.46, 0.25, 0.15, 0.08, 0.06, 0.03, 0.02]
-  },
-  supernova: {
-    min: 1,
-    max: 3
-  },
-  cloud: {
+  size: {
     min: 20,
     max: 40
   },
-  airplane: {
+  spawnEdge: {
+    left: 1,
+    right: 1,
+    top: 3,
+    bottom: 3
+  },
+  baseRotation: 0,
+  onlyMovesHorizontal: true,
+  speed: {
+    min: 0.02,
+    target: 0.025,
+    max: 0.025
+  }
+};
+var AirplaneConfig = {
+  brightness: {
+    min: 1,
+    max: 1
+  },
+  size: {
     min: 3,
     max: 3
-  }
+  },
+  spawnEdge: {
+    left: 1,
+    right: 1,
+    top: 3,
+    bottom: 3
+  },
+  speed: {
+    min: 0.015,
+    target: 0.02,
+    max: 0.025
+  },
+  baseRotation: 90,
+  onlyMovesHorizontal: false
+};
+var AsteroidConfig = {
+  brightness: {
+    min: 1,
+    max: 1
+  },
+  size: {
+    min: 1.5,
+    max: 2.5
+  },
+  spawnEdge: {
+    left: 1,
+    right: 1,
+    top: 3,
+    bottom: 3
+  },
+  speed: {
+    min: 0.02,
+    target: 0.0225,
+    max: 0.03
+  },
+  baseRotation: 0,
+  onlyMovesHorizontal: false
+};
+var _AsteroidConfig$speed = AsteroidConfig.speed,
+    min = _AsteroidConfig$speed.min,
+    target = _AsteroidConfig$speed.target,
+    max = _AsteroidConfig$speed.max;
+var cometSpeedScalar = 1.5;
+var CometConfig = {
+  brightness: {
+    min: 1,
+    max: 1
+  },
+  size: {
+    min: 1.5,
+    max: 2.5
+  },
+  spawnEdge: {
+    left: 1,
+    right: 1,
+    top: 3,
+    bottom: 3
+  },
+  speed: {
+    min: min * cometSpeedScalar,
+    target: target * cometSpeedScalar,
+    max: max * cometSpeedScalar
+  },
+  baseRotation: 25,
+  onlyMovesHorizontal: false
+};
+var WEIGHTS_DYNAMIC = {
+  asteroid: 5,
+  comet: 2,
+  supernova: 10
+};
+var WEIGHTS_OCCLUSION = {
+  cloud: 4,
+  airplane: 1
+};
+var WEIGHTS_SPAWN = {
+  dynamic: WEIGHTS_DYNAMIC,
+  occlusion: WEIGHTS_OCCLUSION
+};
+var WEIGHTS_STATIC = {
+  star: 5,
+  galaxy: 2
+};
+var SkyObjectConfigs = {
+  star: StarConfig,
+  galaxy: GalaxyConfig,
+  supernova: SupernovaConfig,
+  cloud: CloudConfig,
+  airplane: AirplaneConfig,
+  asteroid: AsteroidConfig,
+  comet: CometConfig
 }; // Timeline
 // Durations
 
@@ -52604,29 +52638,24 @@ var MENU_SLIDE_TIME = 500;
 var MENU_SLIDE_DELAY = 200;
 var MENU_TRANSITION_TIME = MENU_SLIDE_TIME + MENU_SLIDE_DELAY; // Camera
 
-var MIN_CAMERA_MOVE = 0.25;
-var CAMERA_MOVE = 0.35;
-var MAX_CAMERA_MOVE = 0.5;
+var MIN_CAMERA_MOVE = 0.2;
+var CAMERA_MOVE = 0.3;
+var MAX_CAMERA_MOVE = 0.4;
 var EXPOSURE_TIME = 3500; // Collision
 
 var MIN_OVERLAP = 0.5; // Spawn
 
 var FIRST_SPAWN = {
-  cloud: 0,
-  airplane: 5000,
-  supernova: 3000
+  occlusion: 0,
+  dynamic: 1000
 };
 var SPAWN_INTERVAL = {
-  cloud: {
+  occlusion: {
     min: 5000,
-    max: 12000
+    max: 10000
   },
-  airplane: {
-    min: 12000,
-    max: 24000
-  },
-  supernova: {
-    min: 3000,
+  dynamic: {
+    min: 4000,
     max: 5000
   }
 }; // Sky Objects
@@ -52641,10 +52670,9 @@ var STATIC_ROWS = 2;
 var STATIC_COLUMNS = 4;
 var STATIC_OBJECTS_PER_CELL = 3;
 var MAX_DYNAMIC_OBJECTS = 10;
+var MAX_TIMED_OBJECTS = 10;
 var FADE_TIME = 500;
 var MAX_OCCLUDING_OBJECTS = 8;
-var MIN_WIND_SPEED = 0.015;
-var MAX_WIND_SPEED = 0.035;
 var SpaceSurveyorsContainer = /*#__PURE__*/styled__default.div.withConfig({
   displayName: "SpaceSurveyorsContainer",
   componentId: "space-surveyors__sc-1a2ov4u-0"
@@ -52708,9 +52736,9 @@ Button$1.prototypes = {
    */
   isInactive: PropTypes.bool
 };
-var img = "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='70 70 60 60'%3e%3cpath fill='%23f5f5f5' d='m121.6 87.3-.2-.8v-.3l-.2-.6-.1-.2-.2-.7-.1-.2a6.8 6.8 0 0 0-.7-1.5l-.2-.2-.2-.3-.1-.2-.2-.2V82l-.2-.2-.3-.2-.8-.7c-.3-.3-.7-.5-1.2-.5s-1 .1-1.4.3l-4.7 1.4-.3.1-.8.3-.3.1-.8.3-.3.2-.7.3-.3.2c-.3 0-.5.2-.7.3l-.3.2-.6.4-.3.2-.5.5-.3.3-.4.4-.2.4-.4.5-.2.4-.3.6-.2.5c0 .2 0 .4-.2.7v.5l-.2.7v1.5l-.1.5V92.8v-.1.6-.1.1l.1.2v.3l.2.4v.2l.4.5c.4.5 1 .8 1.5 1 3 1.1 6.3.6 9.5.1s7.5.3 8.2-1.2c.7-1.6-.2-5-.7-7.5ZM108 91c-.1.3-.1.6-.3.8-.2.2-.5.3-.7.2-.3 0-.6-.2-.7-.4l-.2-.1c-.4-.9.2-1.5 1-1.5h.2a13.9 13.9 0 0 0 .7.3l.2.2-.2.5Zm4 1.4c0 .2-.3.1-.5.1-.3 0-.5-.2-.6-.3l-.5-.4-.2-.3c-.2-.3-.2-1.2.7-1.3.4 0 .5 0 .9.2s0 1 .2 1.2c.2.2.1.6 0 .8Zm2.2-5.5c-.1 0-.2 0-.3-.2l.2-.8.2-.2.5-.4c.2-.1.4-.3.7-.3h.4l.2.3-.1.6-.2.6v.8h-.2c-.3-.2-.7-.5-1.1-.4h-.3Zm3.2 6.5-.3.3a1 1 0 0 1-.7 0 .7.7 0 0 1-.4-.2v-.2l-.1-.3-.2-.2-.1-.5-.1-.2V92c.2-.3.4-.3.7-.2l.7-.1h.3l.2.2v.7l.1.3v.4ZM115.8 109.8v-.5l-.1-.3-.1-.5-.1-.3-.1-.3-.1-.2-.2-.4-.3-.3-.2-.4-.3-.3-.4-.3-.3-.3-.6-.6c-1-.7-1.8-1.5-2.7-2.3-.4-.3-.9-.7-1.5-.8-1.3-.1-2 1.5-3 2.4-1.9 1.5-5 .8-6.4 2.7-.4.5-.6 1.1-.7 1.8v1l-.1.2v.9l.1 1v.2l.3.8v.1c.4 1.2 1 2.4 1.7 3.5l1.1 1.3h.1c.4.5.8.9 1.3 1.2 2.1 1.8 6.3 5 8.9 2.4.5-.5.8-1.3 1.1-2l.8-2a21.3 21.3 0 0 0 1.9-7.5v-.2Zm-10.5 2.2-.6.4c-.2.2-.5.2-.8.2a.9.9 0 0 1-.5-.4l-.1-.2-.1-.5-.2-.2-.1-.1-.1-.6s-.2-.1-.2-.3v-.1c.3-.3.6-.3 1-.3l1-.1h.4l.2.3v.9l.2.4-.1.6Zm3 2.2-.4 1c-.2.3-.6.3-.9.3a1.5 1.5 0 0 1-1-.7c-.6-1.1.1-1.8 1.2-1.9h.2l.5.3h.3l.3.4-.2.6Zm5.5-2.7c-.2.3-.3.5-.3.8l.1.4v.6H113.2c-.5-.2-1-.6-1.5-.5h-.3c-.3 0-.4-.1-.4-.2-.1-.3 0-.8.3-1l.2-.3.7-.5c.2-.2.5-.4.8-.4h.5l.2.3c.2.3 0 .6 0 .8ZM101.2 87.2a19.5 19.5 0 0 0-2.8-6.6l-.6-.9-.2-.2-.1-.1-.7-.6-.1-.1a5 5 0 0 0-.9-.6 7 7 0 0 0-4.6-.4c-3.7.9-6.6 3.5-9.3 6a15.5 15.5 0 0 0-3.6 4.4 7 7 0 0 0-.4 1v.2a9 9 0 0 0-.3 1v3.5l.1.2.3 1v.2l.4 1 .5 1v.1c.3.3.4.6.6 1l.2.1v.2a6.6 6.6 0 0 0 .3.3s0 .2.2.2a7.7 7.7 0 0 0 .7 1l.2.3.8.8h.1a21.9 21.9 0 0 0 1 1l.6.4.3.3.6.4.3.2.9.5c2 1 5 2 6.7 0 2.3-2.6.2-5.3 4-7 1.4-.5 2.3-1.7 3.2-3a10 10 0 0 0 1.6-2.9 8 8 0 0 0 0-3.9ZM84 91.4c-.2.4-.2.8-.4 1-.3.3-.6.4-1 .4a1.6 1.6 0 0 1-1.1-.8c-.6-1.1.2-1.9 1.3-2h.2l.6.3c.1 0 .2 0 .3.2l.3.3-.2.6Zm5.3 3.1-.2.4-.4.2c-.4.1-1 .2-1.3 0a1.2 1.2 0 0 1-.7-1c0-.3 0-.7.2-1 .2-.4.6-.7 1-.6.2 0 .4.3.6.2l.4-.2h.2l.1.2c.3.3.4.8.4 1.1 0 .3-.1.5-.3.7Zm3.7-12c.5-.1.5 0 1 .2.6.2.2 1.2.3 1.5.2.2.2.7 0 1 0 .2-.4 0-.6 0-.3 0-.6-.2-.8-.4l-.6-.5-.2-.3c-.2-.3-.2-1.5.9-1.6Zm2.5 11-.3.3-.4.3-.3.2-.3-.3-.1-.1-.2-.2c-.2-.2-.6-.2-.8-.3v-.2c-.1-.6.2-1.2.6-1.5.3-.3.9-.7 1.3-.4l.2.4.2.3.2 1v.4Z'/%3e%3c/svg%3e";
+var img = "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='70 70 60 60'%3e%3cpath fill='currentColor' d='m121.6 87.3-.2-.8v-.3l-.2-.6-.1-.2-.2-.7-.1-.2a6.8 6.8 0 0 0-.7-1.5l-.2-.2-.2-.3-.1-.2-.2-.2V82l-.2-.2-.3-.2-.8-.7c-.3-.3-.7-.5-1.2-.5s-1 .1-1.4.3l-4.7 1.4-.3.1-.8.3-.3.1-.8.3-.3.2-.7.3-.3.2c-.3 0-.5.2-.7.3l-.3.2-.6.4-.3.2-.5.5-.3.3-.4.4-.2.4-.4.5-.2.4-.3.6-.2.5c0 .2 0 .4-.2.7v.5l-.2.7v1.5l-.1.5V92.8v-.1.6-.1.1l.1.2v.3l.2.4v.2l.4.5c.4.5 1 .8 1.5 1 3 1.1 6.3.6 9.5.1s7.5.3 8.2-1.2c.7-1.6-.2-5-.7-7.5ZM108 91c-.1.3-.1.6-.3.8-.2.2-.5.3-.7.2-.3 0-.6-.2-.7-.4l-.2-.1c-.4-.9.2-1.5 1-1.5h.2a13.9 13.9 0 0 0 .7.3l.2.2-.2.5Zm4 1.4c0 .2-.3.1-.5.1-.3 0-.5-.2-.6-.3l-.5-.4-.2-.3c-.2-.3-.2-1.2.7-1.3.4 0 .5 0 .9.2s0 1 .2 1.2c.2.2.1.6 0 .8Zm2.2-5.5c-.1 0-.2 0-.3-.2l.2-.8.2-.2.5-.4c.2-.1.4-.3.7-.3h.4l.2.3-.1.6-.2.6v.8h-.2c-.3-.2-.7-.5-1.1-.4h-.3Zm3.2 6.5-.3.3a1 1 0 0 1-.7 0 .7.7 0 0 1-.4-.2v-.2l-.1-.3-.2-.2-.1-.5-.1-.2V92c.2-.3.4-.3.7-.2l.7-.1h.3l.2.2v.7l.1.3v.4ZM115.8 109.8v-.5l-.1-.3-.1-.5-.1-.3-.1-.3-.1-.2-.2-.4-.3-.3-.2-.4-.3-.3-.4-.3-.3-.3-.6-.6c-1-.7-1.8-1.5-2.7-2.3-.4-.3-.9-.7-1.5-.8-1.3-.1-2 1.5-3 2.4-1.9 1.5-5 .8-6.4 2.7-.4.5-.6 1.1-.7 1.8v1l-.1.2v.9l.1 1v.2l.3.8v.1c.4 1.2 1 2.4 1.7 3.5l1.1 1.3h.1c.4.5.8.9 1.3 1.2 2.1 1.8 6.3 5 8.9 2.4.5-.5.8-1.3 1.1-2l.8-2a21.3 21.3 0 0 0 1.9-7.5v-.2Zm-10.5 2.2-.6.4c-.2.2-.5.2-.8.2a.9.9 0 0 1-.5-.4l-.1-.2-.1-.5-.2-.2-.1-.1-.1-.6s-.2-.1-.2-.3v-.1c.3-.3.6-.3 1-.3l1-.1h.4l.2.3v.9l.2.4-.1.6Zm3 2.2-.4 1c-.2.3-.6.3-.9.3a1.5 1.5 0 0 1-1-.7c-.6-1.1.1-1.8 1.2-1.9h.2l.5.3h.3l.3.4-.2.6Zm5.5-2.7c-.2.3-.3.5-.3.8l.1.4v.6H113.2c-.5-.2-1-.6-1.5-.5h-.3c-.3 0-.4-.1-.4-.2-.1-.3 0-.8.3-1l.2-.3.7-.5c.2-.2.5-.4.8-.4h.5l.2.3c.2.3 0 .6 0 .8ZM101.2 87.2a19.5 19.5 0 0 0-2.8-6.6l-.6-.9-.2-.2-.1-.1-.7-.6-.1-.1a5 5 0 0 0-.9-.6 7 7 0 0 0-4.6-.4c-3.7.9-6.6 3.5-9.3 6a15.5 15.5 0 0 0-3.6 4.4 7 7 0 0 0-.4 1v.2a9 9 0 0 0-.3 1v3.5l.1.2.3 1v.2l.4 1 .5 1v.1c.3.3.4.6.6 1l.2.1v.2a6.6 6.6 0 0 0 .3.3s0 .2.2.2a7.7 7.7 0 0 0 .7 1l.2.3.8.8h.1a21.9 21.9 0 0 0 1 1l.6.4.3.3.6.4.3.2.9.5c2 1 5 2 6.7 0 2.3-2.6.2-5.3 4-7 1.4-.5 2.3-1.7 3.2-3a10 10 0 0 0 1.6-2.9 8 8 0 0 0 0-3.9ZM84 91.4c-.2.4-.2.8-.4 1-.3.3-.6.4-1 .4a1.6 1.6 0 0 1-1.1-.8c-.6-1.1.2-1.9 1.3-2h.2l.6.3c.1 0 .2 0 .3.2l.3.3-.2.6Zm5.3 3.1-.2.4-.4.2c-.4.1-1 .2-1.3 0a1.2 1.2 0 0 1-.7-1c0-.3 0-.7.2-1 .2-.4.6-.7 1-.6.2 0 .4.3.6.2l.4-.2h.2l.1.2c.3.3.4.8.4 1.1 0 .3-.1.5-.3.7Zm3.7-12c.5-.1.5 0 1 .2.6.2.2 1.2.3 1.5.2.2.2.7 0 1 0 .2-.4 0-.6 0-.3 0-.6-.2-.8-.4l-.6-.5-.2-.3c-.2-.3-.2-1.5.9-1.6Zm2.5 11-.3.3-.4.3-.3.2-.3-.3-.1-.1-.2-.2c-.2-.2-.6-.2-.8-.3v-.2c-.1-.6.2-1.2.6-1.5.3-.3.9-.7 1.3-.4l.2.4.2.3.2 1v.4Z'/%3e%3c/svg%3e";
 var img$1 = "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='78 51 181 87'%3e%3cpath fill='%23f6ffff' d='M243.62 103.44c4.5 0 8.66 1.47 12.02 3.95-3.61-5.58-9.89-9.27-17.03-9.27h-4.97c.68 1.7 1.2 3.48 1.56 5.32h8.41ZM105.84 96.47c1.16-22.19 19.52-39.82 41.99-39.82 10.76 0 20.57 4.04 28.01 10.69-7.7-9.75-19.62-16-33.01-16-22.48 0-40.83 17.63-41.99 39.82-12.28.94-21.95 11.2-21.95 23.73 0 7.63 3.59 14.42 9.17 18.77a23.684 23.684 0 0 1-4.17-13.46c0-12.52 9.67-22.78 21.95-23.73ZM205.71 79.16c7.31 0 14.01 2.61 19.22 6.95-5.47-7.44-14.28-12.26-24.22-12.26-5.88 0-11.37 1.69-16 4.61 1.17 2.13 2.17 4.38 2.96 6.72a29.913 29.913 0 0 1 18.04-6.02Z'/%3e%3cpath d='M255.64 107.39a20.178 20.178 0 0 0-12.02-3.95h-8.41c-.36-1.84-.89-3.61-1.56-5.32-1.87-4.7-4.89-8.82-8.72-12.01a29.925 29.925 0 0 0-19.22-6.95 29.89 29.89 0 0 0-18.04 6.02c-.79-2.34-1.79-4.59-2.96-6.72-2.31-4.2-5.32-7.96-8.86-11.13-7.44-6.65-17.25-10.69-28.01-10.69-22.48 0-40.83 17.63-41.99 39.82-12.28.94-21.95 11.2-21.95 23.73 0 4.99 1.54 9.63 4.17 13.46 4.03 3.15 9.11 5.02 14.62 5.02h135.92c11.2 0 20.28-9.08 20.28-20.28 0-4.06-1.19-7.84-3.25-11.01Z' fill='%23ecf2f2'/%3e%3c/svg%3e";
-var img$2 = "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='70 70 65 65'%3e%3cpath d='M84.8 92.5a49 49 0 0 1 7.1 2s-18 12-26.3 20.7a1 1 0 0 0 .7 1.7c11.7-1 29.7-4.3 29.7-4.3s-1.3 4.4-3 7.6c-.2.5.2 1 .7.9a75 75 0 0 0 37.5-21.2s0-.1.1-.2a12 12 0 0 0 2.2-13.6 12 12 0 0 0-11.9-7.2 73 73 0 0 0-37 12.7c-.4.3-.2.9.2 1Zm45.3-4.9c2.3 4.8.2 9.7-5.1 12.2-1.8.8-3.7 1.3-5.5 1.5-4.6.6-2.3-1.8-3.7-5-1.1-2.3-4-4.6-2.2-7.3 1.6-2.2 1-3.8 4-5.2 1.5-.8 3.2 0 4.6 0 3.5 0 6.3.5 8 3.8Z' fill='%23f5f5f5'/%3e%3c/svg%3e";
+var img$2 = "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='70 70 65 65'%3e%3cpath d='M84.8 92.5a49 49 0 0 1 7.1 2s-18 12-26.3 20.7a1 1 0 0 0 .7 1.7c11.7-1 29.7-4.3 29.7-4.3s-1.3 4.4-3 7.6c-.2.5.2 1 .7.9a75 75 0 0 0 37.5-21.2s0-.1.1-.2a12 12 0 0 0 2.2-13.6 12 12 0 0 0-11.9-7.2 73 73 0 0 0-37 12.7c-.4.3-.2.9.2 1Zm45.3-4.9c2.3 4.8.2 9.7-5.1 12.2-1.8.8-3.7 1.3-5.5 1.5-4.6.6-2.3-1.8-3.7-5-1.1-2.3-4-4.6-2.2-7.3 1.6-2.2 1-3.8 4-5.2 1.5-.8 3.2 0 4.6 0 3.5 0 6.3.5 8 3.8Z' fill='currentColor'/%3e%3c/svg%3e";
 var img$3 = "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 610 610' style='enable-background:new 0 0 610 610' xml:space='preserve'%3e%3cpath shape-rendering='optimizeSpeed' style='opacity:.2%3bfill:white' d='M565 125V85h-40V45h-40V5H125v40H85v40H45v40H5v360h40v40h40v40h40v40h360v-40h40v-40h40v-40h40V125z'/%3e%3c/svg%3e";
 var img$4 = "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 610 610' style='enable-background:new 0 0 610 610' xml:space='preserve'%3e%3cstyle%3e.st1%7bfill:none%3bstroke:%23fdda78%3bstroke-width:1.7638%3bstroke-miterlimit:10%7d%3c/style%3e%3cg id='Field_of_view_itself'%3e%3cpath style='fill:none%3bstroke:%23fdda78%3bstroke-width:3.1749%3bstroke-miterlimit:10' d='M565 125V85h-40V45h-40V5H125v40H85v40H45v40H5v360h40v40h40v40h40v40h360v-40h40v-40h40v-40h40V125z'/%3e%3cpath class='st1' d='M125 5h40v40h-40z'/%3e%3cpath class='st1' d='M125 5h40v40h-40zM165 5h40v40h-40z'/%3e%3cpath class='st1' d='M165 5h40v40h-40zM205 5h40v40h-40z'/%3e%3cpath class='st1' d='M205 5h40v40h-40zM125 45h40v40h-40z'/%3e%3cpath class='st1' d='M125 45h40v40h-40zM165 45h40v40h-40z'/%3e%3cpath class='st1' d='M165 45h40v40h-40zM205 45h40v40h-40z'/%3e%3cpath class='st1' d='M205 45h40v40h-40zM125 85h40v40h-40z'/%3e%3cpath class='st1' d='M125 85h40v40h-40zM165 85h40v40h-40z'/%3e%3cpath class='st1' d='M165 85h40v40h-40zM205 85h40v40h-40z'/%3e%3cpath class='st1' d='M205 85h40v40h-40zM85 45h40v40H85z'/%3e%3cpath class='st1' d='M85 45h40v40H85zM85 85h40v40H85z'/%3e%3cpath class='st1' d='M85 85h40v40H85zM45 85h40v40H45z'/%3e%3cpath class='st1' d='M45 85h40v40H45zM245 5h40v40h-40z'/%3e%3cpath class='st1' d='M245 5h40v40h-40zM285 5h40v40h-40z'/%3e%3cpath class='st1' d='M285 5h40v40h-40zM325 5h40v40h-40z'/%3e%3cpath class='st1' d='M325 5h40v40h-40zM245 45h40v40h-40z'/%3e%3cpath class='st1' d='M245 45h40v40h-40zM285 45h40v40h-40z'/%3e%3cpath class='st1' d='M285 45h40v40h-40zM325 45h40v40h-40z'/%3e%3cpath class='st1' d='M325 45h40v40h-40zM245 85h40v40h-40z'/%3e%3cpath class='st1' d='M245 85h40v40h-40zM285 85h40v40h-40z'/%3e%3cpath class='st1' d='M285 85h40v40h-40zM325 85h40v40h-40z'/%3e%3cpath class='st1' d='M325 85h40v40h-40zM365 5h40v40h-40z'/%3e%3cpath class='st1' d='M365 5h40v40h-40zM405 5h40v40h-40z'/%3e%3cpath class='st1' d='M405 5h40v40h-40zM445 5h40v40h-40z'/%3e%3cpath class='st1' d='M445 5h40v40h-40zM365 45h40v40h-40z'/%3e%3cpath class='st1' d='M365 45h40v40h-40zM405 45h40v40h-40z'/%3e%3cpath class='st1' d='M405 45h40v40h-40zM445 45h40v40h-40z'/%3e%3cpath class='st1' d='M445 45h40v40h-40zM365 85h40v40h-40z'/%3e%3cpath class='st1' d='M365 85h40v40h-40zM405 85h40v40h-40z'/%3e%3cpath class='st1' d='M405 85h40v40h-40zM445 85h40v40h-40z'/%3e%3cpath class='st1' d='M445 85h40v40h-40zM205 125h40v40h-40z'/%3e%3cpath class='st1' d='M205 125h40v40h-40zM205 165h40v40h-40z'/%3e%3cpath class='st1' d='M205 165h40v40h-40zM205 205h40v40h-40z'/%3e%3cpath class='st1' d='M205 205h40v40h-40zM165 125h40v40h-40z'/%3e%3cpath class='st1' d='M165 125h40v40h-40zM165 165h40v40h-40z'/%3e%3cpath class='st1' d='M165 165h40v40h-40zM165 205h40v40h-40z'/%3e%3cpath class='st1' d='M165 205h40v40h-40zM125 125h40v40h-40z'/%3e%3cpath class='st1' d='M125 125h40v40h-40zM125 165h40v40h-40z'/%3e%3cpath class='st1' d='M125 165h40v40h-40zM125 205h40v40h-40z'/%3e%3cpath class='st1' d='M125 205h40v40h-40zM205 245h40v40h-40z'/%3e%3cpath class='st1' d='M205 245h40v40h-40zM205 285h40v40h-40z'/%3e%3cpath class='st1' d='M205 285h40v40h-40zM205 325h40v40h-40z'/%3e%3cpath class='st1' d='M205 325h40v40h-40zM165 245h40v40h-40z'/%3e%3cpath class='st1' d='M165 245h40v40h-40zM165 285h40v40h-40z'/%3e%3cpath class='st1' d='M165 285h40v40h-40zM165 325h40v40h-40z'/%3e%3cpath class='st1' d='M165 325h40v40h-40zM125 245h40v40h-40z'/%3e%3cpath class='st1' d='M125 245h40v40h-40zM125 285h40v40h-40z'/%3e%3cpath class='st1' d='M125 285h40v40h-40zM125 325h40v40h-40z'/%3e%3cpath class='st1' d='M125 325h40v40h-40zM205 365h40v40h-40z'/%3e%3cpath class='st1' d='M205 365h40v40h-40zM205 405h40v40h-40z'/%3e%3cpath class='st1' d='M205 405h40v40h-40zM205 445h40v40h-40z'/%3e%3cpath class='st1' d='M205 445h40v40h-40zM165 365h40v40h-40z'/%3e%3cpath class='st1' d='M165 365h40v40h-40zM165 405h40v40h-40z'/%3e%3cpath class='st1' d='M165 405h40v40h-40zM165 445h40v40h-40z'/%3e%3cpath class='st1' d='M165 445h40v40h-40zM125 365h40v40h-40z'/%3e%3cpath class='st1' d='M125 365h40v40h-40zM125 405h40v40h-40z'/%3e%3cpath class='st1' d='M125 405h40v40h-40zM125 445h40v40h-40z'/%3e%3cpath class='st1' d='M125 445h40v40h-40zM5 125h40v40H5z'/%3e%3cpath class='st1' d='M5 125h40v40H5zM5 165h40v40H5z'/%3e%3cpath class='st1' d='M5 165h40v40H5zM5 205h40v40H5z'/%3e%3cpath class='st1' d='M5 205h40v40H5zM45 125h40v40H45z'/%3e%3cpath class='st1' d='M45 125h40v40H45zM45 165h40v40H45z'/%3e%3cpath class='st1' d='M45 165h40v40H45zM45 205h40v40H45z'/%3e%3cpath class='st1' d='M45 205h40v40H45zM85 125h40v40H85z'/%3e%3cpath class='st1' d='M85 125h40v40H85zM85 165h40v40H85z'/%3e%3cpath class='st1' d='M85 165h40v40H85zM85 205h40v40H85z'/%3e%3cpath class='st1' d='M85 205h40v40H85zM5 245h40v40H5z'/%3e%3cpath class='st1' d='M5 245h40v40H5zM5 285h40v40H5z'/%3e%3cpath class='st1' d='M5 285h40v40H5zM5 325h40v40H5z'/%3e%3cpath class='st1' d='M5 325h40v40H5zM45 245h40v40H45z'/%3e%3cpath class='st1' d='M45 245h40v40H45zM45 285h40v40H45z'/%3e%3cpath class='st1' d='M45 285h40v40H45zM45 325h40v40H45z'/%3e%3cpath class='st1' d='M45 325h40v40H45zM85 245h40v40H85z'/%3e%3cpath class='st1' d='M85 245h40v40H85zM85 285h40v40H85z'/%3e%3cpath class='st1' d='M85 285h40v40H85zM85 325h40v40H85z'/%3e%3cpath class='st1' d='M85 325h40v40H85zM5 365h40v40H5z'/%3e%3cpath class='st1' d='M5 365h40v40H5zM5 405h40v40H5z'/%3e%3cpath class='st1' d='M5 405h40v40H5zM5 445h40v40H5z'/%3e%3cpath class='st1' d='M5 445h40v40H5zM45 365h40v40H45z'/%3e%3cpath class='st1' d='M45 365h40v40H45zM45 405h40v40H45z'/%3e%3cpath class='st1' d='M45 405h40v40H45zM45 445h40v40H45z'/%3e%3cpath class='st1' d='M45 445h40v40H45zM85 365h40v40H85z'/%3e%3cpath class='st1' d='M85 365h40v40H85zM85 405h40v40H85z'/%3e%3cpath class='st1' d='M85 405h40v40H85zM85 445h40v40H85z'/%3e%3cpath class='st1' d='M85 445h40v40H85zM245 125h40v40h-40z'/%3e%3cpath class='st1' d='M245 125h40v40h-40zM245 165h40v40h-40z'/%3e%3cpath class='st1' d='M245 165h40v40h-40zM245 205h40v40h-40z'/%3e%3cpath class='st1' d='M245 205h40v40h-40zM285 125h40v40h-40z'/%3e%3cpath class='st1' d='M285 125h40v40h-40zM285 165h40v40h-40z'/%3e%3cpath class='st1' d='M285 165h40v40h-40zM285 205h40v40h-40z'/%3e%3cpath class='st1' d='M285 205h40v40h-40zM325 125h40v40h-40z'/%3e%3cpath class='st1' d='M325 125h40v40h-40zM325 165h40v40h-40z'/%3e%3cpath class='st1' d='M325 165h40v40h-40zM325 205h40v40h-40z'/%3e%3cpath class='st1' d='M325 205h40v40h-40zM245 245h40v40h-40z'/%3e%3cpath class='st1' d='M245 245h40v40h-40zM245 285h40v40h-40z'/%3e%3cpath class='st1' d='M245 285h40v40h-40zM245 325h40v40h-40z'/%3e%3cpath class='st1' d='M245 325h40v40h-40zM285 245h40v40h-40z'/%3e%3cpath class='st1' d='M285 245h40v40h-40zM285 285h40v40h-40z'/%3e%3cpath class='st1' d='M285 285h40v40h-40zM285 325h40v40h-40z'/%3e%3cpath class='st1' d='M285 325h40v40h-40zM325 245h40v40h-40z'/%3e%3cpath class='st1' d='M325 245h40v40h-40zM325 285h40v40h-40z'/%3e%3cpath class='st1' d='M325 285h40v40h-40zM325 325h40v40h-40z'/%3e%3cpath class='st1' d='M325 325h40v40h-40zM245 365h40v40h-40z'/%3e%3cpath class='st1' d='M245 365h40v40h-40zM245 405h40v40h-40z'/%3e%3cpath class='st1' d='M245 405h40v40h-40zM245 445h40v40h-40z'/%3e%3cpath class='st1' d='M245 445h40v40h-40zM285 365h40v40h-40z'/%3e%3cpath class='st1' d='M285 365h40v40h-40zM285 405h40v40h-40z'/%3e%3cpath class='st1' d='M285 405h40v40h-40zM285 445h40v40h-40z'/%3e%3cpath class='st1' d='M285 445h40v40h-40zM325 365h40v40h-40z'/%3e%3cpath class='st1' d='M325 365h40v40h-40zM325 405h40v40h-40z'/%3e%3cpath class='st1' d='M325 405h40v40h-40zM325 445h40v40h-40z'/%3e%3cpath class='st1' d='M325 445h40v40h-40zM445 125h40v40h-40z'/%3e%3cpath class='st1' d='M445 125h40v40h-40zM445 165h40v40h-40z'/%3e%3cpath class='st1' d='M445 165h40v40h-40zM445 205h40v40h-40z'/%3e%3cpath class='st1' d='M445 205h40v40h-40zM405 125h40v40h-40z'/%3e%3cpath class='st1' d='M405 125h40v40h-40zM405 165h40v40h-40z'/%3e%3cpath class='st1' d='M405 165h40v40h-40zM405 205h40v40h-40z'/%3e%3cpath class='st1' d='M405 205h40v40h-40zM365 125h40v40h-40z'/%3e%3cpath class='st1' d='M365 125h40v40h-40zM365 165h40v40h-40z'/%3e%3cpath class='st1' d='M365 165h40v40h-40zM365 205h40v40h-40z'/%3e%3cpath class='st1' d='M365 205h40v40h-40zM445 245h40v40h-40z'/%3e%3cpath class='st1' d='M445 245h40v40h-40zM445 285h40v40h-40z'/%3e%3cpath class='st1' d='M445 285h40v40h-40zM445 325h40v40h-40z'/%3e%3cpath class='st1' d='M445 325h40v40h-40zM405 245h40v40h-40z'/%3e%3cpath class='st1' d='M405 245h40v40h-40zM405 285h40v40h-40z'/%3e%3cpath class='st1' d='M405 285h40v40h-40zM405 325h40v40h-40z'/%3e%3cpath class='st1' d='M405 325h40v40h-40zM365 245h40v40h-40z'/%3e%3cpath class='st1' d='M365 245h40v40h-40zM365 285h40v40h-40z'/%3e%3cpath class='st1' d='M365 285h40v40h-40zM365 325h40v40h-40z'/%3e%3cpath class='st1' d='M365 325h40v40h-40zM445 365h40v40h-40z'/%3e%3cpath class='st1' d='M445 365h40v40h-40zM445 405h40v40h-40z'/%3e%3cpath class='st1' d='M445 405h40v40h-40zM445 445h40v40h-40z'/%3e%3cpath class='st1' d='M445 445h40v40h-40zM405 365h40v40h-40z'/%3e%3cpath class='st1' d='M405 365h40v40h-40zM405 405h40v40h-40z'/%3e%3cpath class='st1' d='M405 405h40v40h-40zM405 445h40v40h-40z'/%3e%3cpath class='st1' d='M405 445h40v40h-40zM365 365h40v40h-40z'/%3e%3cpath class='st1' d='M365 365h40v40h-40zM365 405h40v40h-40z'/%3e%3cpath class='st1' d='M365 405h40v40h-40zM365 445h40v40h-40z'/%3e%3cpath class='st1' d='M365 445h40v40h-40zM205 565h40v40h-40z'/%3e%3cpath class='st1' d='M205 565h40v40h-40zM205 525h40v40h-40z'/%3e%3cpath class='st1' d='M205 525h40v40h-40zM205 485h40v40h-40z'/%3e%3cpath class='st1' d='M205 485h40v40h-40zM165 565h40v40h-40z'/%3e%3cpath class='st1' d='M165 565h40v40h-40zM165 525h40v40h-40z'/%3e%3cpath class='st1' d='M165 525h40v40h-40zM165 485h40v40h-40z'/%3e%3cpath class='st1' d='M165 485h40v40h-40zM125 565h40v40h-40z'/%3e%3cpath class='st1' d='M125 565h40v40h-40zM125 525h40v40h-40z'/%3e%3cpath class='st1' d='M125 525h40v40h-40zM125 485h40v40h-40z'/%3e%3cpath class='st1' d='M125 485h40v40h-40zM245 565h40v40h-40z'/%3e%3cpath class='st1' d='M245 565h40v40h-40zM245 525h40v40h-40z'/%3e%3cpath class='st1' d='M245 525h40v40h-40zM245 485h40v40h-40z'/%3e%3cpath class='st1' d='M245 485h40v40h-40zM285 565h40v40h-40z'/%3e%3cpath class='st1' d='M285 565h40v40h-40zM285 525h40v40h-40z'/%3e%3cpath class='st1' d='M285 525h40v40h-40zM285 485h40v40h-40z'/%3e%3cpath class='st1' d='M285 485h40v40h-40zM325 565h40v40h-40z'/%3e%3cpath class='st1' d='M325 565h40v40h-40zM325 525h40v40h-40z'/%3e%3cpath class='st1' d='M325 525h40v40h-40zM325 485h40v40h-40z'/%3e%3cpath class='st1' d='M325 485h40v40h-40zM445 565h40v40h-40z'/%3e%3cpath class='st1' d='M445 565h40v40h-40zM445 525h40v40h-40z'/%3e%3cpath class='st1' d='M445 525h40v40h-40zM445 485h40v40h-40z'/%3e%3cpath class='st1' d='M445 485h40v40h-40zM405 565h40v40h-40z'/%3e%3cpath class='st1' d='M405 565h40v40h-40zM405 525h40v40h-40z'/%3e%3cpath class='st1' d='M405 525h40v40h-40zM405 485h40v40h-40z'/%3e%3cpath class='st1' d='M405 485h40v40h-40zM365 565h40v40h-40z'/%3e%3cpath class='st1' d='M365 565h40v40h-40zM365 525h40v40h-40z'/%3e%3cpath class='st1' d='M365 525h40v40h-40zM365 485h40v40h-40z'/%3e%3cpath class='st1' d='M365 485h40v40h-40zM485 125h40v40h-40z'/%3e%3cpath class='st1' d='M485 125h40v40h-40zM485 165h40v40h-40z'/%3e%3cpath class='st1' d='M485 165h40v40h-40zM485 205h40v40h-40z'/%3e%3cpath class='st1' d='M485 205h40v40h-40zM525 125h40v40h-40z'/%3e%3cpath class='st1' d='M525 125h40v40h-40zM525 165h40v40h-40z'/%3e%3cpath class='st1' d='M525 165h40v40h-40zM525 205h40v40h-40z'/%3e%3cpath class='st1' d='M525 205h40v40h-40zM565 125h40v40h-40z'/%3e%3cpath class='st1' d='M565 125h40v40h-40zM565 165h40v40h-40z'/%3e%3cpath class='st1' d='M565 165h40v40h-40zM565 205h40v40h-40z'/%3e%3cpath class='st1' d='M565 205h40v40h-40zM485 245h40v40h-40z'/%3e%3cpath class='st1' d='M485 245h40v40h-40zM485 285h40v40h-40z'/%3e%3cpath class='st1' d='M485 285h40v40h-40zM485 325h40v40h-40z'/%3e%3cpath class='st1' d='M485 325h40v40h-40zM525 245h40v40h-40z'/%3e%3cpath class='st1' d='M525 245h40v40h-40zM525 285h40v40h-40z'/%3e%3cpath class='st1' d='M525 285h40v40h-40zM525 325h40v40h-40z'/%3e%3cpath class='st1' d='M525 325h40v40h-40zM565 245h40v40h-40z'/%3e%3cpath class='st1' d='M565 245h40v40h-40zM565 285h40v40h-40z'/%3e%3cpath class='st1' d='M565 285h40v40h-40zM565 325h40v40h-40z'/%3e%3cpath class='st1' d='M565 325h40v40h-40zM485 365h40v40h-40z'/%3e%3cpath class='st1' d='M485 365h40v40h-40zM485 405h40v40h-40z'/%3e%3cpath class='st1' d='M485 405h40v40h-40zM485 445h40v40h-40z'/%3e%3cpath class='st1' d='M485 445h40v40h-40zM525 365h40v40h-40z'/%3e%3cpath class='st1' d='M525 365h40v40h-40zM525 405h40v40h-40z'/%3e%3cpath class='st1' d='M525 405h40v40h-40zM525 445h40v40h-40z'/%3e%3cpath class='st1' d='M525 445h40v40h-40zM565 365h40v40h-40z'/%3e%3cpath class='st1' d='M565 365h40v40h-40zM565 405h40v40h-40z'/%3e%3cpath class='st1' d='M565 405h40v40h-40zM565 445h40v40h-40z'/%3e%3cpath class='st1' d='M565 445h40v40h-40zM85 45h40v40H85z'/%3e%3cpath class='st1' d='M85 45h40v40H85zM85 85h40v40H85z'/%3e%3cpath class='st1' d='M85 85h40v40H85zM45 85h40v40H45z'/%3e%3cpath class='st1' d='M45 85h40v40H45zM525 85h40v40h-40z'/%3e%3cpath class='st1' d='M525 85h40v40h-40zM485 85h40v40h-40z'/%3e%3cpath class='st1' d='M485 85h40v40h-40zM485 45h40v40h-40z'/%3e%3cpath class='st1' d='M485 45h40v40h-40zM485 525h40v40h-40z'/%3e%3cpath class='st1' d='M485 525h40v40h-40zM485 485h40v40h-40z'/%3e%3cpath class='st1' d='M485 485h40v40h-40zM525 485h40v40h-40z'/%3e%3cpath class='st1' d='M525 485h40v40h-40zM45 485h40v40H45z'/%3e%3cpath class='st1' d='M45 485h40v40H45zM85 485h40v40H85z'/%3e%3cpath class='st1' d='M85 485h40v40H85zM85 525h40v40H85z'/%3e%3cpath class='st1' d='M85 525h40v40H85z'/%3e%3c/g%3e%3c/svg%3e";
 var img$5 = "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='70 60 60 80'%3e%3cpath fill='currentColor' d='M119 71a3.6 3.6 0 1 1-7.3 0 3.6 3.6 0 0 1 7.2 0Z'/%3e%3cpath fill='currentColor' d='M96.5 79.6s.7-11.2 18.8-15.6c3.9-1 4-3.9.2-3.3-21.6 3.2-40 20-34.9 41.2.6 2.5-1.3 2-2.3 1-6.6-8-1.7-23.3.8-27.6.6-1-.9-2.5-2-1-19.3 28 4.3 56 26.3 42.8 1-.5 1.5-.5 1 1-4 11-16.3 17.8-29.9 18.2-2 0-2.4 2.5.8 2.8 34.8 3.6 60.1-33 37.4-51.6 21.6 7.2 10.4 37.6 10.4 37.6-.6 2 1.4 2.6 2 .7 14.6-38.3-6.1-53.1-28.6-46.2Zm6.6 21.1c-1.4 3-4.5 4.5-7 3.4-2.6-1.2-3.5-4.6-2-7.6 1.3-3 4.5-4.5 7-3.3 2.5 1.1 3.4 4.5 2 7.5Z'/%3e%3c/svg%3e";
@@ -52824,18 +52852,6 @@ var getNewPosition = function getNewPosition(offset) {
   };
 };
 
-var getPositionInQuad = function getPositionInQuad(xQuad, yQuad) {
-  if (xQuad === void 0) {
-    xQuad = 1;
-  }
-
-  if (yQuad === void 0) {
-    yQuad = 1;
-  }
-
-  return getPositionInCell(xQuad, yQuad, 4, 4);
-};
-
 var getPositionInCell = function getPositionInCell(row, column, totalRows, totalColumns) {
   var xCell = X_RANGE / totalRows;
   var yCell = Y_RANGE / totalColumns;
@@ -52906,12 +52922,10 @@ var getBrightness = function getBrightness(brightnessDefinition) {
   }
 };
 
-var getScaledObjectSize = function getScaledObjectSize(type, aspectRatio) {
-  var object = OBJECT_SIZE[type];
-
-  if (object.bins && object.weights) {
-    var bins = object.bins,
-        weights = object.weights;
+var getScaledObjectSize = function getScaledObjectSize(sizeConfig, aspectRatio) {
+  if (sizeConfig.bins && sizeConfig.weights) {
+    var bins = sizeConfig.bins,
+        weights = sizeConfig.weights;
 
     var _weighted$select2 = weighted.select(bins, weights, {
       rand: function rand() {
@@ -52925,9 +52939,9 @@ var getScaledObjectSize = function getScaledObjectSize(type, aspectRatio) {
     var scaledSize = round(size / aspectRatio);
     return scaledSize;
   } else {
-    var _min2 = object.min,
-        _max2 = object.max,
-        target = object.target;
+    var _min2 = sizeConfig.min,
+        _max2 = sizeConfig.max,
+        target = sizeConfig.target;
 
     var _size = target ? target : getRandomDecimal(_min2, _max2, 1);
 
@@ -52935,6 +52949,13 @@ var getScaledObjectSize = function getScaledObjectSize(type, aspectRatio) {
 
     return target ? Math.min(Math.max(_scaledSize, _min2), _max2) : Math.max(_scaledSize, _min2);
   }
+};
+
+var scaleByAspectRatio = function scaleByAspectRatio(aspectRatio, target, min, max) {
+  var scaledTarget = target / aspectRatio;
+  var flooredTarget = Math.max(scaledTarget, min || scaledTarget);
+  var ceilingedTarget = Math.min(flooredTarget, max || flooredTarget);
+  return round(ceilingedTarget);
 };
 
 var img$8 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAB9AAAAE+CAMAAADieHuDAAAB6VBMVEVMaXH///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////+DhIf////////////////////////////////////////////////////////////////////////////////////////M79vDAAAAonRSTlMAcCBgoPAQwECA4DDQsJBQ7x/+PNz7V/acr+eHz2TouMSI+PLzSpSSfJ394jqs9Wl+9Nmouqb37NTrvvmR2NNx6ozf+vzlWMjdyeahs0yBysFSlcLNo+6Y0re8rdbH8S7O11TDhYO75L3auVuydHm/YsyXpNXetI6PtqrRy5Z/e5k9ZuHtaumGk3eCiRBsijttR6XbesZ9datIp66bLZpTnp8BHVf4AAAACXBIWXMAABhIAAAYSAF3ynvJAAAAJXRFWHRTb2Z0d2FyZQBXZWJkYW0gaHR0cDovL3d3dy53ZWJkYW0uY29tFioTSwAAANx6VFh0UmF3IHByb2ZpbGUgdHlwZSBpcHRjAAB4nD1QMW5FMQjbc4p/BELA5M2dunXoBX7TIH3pS616/6EmlUokcAxYTtrr2/vL7fvnKx/P3W4V3aWNaWqXfYrx/Me89yXqLuJpCMeG4WIOFSwkAhmDuIcxD2QLDYVjFBGDVOegs8k1MtVbNc57HsaQ7DrnBiZRkplwCukqZY6zRpC82PKDC81apmDHjhHlocT3caJH7gMR2qh4jNdTsEX63ZWM/jmyhNKn0zeOryS6NG37MLB2d1frfTXR8ymVrf0CtlhJbiB50QwAAAPsaVRYdFhNTDpjb20uYWRvYmUueG1wAAAAAAA8P3hwYWNrZXQgYmVnaW49J++7vycgaWQ9J1c1TTBNcENlaGlIenJlU3pOVGN6a2M5ZCc/Pgo8eDp4bXBtZXRhIHhtbG5zOng9J2Fkb2JlOm5zOm1ldGEvJyB4OnhtcHRrPSdJbWFnZTo6RXhpZlRvb2wgMTIuMzgnPgo8cmRmOlJERiB4bWxuczpyZGY9J2h0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMnPgoKIDxyZGY6RGVzY3JpcHRpb24gcmRmOmFib3V0PScnCiAgeG1sbnM6V2ViZGFtPSdodHRwOi8vd3d3LndlYmRhbS5jb20vV2ViZGFtTmFtZXNwYWNlLyc+CiAgPFdlYmRhbTpDdXN0b21GaWVsZDE+MjAwOCBNYXkgMTQ8L1dlYmRhbTpDdXN0b21GaWVsZDE+CiAgPFdlYmRhbTpDdXN0b21GaWVsZDI+QVZNIDEuMiBSQzE8L1dlYmRhbTpDdXN0b21GaWVsZDI+CiAgPFdlYmRhbTpDdXN0b21GaWVsZDM+VmVyYSBDLiBSdWJpbiBPYnNlcnZhdG9yeTwvV2ViZGFtOkN1c3RvbUZpZWxkMz4KICA8V2ViZGFtOkN1c3RvbUZpZWxkND5SdWJpbk9iczwvV2ViZGFtOkN1c3RvbUZpZWxkND4KICA8V2ViZGFtOkN1c3RvbUZpZWxkNz5BcyBzdGF0ZWQgYXQgaHR0cDovL2xzLnN0L3liYjwvV2ViZGFtOkN1c3RvbUZpZWxkNz4KIDwvcmRmOkRlc2NyaXB0aW9uPgoKIDxyZGY6RGVzY3JpcHRpb24gcmRmOmFib3V0PScnCiAgeG1sbnM6cGhvdG9zaG9wPSdodHRwOi8vbnMuYWRvYmUuY29tL3Bob3Rvc2hvcC8xLjAvJz4KICA8cGhvdG9zaG9wOkF1dGhvcnNQb3NpdGlvbj5GdW5kaW5nIGxvZ29zIGF0IGNvcnJlY3Qgc2NhbGUg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";
@@ -53043,7 +53064,7 @@ var Cloud = /*#__PURE__*/styled__default(SVG).attrs(function () {
   var variant = _ref.variant;
   return variant === 'night' ? ".cloud-inner {color: #4d4f4f} .cloud-edge {color: #6a6e6e}" : ".cloud-inner {color: #ecf2f2} .cloud-edge {color: #f6ffff}";
 });
-var img$c = "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='82 84 36 36'%3e%3cpath d='M117.5 101.74c0 9.66-7.84 17.5-17.5 17.5-9.67 0-17.5-7.84-17.5-17.5s7.83-17.5 17.5-17.5 17.5 7.83 17.5 17.5Z' style='fill:%23ed4c4c'/%3e%3cpath d='m102.44 102.17 7.4 2.67v-1.41l-8.58-5.82v-5.88c0-.7-.86-1.27-1.27-1.27-.41 0-1.27.57-1.27 1.27v5.88l-8.58 5.82v1.41l7.4-2.67h1.17v6.68l-3.13 2.59.19.49 3.72-.93.49.57.49-.57 3.72.93.19-.49-3.13-2.59v-6.68h1.17Z' style='fill:%23dce0e3'/%3e%3c/svg%3e";
+var img$c = "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='82 84 36 36'%3e%3cpath d='m102.44 102.17 7.4 2.67v-1.41l-8.58-5.82v-5.88c0-.7-.86-1.27-1.27-1.27-.41 0-1.27.57-1.27 1.27v5.88l-8.58 5.82v1.41l7.4-2.67h1.17v6.68l-3.13 2.59.19.49 3.72-.93.49.57.49-.57 3.72.93.19-.49-3.13-2.59v-6.68h1.17Z' style='fill:%23dce0e3'/%3e%3c/svg%3e";
 
 var Airplane = function Airplane(props) {
   return /*#__PURE__*/jsxRuntime.jsx(SVG, _extends({
@@ -53051,6 +53072,22 @@ var Airplane = function Airplane(props) {
   }, props));
 };
 
+var Asteroid = /*#__PURE__*/styled__default(SVG).attrs(function () {
+  return {
+    src: img
+  };
+}).withConfig({
+  displayName: "Asteroid",
+  componentId: "space-surveyors__sc-1mnafke-0"
+})(["color:var(--neutral10);"]);
+var Comet = /*#__PURE__*/styled__default(SVG).attrs(function () {
+  return {
+    src: img$2
+  };
+}).withConfig({
+  displayName: "Comet",
+  componentId: "space-surveyors__sc-6zlmmn-0"
+})(["color:var(--neutral10);"]);
 var transitionColor = FADE_TIME / 2 + "ms color";
 var transitionOpacity = FADE_TIME + "ms opacity";
 var transitionFilter = FADE_TIME + "ms filter";
@@ -53072,12 +53109,13 @@ var SkyObjectAttrs = function SkyObjectAttrs(_ref3) {
       $captured = _ref3.$captured,
       brightness = _ref3.brightness;
   return {
-    style: {
-      color: $captured ? 'var(--yellow)' : 'var(--neutral10)',
+    style: _extends({
       left: x + "%",
       top: y + "%",
       opacity: $captured && brightness > 0 ? 0.85 : brightness
-    }
+    }, $captured && {
+      color: 'var(--yellow)'
+    })
   };
 };
 
@@ -53088,46 +53126,50 @@ var StyledSkyObject = function StyledSkyObject(object) {
   })(["", ""], SkyObjectBase);
 };
 
-var DynamicSkyObjectBase = /*#__PURE__*/styled.css(["", " opacity:0;transition:", ",", ",", ";"], SkyObjectBase, transitionColor, transitionOpacity, transitionFilter);
+var TimedSkyObjectBase = /*#__PURE__*/styled.css(["", " opacity:0;transition:", ",", ",", ";"], SkyObjectBase, transitionColor, transitionOpacity, transitionFilter);
 
-var DynamicSkyObjectAttrs = function DynamicSkyObjectAttrs(_ref4) {
+var TimedSkyObjectAttrs = function TimedSkyObjectAttrs(_ref4) {
   var x = _ref4.x,
       y = _ref4.y,
       $captured = _ref4.$captured,
       brightness = _ref4.brightness;
   return {
-    style: {
-      color: $captured ? 'var(--yellow)' : 'var(--neutral10)',
+    style: _extends({
       left: x + "%",
       top: y + "%",
       opacity: brightness,
       filter: "blur(" + (brightness === 0 ? 5 : 0) + "px)"
-    }
+    }, $captured && {
+      color: 'var(--yellow)'
+    })
   };
 };
 
-var OccludingObjectAttrs = function OccludingObjectAttrs(_ref5) {
+var DynamicObjectAttrs = function DynamicObjectAttrs(_ref5) {
   var x = _ref5.x,
       y = _ref5.y,
-      angle = _ref5.angle;
+      angle = _ref5.angle,
+      $captured = _ref5.$captured;
   return {
-    style: {
+    style: _extends({
       left: x + "%",
       top: y + "%",
       transform: "translate(-50%, -50%) rotate(" + angle + "deg)"
-    }
+    }, $captured && {
+      color: 'var(--yellow)'
+    })
   };
 };
 
-var StyledDynamicSkyObject = function StyledDynamicSkyObject(object) {
-  return styled__default(object).attrs(DynamicSkyObjectAttrs).withConfig({
+var StyledTimedSkyObject = function StyledTimedSkyObject(object) {
+  return styled__default(object).attrs(TimedSkyObjectAttrs).withConfig({
     displayName: "objects",
     componentId: "space-surveyors__sc-11myinu-1"
-  })(["", ""], DynamicSkyObjectBase);
+  })(["", ""], TimedSkyObjectBase);
 };
 
-var StyledOccludingObject = function StyledOccludingObject(object) {
-  return styled__default(object).attrs(OccludingObjectAttrs).withConfig({
+var StyledDynamicObject = function StyledDynamicObject(object) {
+  return styled__default(object).attrs(DynamicObjectAttrs).withConfig({
     displayName: "objects",
     componentId: "space-surveyors__sc-11myinu-2"
   })(["", " transition:", ",", ";"], SkyObjectBase, transitionColor, transitionOpacity);
@@ -53138,14 +53180,18 @@ var BaseObjects = {
   galaxy: Galaxy,
   supernova: Supernova,
   cloud: Cloud,
-  airplane: Airplane
+  airplane: Airplane,
+  asteroid: Asteroid,
+  comet: Comet
 };
 var Objects = {
   star: /*#__PURE__*/StyledSkyObject(BaseObjects['star']),
   galaxy: /*#__PURE__*/StyledSkyObject(BaseObjects['galaxy']),
-  supernova: /*#__PURE__*/StyledDynamicSkyObject(BaseObjects['supernova']),
-  cloud: /*#__PURE__*/StyledOccludingObject(BaseObjects['cloud']),
-  airplane: /*#__PURE__*/StyledOccludingObject(BaseObjects['airplane'])
+  supernova: /*#__PURE__*/StyledTimedSkyObject(BaseObjects['supernova']),
+  cloud: /*#__PURE__*/StyledDynamicObject(BaseObjects['cloud']),
+  airplane: /*#__PURE__*/StyledDynamicObject(BaseObjects['airplane']),
+  asteroid: /*#__PURE__*/StyledDynamicObject(BaseObjects['asteroid']),
+  comet: /*#__PURE__*/StyledDynamicObject(BaseObjects['comet'])
 };
 var Star$1 = Objects['star'];
 var Cloud$1 = Objects['cloud'];
@@ -53481,7 +53527,7 @@ var img$d = "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBo
 var Backdrop = function Backdrop(_ref) {
   var style = _ref.style,
       className = _ref.className;
-  return /*#__PURE__*/jsxRuntime.jsx(SVG, {
+  return /*#__PURE__*/jsxRuntime.jsx("img", {
     src: img$d,
     style: style,
     className: className
@@ -53504,7 +53550,7 @@ var BackdropDay = /*#__PURE__*/styled__default.div.withConfig({
 var BackdropNight = /*#__PURE__*/styled__default(Backdrop).withConfig({
   displayName: "Backdrop__BackdropNight",
   componentId: "space-surveyors__sc-jnzfui-2"
-})(["position:absolute;aspect-ratio:16 / 9;mask-type:alpha;mask-size:100% 200%;mask-repeat:no-repeat;mask-image:linear-gradient( rgba(0,0,0,1),rgba(0,0,0,1),rgba(0,0,0,0) );mask-position:top;min-width:100%;min-height:100%;transition:", "ms opacity;z-index:2;", ""], DAY_TRANSITION_DURATION, function (_ref2) {
+})(["position:absolute;aspect-ratio:16 / 9;mask-type:alpha;mask-size:100% 200%;mask-repeat:no-repeat;mask-image:linear-gradient( rgba(0,0,0,1),rgba(0,0,0,1),rgba(0,0,0,0) );mask-position:top;min-width:100%;min-height:100%;object-fit:cover;transition:", "ms opacity;z-index:2;", ""], DAY_TRANSITION_DURATION, function (_ref2) {
   var showSunrise = _ref2.showSunrise;
   return showSunrise ? styled.css(["animation:", " ", "ms cubic-bezier(0.12,0,0.39,0) forwards;"], sunriseMask, SUNRISE_DURATION) : '';
 });
@@ -53550,8 +53596,9 @@ var State = function State(boundingRect, aspectRatio) {
   var startTime = null;
   var endTime = null;
   var stage = 'menu';
-  var windSpeed = getRandomDecimal(MIN_WIND_SPEED, MAX_WIND_SPEED, 3);
-  var nextSpawn = FIRST_SPAWN;
+
+  var nextSpawn = _extends({}, FIRST_SPAWN);
+
   var lastScore = 0;
   return {
     nextSpawn: nextSpawn,
@@ -53561,7 +53608,6 @@ var State = function State(boundingRect, aspectRatio) {
     startTime: startTime,
     endTime: endTime,
     stage: stage,
-    windSpeed: windSpeed,
     lastScore: lastScore
   };
 };
@@ -53640,7 +53686,7 @@ TimerRenderer.propTypes = {
 
 var Timer = function Timer() {
   var timeRemaining = GAME_DURATION;
-  var timedEvents = TIMED_EVENTS;
+  var timedEvents = [].concat(TIMED_EVENTS);
   return {
     timeRemaining: timeRemaining,
     timedEvents: timedEvents,
@@ -53822,8 +53868,14 @@ var FocalPlaneBounding = function FocalPlaneBounding(xScale, yScale) {
   });
 };
 
+var cameraSizeConfig = {
+  min: 15,
+  target: 25,
+  max: 30
+};
+
 var Camera = function Camera(aspectRatio) {
-  var size = getScaledObjectSize('camera', aspectRatio);
+  var size = getScaledObjectSize(cameraSizeConfig, aspectRatio);
   var showEndgame = false;
   var offset = round(size / 2);
   var nextPosition = null;
@@ -53831,7 +53883,7 @@ var Camera = function Camera(aspectRatio) {
     x: null,
     y: null
   };
-  var maxMove = Math.min(Math.max(CAMERA_MOVE / aspectRatio, MIN_CAMERA_MOVE), MAX_CAMERA_MOVE);
+  var maxMove = scaleByAspectRatio(aspectRatio, CAMERA_MOVE, MIN_CAMERA_MOVE, MAX_CAMERA_MOVE);
   var steps = 0;
   var exposures = [];
   var exposureStartTime = null;
@@ -53892,8 +53944,9 @@ var NightSkyContainer = /*#__PURE__*/styled__default.div.withConfig({
 
 var NightSkyRenderer = function NightSkyRenderer(_ref) {
   var staticObjects = _ref.staticObjects,
-      dynamicObjects = _ref.dynamicObjects,
+      timedObjects = _ref.timedObjects,
       occludingObjects = _ref.occludingObjects,
+      movingObjects = _ref.movingObjects,
       capturedObjects = _ref.capturedObjects,
       fade = _ref.fade,
       showSunrise = _ref.showSunrise;
@@ -53914,11 +53967,12 @@ var NightSkyRenderer = function NightSkyRenderer(_ref) {
     }, object.type + "-" + width + "-" + i);
   };
 
-  var renderSkyObjects = function renderSkyObjects(object) {
+  var renderSkyObjects = function renderSkyObjects(object, i) {
     var width = object.width,
         brightness = object.brightness,
         captured = object.captured,
-        fadeIn = object.fadeIn;
+        fadeIn = object.fadeIn,
+        angle = object.angle;
     var _object$physics2 = object.physics,
         x = _object$physics2.x,
         y = _object$physics2.y;
@@ -53928,16 +53982,17 @@ var NightSkyRenderer = function NightSkyRenderer(_ref) {
       $captured: captured,
       x: x,
       y: y,
-      width: width + "%"
+      width: width + "%",
+      angle: angle
     }, fadeIn ? {
       $fadeIn: fade
     } : {
       $fadeOut: fade
-    })), object.type + "-" + x + "-" + y);
+    })), object.type + "-" + width + "-" + i);
   };
 
   return /*#__PURE__*/jsxRuntime.jsxs(NightSkyContainer, {
-    children: [staticObjects.map(renderSkyObjects), dynamicObjects.map(renderSkyObjects), fade && capturedObjects.map(renderSkyObjects), occludingObjects.map(renderOccludingObjects)]
+    children: [staticObjects.map(renderSkyObjects), timedObjects.map(renderSkyObjects), movingObjects.map(renderSkyObjects), fade && capturedObjects.map(renderSkyObjects), occludingObjects.map(renderOccludingObjects)]
   });
 };
 
@@ -54137,31 +54192,27 @@ var SkyObject = function SkyObject(type, aspectRatio, position) {
   };
 
   this.type = type;
-  this.width = getScaledObjectSize(type, aspectRatio);
+  this.config = SkyObjectConfigs[type];
+  this.width = getScaledObjectSize(this.config.size, aspectRatio);
   this.aspectRatio = aspectRatio;
-  this.physics = this.getPhysics(type, this.width, aspectRatio, position); // this.brightness = getRandomDecimal(
-  //   OBJECT_BRIGHTNESS[type].min,
-  //   OBJECT_BRIGHTNESS[type].max,
-  //   1
-  // );
-
-  this.brightness = getBrightness(OBJECT_BRIGHTNESS[type]);
+  this.physics = this.getPhysics(type, this.width, aspectRatio, position);
+  this.brightness = getBrightness(this.config.brightness);
 };
 
 var SkyObjects = /*#__PURE__*/function () {
   var _ref = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee(aspectRatio) {
-    var dynamicObjects, occludingObjects, staticObjects, capturedObjects, fade, showSunrise, star, galaxy, totalRows, totalColumns, i, j, row, column, k, type, position;
+    var movingObjects, timedObjects, occludingObjects, staticObjects, capturedObjects, fade, showSunrise, totalRows, totalColumns, i, j, row, column, k, type, position;
     return _regeneratorRuntime().wrap(function _callee$(_context) {
       while (1) {
         switch (_context.prev = _context.next) {
           case 0:
-            dynamicObjects = [];
+            movingObjects = [];
+            timedObjects = [];
             occludingObjects = [];
             staticObjects = [];
             capturedObjects = [];
             fade = false;
             showSunrise = false;
-            star = WEIGHTED_GENERATION.star, galaxy = WEIGHTED_GENERATION.galaxy;
             totalRows = aspectRatio < 1 ? STATIC_COLUMNS : STATIC_ROWS;
             totalColumns = aspectRatio < 1 ? STATIC_ROWS : STATIC_COLUMNS;
 
@@ -54171,10 +54222,7 @@ var SkyObjects = /*#__PURE__*/function () {
                 column = aspectRatio < 1 ? i : j;
 
                 for (k = 0; k < STATIC_OBJECTS_PER_CELL; k++) {
-                  type = getRandomWeightedValue({
-                    star: star,
-                    galaxy: galaxy
-                  });
+                  type = getRandomWeightedValue(WEIGHTS_STATIC);
                   position = getPositionInCell(row, column, totalRows, totalColumns);
                   staticObjects.push(new SkyObject(type, aspectRatio, position));
                 }
@@ -54183,14 +54231,16 @@ var SkyObjects = /*#__PURE__*/function () {
 
             return _context.abrupt("return", {
               staticObjects: staticObjects,
-              dynamicObjects: dynamicObjects,
+              timedObjects: timedObjects,
               occludingObjects: occludingObjects,
               capturedObjects: capturedObjects,
               showSunrise: showSunrise,
               fade: fade,
+              movingObjects: movingObjects,
               renderer: /*#__PURE__*/jsxRuntime.jsx(NightSkyRenderer, {
                 staticObjects: staticObjects,
-                dynamicObjects: dynamicObjects,
+                movingObjects: movingObjects,
+                timedObjects: timedObjects,
                 occludingObjects: occludingObjects,
                 capturedObjects: capturedObjects,
                 showSunrise: showSunrise,
@@ -54212,8 +54262,12 @@ var SkyObjects = /*#__PURE__*/function () {
 }();
 
 var Audio = {
-  background: /*#__PURE__*/new howler.Howl({
-    src: 'https://storage.googleapis.com/space-surveyors/Space%20Surveyors.mp3'
+  soundtrack: /*#__PURE__*/new howler.Howl({
+    src: 'https://storage.googleapis.com/space-surveyors/Space%20Surveyors.mp3',
+    sprite: {
+      background: [0, 60660],
+      ambient: [60660, 72000]
+    }
   }),
   capture: /*#__PURE__*/new howler.Howl({
     src: 'https://storage.googleapis.com/space-surveyors/Capturing%20a%20new%20object.mp3'
@@ -54322,6 +54376,7 @@ var timeline = function timeline(entities, _ref) {
       });
 
       if (mouseDown) {
+        state.stage = 'menu';
         dispatch({
           type: 'quit'
         });
@@ -54483,10 +54538,11 @@ var detectCapture = function detectCapture(entities, dispatch) {
       if (isOccluded(body, occlusions) || !doesOverlap(system.response)) return;
       var skyObjects = entities.skyObjects;
       var staticObjects = skyObjects.staticObjects,
-          dynamicObjects = skyObjects.dynamicObjects;
+          timedObjects = skyObjects.timedObjects,
+          movingObjects = skyObjects.movingObjects;
       var x = body.x,
           y = body.y;
-      var collider = [].concat(staticObjects, dynamicObjects).find(function (object) {
+      var collider = [].concat(staticObjects, timedObjects, movingObjects).find(function (object) {
         return object.physics.x === x && object.physics.y === y;
       });
 
@@ -54735,10 +54791,10 @@ var onCameraExposureEnd = function onCameraExposureEnd(entities, _ref5) {
   return entities;
 };
 
-var DynamicSkyObject = /*#__PURE__*/function (_SkyObject) {
-  _inheritsLoose(DynamicSkyObject, _SkyObject);
+var TimedSkyObject = /*#__PURE__*/function (_SkyObject) {
+  _inheritsLoose(TimedSkyObject, _SkyObject);
 
-  function DynamicSkyObject(type, timestamp, aspectRatio, position) {
+  function TimedSkyObject(type, timestamp, aspectRatio, position) {
     var _this;
 
     if (aspectRatio === void 0) {
@@ -54748,31 +54804,31 @@ var DynamicSkyObject = /*#__PURE__*/function (_SkyObject) {
     _this = _SkyObject.call(this, type, aspectRatio, position) || this;
     _this.isExpiringSoon = false;
 
-    _this.getObjectExpiration = function (type, timestamp) {
-      return timestamp + getRandomInt(OBJECT_LIFESPAN[type].min, OBJECT_LIFESPAN[type].max);
+    _this.getObjectExpiration = function (timestamp) {
+      return timestamp + getRandomInt(_this.config.lifespan.min, _this.config.lifespan.max);
     };
 
-    _this.setObjectBrightness = function (type) {
+    _this.setObjectBrightness = function () {
       setTimeout(function () {
-        _this.brightness = getBrightness(OBJECT_BRIGHTNESS[type]);
+        _this.brightness = getBrightness(_this.config.brightness);
       });
     };
 
-    _this.expiration = _this.getObjectExpiration(type, timestamp);
+    _this.expiration = _this.getObjectExpiration(timestamp);
     _this.brightness = 0;
 
-    _this.setObjectBrightness(type);
+    _this.setObjectBrightness();
 
     return _this;
   }
 
-  return DynamicSkyObject;
+  return TimedSkyObject;
 }(SkyObject);
 
-var OccludingObject = /*#__PURE__*/function (_SkyObject) {
-  _inheritsLoose(OccludingObject, _SkyObject);
+var DynamicObject = /*#__PURE__*/function (_SkyObject) {
+  _inheritsLoose(DynamicObject, _SkyObject);
 
-  function OccludingObject(type, aspectRatio, windSpeed, position) {
+  function DynamicObject(type, aspectRatio, position) {
     var _this;
 
     if (aspectRatio === void 0) {
@@ -54789,32 +54845,33 @@ var OccludingObject = /*#__PURE__*/function (_SkyObject) {
     _this.initializeOcclusion = function () {
       var _extends2;
 
-      var onlyMovesHorizontal = _this.type === 'cloud';
-      var startOnEdge = onlyMovesHorizontal ? 'left' : getRandomWeightedValue(STARTING_EDGES);
-      var endOnEdge = onlyMovesHorizontal ? 'right' : getRandomWeightedValue(_extends({}, STARTING_EDGES, (_extends2 = {}, _extends2[startOnEdge] = 0, _extends2)));
-      var xQuad = Number(getRandomWeightedValue(SPAWN_LOCATION[_this.type].x));
-      var yQuad = Number(getRandomWeightedValue(SPAWN_LOCATION[_this.type].y));
-      var startQuadPosition = getPositionInQuad(xQuad, yQuad);
-      var endQuadPosition = getPositionInQuad(xQuad, yQuad);
+      var _this$config = _this.config,
+          onlyMovesHorizontal = _this$config.onlyMovesHorizontal,
+          spawnEdge = _this$config.spawnEdge,
+          baseRotation = _this$config.baseRotation;
+      var startOnEdge = onlyMovesHorizontal ? 'left' : getRandomWeightedValue(spawnEdge);
+      var endOnEdge = onlyMovesHorizontal ? 'right' : getRandomWeightedValue(_extends({}, spawnEdge, (_extends2 = {}, _extends2[startOnEdge] = 0, _extends2)));
+      var startPosition = getNewPosition();
+      var endPosition = getNewPosition();
 
       switch (startOnEdge) {
         case 'left':
           _this.physics.x = -_this.xOffset;
-          _this.physics.y = startQuadPosition.y;
+          _this.physics.y = startPosition.y;
           break;
 
         case 'right':
           _this.physics.x = 100 + _this.xOffset;
-          _this.physics.y = startQuadPosition.y;
+          _this.physics.y = startPosition.y;
           break;
 
         case 'top':
-          _this.physics.x = startQuadPosition.x;
+          _this.physics.x = startPosition.x;
           _this.physics.y = -_this.yOffset;
           break;
 
         case 'bottom':
-          _this.physics.x = startQuadPosition.x;
+          _this.physics.x = startPosition.x;
           _this.physics.y = 100 + _this.yOffset;
           break;
       }
@@ -54822,26 +54879,30 @@ var OccludingObject = /*#__PURE__*/function (_SkyObject) {
       switch (endOnEdge) {
         case 'left':
           _this.endPosition.x = -_this.xOffset;
-          _this.endPosition.y = endQuadPosition.y;
+          _this.endPosition.y = endPosition.y;
           break;
 
         case 'right':
           _this.endPosition.x = 100 + _this.xOffset;
-          _this.endPosition.y = onlyMovesHorizontal ? startQuadPosition.y : endQuadPosition.y;
+          _this.endPosition.y = onlyMovesHorizontal ? startPosition.y : endPosition.y;
           break;
 
         case 'top':
-          _this.endPosition.x = endQuadPosition.x;
+          _this.endPosition.x = endPosition.x;
           _this.endPosition.y = -_this.yOffset;
           break;
 
         case 'bottom':
-          _this.endPosition.x = endQuadPosition.x;
+          _this.endPosition.x = endPosition.x;
           _this.endPosition.y = 100 + _this.yOffset;
           break;
       }
 
-      _this.angle = onlyMovesHorizontal ? 0 : round(getAngleBetweenPoints(_this.physics.pos, _this.endPosition)) + 90;
+      _this.angle = onlyMovesHorizontal ? 0 : round(getAngleBetweenPoints(_this.physics.pos, _this.endPosition)) + baseRotation;
+
+      if (_this.type === 'comet') {
+        console.log(_this.angle);
+      }
     };
 
     _this.getDelta = function () {
@@ -54851,14 +54912,16 @@ var OccludingObject = /*#__PURE__*/function (_SkyObject) {
       var _this$endPosition = _this.endPosition,
           finalX = _this$endPosition.x,
           finalY = _this$endPosition.y;
+      var speed = _this.config.speed;
       var distance = getDistanceBetweenPoints({
         x: x,
         y: y
       }, {
         x: finalX,
         y: finalY
-      });
-      var steps = Math.ceil(distance / _this.windSpeed);
+      }, _this.aspectRatio);
+      var scaledSpeed = scaleByAspectRatio(_this.aspectRatio, speed.target, speed.min, speed.max);
+      var steps = Math.ceil(distance / scaledSpeed);
       var xDelta = round((finalX - x) / steps);
       var yDelta = round((finalY - y) / steps);
       return {
@@ -54867,7 +54930,6 @@ var OccludingObject = /*#__PURE__*/function (_SkyObject) {
       };
     };
 
-    _this.windSpeed = windSpeed;
     _this.xOffset = _this.width / 2;
     _this.yOffset = _this.xOffset * _this.aspectRatio;
 
@@ -54877,18 +54939,111 @@ var OccludingObject = /*#__PURE__*/function (_SkyObject) {
     return _this;
   }
 
-  return OccludingObject;
+  return DynamicObject;
 }(SkyObject);
 
-var spawnObject = function spawnObject(type, objects, system, state, timestamp) {
-  if (objects.length < MAX_DYNAMIC_OBJECTS) {
+var moveDynamicObject = function moveDynamicObject(object) {
+  var _object$delta = object.delta,
+      deltaX = _object$delta.x,
+      deltaY = _object$delta.y;
+  var _object$physics = object.physics,
+      x = _object$physics.x,
+      y = _object$physics.y;
+  object.physics.setPosition(x + deltaX, y + deltaY);
+};
+
+var isInsideBounds = function isInsideBounds(object) {
+  var xOffset = object.xOffset,
+      yOffset = object.yOffset;
+  var _object$physics2 = object.physics,
+      x = _object$physics2.x,
+      y = _object$physics2.y;
+
+  if (x >= 0 - xOffset && x <= 100 + xOffset && y >= 0 - yOffset && y <= 100 + yOffset) {
+    return true;
+  }
+
+  return false;
+};
+
+var spawnDynamicObject = function spawnDynamicObject(type, objects, system, state, group) {
+  var rateLimit = {
+    cloud: MAX_OCCLUDING_OBJECTS,
+    airplane: MAX_OCCLUDING_OBJECTS,
+    asteroid: MAX_DYNAMIC_OBJECTS,
+    comet: MAX_DYNAMIC_OBJECTS
+  };
+
+  if (objects.length < rateLimit[type]) {
     var aspectRatio = state.aspectRatio;
-    var newObject = new DynamicSkyObject(type, timestamp, aspectRatio);
+    var newOcclusion = new DynamicObject(type, aspectRatio);
+    objects.push(newOcclusion);
+    system.insert(newOcclusion.physics);
+  }
+
+  state.nextSpawn[group] += getRandomInt(SPAWN_INTERVAL[group].min, SPAWN_INTERVAL[group].max);
+};
+
+var moveDynamicObjects = function moveDynamicObjects(entities) {
+  var skyObjects = entities.skyObjects,
+      state = entities.state;
+  var stage = state.stage;
+  var occludingObjects = skyObjects.occludingObjects,
+      movingObjects = skyObjects.movingObjects;
+
+  if (stage !== 'menu' && (occludingObjects.length > 0 || movingObjects.length > 0)) {
+    occludingObjects.forEach(moveDynamicObject);
+    movingObjects.forEach(moveDynamicObject);
+  }
+
+  return entities;
+};
+
+var cullDynamicObjects = function cullDynamicObjects(entities) {
+  var skyObjects = entities.skyObjects,
+      world = entities.world;
+  var occlusions = world.occlusions,
+      system = world.system;
+  var occludingObjects = skyObjects.occludingObjects,
+      movingObjects = skyObjects.movingObjects;
+
+  if (occludingObjects.length > 0 || movingObjects.length > 0) {
+    var remainingOccludingObjects = occludingObjects.filter(function (object) {
+      if (isInsideBounds(object)) {
+        return true;
+      }
+
+      occlusions.remove(object.physics);
+      return false;
+    });
+    var remainingMovingObjects = movingObjects.filter(function (object) {
+      if (isInsideBounds(object)) {
+        return true;
+      }
+
+      system.remove(object.physics);
+      return false;
+    });
+    return _extends({}, entities, {
+      skyObjects: _extends({}, skyObjects, {
+        occludingObjects: remainingOccludingObjects,
+        movingObjects: remainingMovingObjects
+      })
+    });
+  }
+
+  return entities;
+};
+
+var spawnObject = function spawnObject(type, objects, system, state, group, timestamp) {
+  if (objects.length < MAX_TIMED_OBJECTS) {
+    var aspectRatio = state.aspectRatio;
+    var newObject = new TimedSkyObject(type, timestamp, aspectRatio);
     objects.push(newObject);
     system.insert(newObject.physics);
   }
 
-  state.nextSpawn[type] += getRandomInt(SPAWN_INTERVAL[type].min, SPAWN_INTERVAL[type].max);
+  state.nextSpawn[group] += getRandomInt(SPAWN_INTERVAL[group].min, SPAWN_INTERVAL[group].max);
 };
 
 var prepareExpiringObjects = function prepareExpiringObjects(object, currentTime) {
@@ -54905,7 +55060,7 @@ var cullSkyObjects = function cullSkyObjects(entities, _ref) {
   var current = time.current;
   var skyObjects = entities.skyObjects,
       world = entities.world;
-  var remainingObjects = skyObjects.dynamicObjects.map(function (object) {
+  var remainingObjects = skyObjects.timedObjects.map(function (object) {
     return prepareExpiringObjects(object, current);
   }).filter(function (object) {
     if (!object.isExpiringSoon) return true;
@@ -54917,20 +55072,8 @@ var cullSkyObjects = function cullSkyObjects(entities, _ref) {
 
     return isActive;
   });
-  skyObjects.dynamicObjects = remainingObjects;
+  skyObjects.timedObjects = remainingObjects;
   return entities;
-};
-
-var spawnOcclusion = function spawnOcclusion(type, objects, system, state) {
-  if (objects.length < MAX_OCCLUDING_OBJECTS) {
-    var aspectRatio = state.aspectRatio,
-        windSpeed = state.windSpeed;
-    var newOcclusion = new OccludingObject(type, aspectRatio, windSpeed);
-    objects.push(newOcclusion);
-    system.insert(newOcclusion.physics);
-  }
-
-  state.nextSpawn[type] += getRandomInt(SPAWN_INTERVAL[type].min, SPAWN_INTERVAL[type].max);
 };
 
 var spawnObjects = function spawnObjects(entities, _ref2) {
@@ -54946,35 +55089,44 @@ var spawnObjects = function spawnObjects(entities, _ref2) {
   var system = world.system,
       occlusions = world.occlusions;
   var occludingObjects = skyObjects.occludingObjects,
-      dynamicObjects = skyObjects.dynamicObjects;
+      timedObjects = skyObjects.timedObjects,
+      movingObjects = skyObjects.movingObjects;
   var objectTypes = {
     cloud: 'occlusion',
     airplane: 'occlusion',
-    supernova: 'dynamicObject'
+    supernova: 'timedObject',
+    asteroid: 'dynamicObject',
+    comet: 'dynamicObject'
   };
   var objects = {
     occlusion: occludingObjects,
-    dynamicObject: dynamicObjects
+    timedObject: timedObjects,
+    dynamicObject: movingObjects
   };
   var physics = {
     occlusion: occlusions,
+    timedObject: system,
     dynamicObject: system
   };
   var spawners = {
-    occlusion: spawnOcclusion,
-    dynamicObject: spawnObject
+    occlusion: spawnDynamicObject,
+    dynamicObject: spawnDynamicObject,
+    timedObject: spawnObject
   };
   var event = {
     occlusion: 'spawnedOcclusion',
+    timedObject: 'spawnedObject',
     dynamicObject: 'spawnedObject'
   };
 
   if (stage === 'running') {
-    Object.keys(nextSpawn).forEach(function (object) {
-      if (nextSpawn[object] < current - startTime) {
+    Object.keys(nextSpawn).forEach(function (group) {
+      if (nextSpawn[group] < current - startTime) {
+        var weights = WEIGHTS_SPAWN[group];
+        var object = getRandomWeightedValue(weights);
         var objectType = objectTypes[object];
         var spawner = spawners[objectType];
-        spawner(object, objects[objectType], physics[objectType], state, current);
+        spawner(object, objects[objectType], physics[objectType], state, group, current);
         dispatch({
           type: event[objectType]
         });
@@ -54985,62 +55137,16 @@ var spawnObjects = function spawnObjects(entities, _ref2) {
   return entities;
 };
 
-var moveOccludingObjects = function moveOccludingObjects(entities) {
-  var skyObjects = entities.skyObjects,
-      state = entities.state;
-  var stage = state.stage;
-  var occludingObjects = skyObjects.occludingObjects;
-
-  if (stage !== 'menu' && occludingObjects.length > 0) {
-    occludingObjects.forEach(function (object) {
-      var _object$delta = object.delta,
-          deltaX = _object$delta.x,
-          deltaY = _object$delta.y;
-      var _object$physics = object.physics,
-          x = _object$physics.x,
-          y = _object$physics.y;
-      object.physics.setPosition(x + deltaX, y + deltaY);
-    });
-  }
-
-  return entities;
-};
-
-var cullOccludingObjects = function cullOccludingObjects(entities) {
-  var skyObjects = entities.skyObjects,
-      world = entities.world;
-  var occlusions = world.occlusions;
-  var occludingObjects = skyObjects.occludingObjects;
-
-  if (occludingObjects.length > 0) {
-    var remainingObjects = occludingObjects.filter(function (object) {
-      var xOffset = object.xOffset,
-          yOffset = object.yOffset;
-      var _object$physics2 = object.physics,
-          x = _object$physics2.x,
-          y = _object$physics2.y;
-
-      if (x >= 0 - xOffset && x <= 100 + xOffset && y >= 0 - yOffset && y <= 100 + yOffset) {
-        return true;
-      }
-
-      occlusions.remove(object.physics);
-      return true;
-    });
-    return _extends({}, entities, {
-      skyObjects: _extends({}, skyObjects, {
-        occludingObjects: remainingObjects
-      })
-    });
-  }
-
-  return entities;
+var stopAllAudio = function stopAllAudio(audio) {
+  Object.keys(audio).forEach(function (key) {
+    audio[key].stop();
+  });
 };
 
 var audioHandler = function audioHandler(entities, _ref) {
   var events = _ref.events;
   var event = events.find(function (e) {
-    return e.type === 'gameStart' || e.type === 'timeStart' || e.type === 'dawn' || e.type === 'timeEnd' || e.type === 'cameraExposing' || e.type === 'scoreUpdate' || e.type === 'cameraExposureEnd' || e.type === 'cameraMoving';
+    return e.type === 'gameStart' || e.type === 'timeStart' || e.type === 'timeEnd' || e.type === 'cameraExposing' || e.type === 'scoreUpdate' || e.type === 'cameraExposureEnd' || e.type === 'cameraMoving' || e.type === 'quit' || e.type === 'swapped';
   });
 
   if (event) {
@@ -55052,15 +55158,10 @@ var audioHandler = function audioHandler(entities, _ref) {
         break;
 
       case 'timeStart':
-        audio.background.play();
-        break;
-
-      case 'dawn':
-        audio.background.fade(1, 0, SUNRISE_DURATION);
+        audio.soundtrack.play('background');
         break;
 
       case 'timeEnd':
-        audio.background.stop();
         audio.moving.stop();
         break;
 
@@ -55087,13 +55188,22 @@ var audioHandler = function audioHandler(entities, _ref) {
         }
 
         break;
+
+      case 'quit':
+        stopAllAudio(audio);
+        audio.soundtrack.play('ambient');
+        break;
+
+      case 'swapped':
+        stopAllAudio(audio);
+        break;
     }
   }
 
   return entities;
 };
 
-var Systems = [onResize, onTimelineEvent, timeline, setCameraTarget, onTargetSet, onCameraMoving, onCameraExposing, onCameraExposureEnd, spawnObjects, cullSkyObjects, cullOccludingObjects, moveOccludingObjects, audioHandler];
+var Systems = [onResize, onTimelineEvent, timeline, setCameraTarget, onTargetSet, onCameraMoving, onCameraExposing, onCameraExposureEnd, spawnObjects, cullSkyObjects, cullDynamicObjects, moveDynamicObjects, audioHandler];
 var GameStageContainer = /*#__PURE__*/styled__default.div.attrs(function (_ref) {
   var aspectRatio = _ref.aspectRatio;
   return {
@@ -55273,6 +55383,8 @@ var SpaceSurveyors = function SpaceSurveyors() {
   });
 
   var handleMenuAction = function handleMenuAction(action) {
+    console.debug('menu', action);
+
     switch (action) {
       case 'start':
         setState(_extends({}, state, {
@@ -55284,7 +55396,10 @@ var SpaceSurveyors = function SpaceSurveyors() {
         break;
 
       case 'restart':
-        window.location.reload(false);
+        setState(_extends({}, state, {
+          score: Score$1()
+        }));
+        engine.current.swap(Entities(boundingRect, aspectRatio));
         break;
     }
   };
@@ -55295,6 +55410,10 @@ var SpaceSurveyors = function SpaceSurveyors() {
     console.debug(type);
 
     switch (type) {
+      case 'swapped':
+        handleMenuAction('start');
+        break;
+
       case 'showFinish':
         setState(_extends({}, state, {
           menu: 'finished'
@@ -55308,10 +55427,6 @@ var SpaceSurveyors = function SpaceSurveyors() {
         break;
 
       case 'quit':
-        engine.current.stop();
-        break;
-
-      case 'stopped':
         setState(_extends({}, state, {
           menu: 'summary'
         }));
@@ -55515,7 +55630,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "50559" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "54649" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
