@@ -19,9 +19,9 @@ export const MENU_SLIDE_DELAY: number = 200;
 export const MENU_TRANSITION_TIME: number = MENU_SLIDE_TIME + MENU_SLIDE_DELAY;
 
 // Camera
-export const MIN_CAMERA_MOVE: number = 0.2;
-export const CAMERA_MOVE: number = 0.3;
-export const MAX_CAMERA_MOVE: number = 0.4;
+export const MIN_CAMERA_MOVE: number = 0.16;
+export const CAMERA_MOVE: number = MIN_CAMERA_MOVE * 1.5;
+export const MAX_CAMERA_MOVE: number = MIN_CAMERA_MOVE * 2;
 export const EXPOSURE_TIME: number = 3500;
 
 // Collision
@@ -38,7 +38,7 @@ export const SPAWN_INTERVAL: any = {
     max: 10000,
   },
   dynamic: {
-    min: 4000,
+    min: 3000,
     max: 5000,
   },
 };
@@ -54,11 +54,9 @@ export const STATIC_ROWS: number = 2;
 export const STATIC_COLUMNS: number = 4;
 export const STATIC_CELLS: number = STATIC_ROWS * STATIC_COLUMNS;
 export const STATIC_OBJECTS_PER_CELL: number = 3;
-export const MAX_DYNAMIC_OBJECTS: number = 10;
-export const MAX_TIMED_OBJECTS: number = 10;
 export const FADE_TIME: number = 500;
+export * from '@constants/spawn';
 export * from '@constants/SkyObjectConfig';
 
-// Occlusions
-export const MAX_OCCLUDING_OBJECTS: number = 8;
+// Game Timeline
 export * from '@constants/timeline';

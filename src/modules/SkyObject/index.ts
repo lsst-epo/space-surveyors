@@ -10,6 +10,7 @@ import {
   getBrightness,
   getNewPosition,
   getScaledObjectSize,
+  getUuid,
 } from '../../utils';
 import { SkyObjectConfigs } from '@constants/index';
 import boundings from '@constants/objects/boundings';
@@ -22,6 +23,7 @@ export class SkyObject {
   public captured: boolean = false;
   public aspectRatio: number;
   public config: ObjectConfig | TimedObjectConfig | DynamicObjectConfig;
+  public uuid: string;
 
   constructor(
     type: SkyObjectType,
@@ -34,6 +36,7 @@ export class SkyObject {
     this.aspectRatio = aspectRatio;
     this.physics = this.getPhysics(type, this.width, aspectRatio, position);
     this.brightness = getBrightness(this.config.brightness);
+    this.uuid = getUuid();
   }
 
   private getPhysics = (

@@ -94,10 +94,6 @@ export class DynamicObject extends SkyObject {
       ? 0
       : round(getAngleBetweenPoints(this.physics.pos, this.endPosition)) +
         baseRotation;
-
-    if (this.type === 'comet') {
-      console.log(this.angle);
-    }
   };
 
   private getDelta = () => {

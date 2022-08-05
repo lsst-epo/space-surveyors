@@ -59,7 +59,7 @@ const Instructions = styled.ul`
   width: 800px;
   max-width: 100%;
   margin-bottom: 1em;
-  list-style-position: inside;
+  list-style: none;
 
   & > li {
     & > * {

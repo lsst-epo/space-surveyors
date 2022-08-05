@@ -5,7 +5,7 @@ import { TimedEvent } from '@shapes/event';
 // Durations
 export const GAME_DURATION: number = 60000;
 export const SUNRISE_DURATION: number = 10000;
-export const DAY_TRANSITION_DURATION: number = 2000;
+export const DAY_TRANSITION_DURATION: number = 500;
 export const FINISH_SCREEN_DURATION: number = 10000;
 
 // Starts
