@@ -52446,6 +52446,26 @@ function _objectWithoutPropertiesLoose(source, excluded) {
   return target;
 }
 
+var MAX_DYNAMIC_OBJECTS = 10;
+var MAX_TIMED_OBJECTS = 10;
+var MAX_OCCLUDING_OBJECTS = 8;
+var WEIGHTS_DYNAMIC = {
+  asteroid: 5,
+  comet: 1,
+  supernova: 10
+};
+var WEIGHTS_OCCLUSION = {
+  cloud: 4,
+  airplane: 1
+};
+var WEIGHTS_SPAWN = {
+  dynamic: WEIGHTS_DYNAMIC,
+  occlusion: WEIGHTS_OCCLUSION
+};
+var WEIGHTS_STATIC = {
+  star: 5,
+  galaxy: 2
+};
 var StarConfig = {
   brightness: {
     min: 0.5,
@@ -52577,23 +52597,6 @@ var CometConfig = {
   baseRotation: 25,
   onlyMovesHorizontal: false
 };
-var WEIGHTS_DYNAMIC = {
-  asteroid: 5,
-  comet: 2,
-  supernova: 10
-};
-var WEIGHTS_OCCLUSION = {
-  cloud: 4,
-  airplane: 1
-};
-var WEIGHTS_SPAWN = {
-  dynamic: WEIGHTS_DYNAMIC,
-  occlusion: WEIGHTS_OCCLUSION
-};
-var WEIGHTS_STATIC = {
-  star: 5,
-  galaxy: 2
-};
 var SkyObjectConfigs = {
   star: StarConfig,
   galaxy: GalaxyConfig,
@@ -52607,7 +52610,7 @@ var SkyObjectConfigs = {
 
 var GAME_DURATION = 60000;
 var SUNRISE_DURATION = 10000;
-var DAY_TRANSITION_DURATION = 2000;
+var DAY_TRANSITION_DURATION = 500;
 var FINISH_SCREEN_DURATION = 10000; // Starts
 
 var TIMER_START = 3500;
@@ -52638,9 +52641,9 @@ var MENU_SLIDE_TIME = 500;
 var MENU_SLIDE_DELAY = 200;
 var MENU_TRANSITION_TIME = MENU_SLIDE_TIME + MENU_SLIDE_DELAY; // Camera
 
-var MIN_CAMERA_MOVE = 0.2;
-var CAMERA_MOVE = 0.3;
-var MAX_CAMERA_MOVE = 0.4;
+var MIN_CAMERA_MOVE = 0.16;
+var CAMERA_MOVE = MIN_CAMERA_MOVE * 1.5;
+var MAX_CAMERA_MOVE = MIN_CAMERA_MOVE * 2;
 var EXPOSURE_TIME = 3500; // Collision
 
 var MIN_OVERLAP = 0.5; // Spawn
@@ -52655,7 +52658,7 @@ var SPAWN_INTERVAL = {
     max: 10000
   },
   dynamic: {
-    min: 4000,
+    min: 3000,
     max: 5000
   }
 }; // Sky Objects
@@ -52669,10 +52672,7 @@ var Y_RANGE = MAX_OBJECT_Y - MIN_OBJECT_Y;
 var STATIC_ROWS = 2;
 var STATIC_COLUMNS = 4;
 var STATIC_OBJECTS_PER_CELL = 3;
-var MAX_DYNAMIC_OBJECTS = 10;
-var MAX_TIMED_OBJECTS = 10;
 var FADE_TIME = 500;
-var MAX_OCCLUDING_OBJECTS = 8;
 var SpaceSurveyorsContainer = /*#__PURE__*/styled__default.div.withConfig({
   displayName: "SpaceSurveyorsContainer",
   componentId: "space-surveyors__sc-1a2ov4u-0"
@@ -52920,6 +52920,10 @@ var getBrightness = function getBrightness(brightnessDefinition) {
 
     return getRandomDecimal(_min, _max);
   }
+};
+
+var getUuid = function getUuid() {
+  return random.uuid4();
 };
 
 var getScaledObjectSize = function getScaledObjectSize(sizeConfig, aspectRatio) {
@@ -53254,7 +53258,7 @@ var FundingLogos = /*#__PURE__*/styled__default.img.withConfig({
 var Instructions = /*#__PURE__*/styled__default.ul.withConfig({
   displayName: "Landing__Instructions",
   componentId: "space-surveyors__sc-1iua8gw-6"
-})(["font-size:1.5em;width:800px;max-width:100%;margin-bottom:1em;list-style-position:inside;& > li{& > *{margin-top:1em;}}& > li + li{margin-top:1em;}"]);
+})(["font-size:1.5em;width:800px;max-width:100%;margin-bottom:1em;list-style:none;& > li{& > *{margin-top:1em;}}& > li + li{margin-top:1em;}"]);
 var icons$1 = {
   star: 'Stars',
   galaxy: 'Galaxies',
@@ -53535,7 +53539,7 @@ var Backdrop = function Backdrop(_ref) {
 };
 
 var sunriseMask = /*#__PURE__*/styled.keyframes(["0%{mask-position:0% 0%;}85%{opacity:1;}100%{opacity:0;mask-position:0% 200%;}"]);
-var sunriseColors = /*#__PURE__*/styled.keyframes(["0%{background-color:#fa6868;}50%{background-color:#cf4040;}75%{background-color:#ffdb78;}100%{background-color:#5db8e8;}"]);
+var sunriseColors = /*#__PURE__*/styled.keyframes(["0%{background-color:#fa6868;}50%{background-color:#cf4040;}75%{background-color:#fce7ae;}100%{background-color:#5db8e8;}"]);
 var BackdropContainer = /*#__PURE__*/styled__default.div.withConfig({
   displayName: "Backdrop__BackdropContainer",
   componentId: "space-surveyors__sc-jnzfui-0"
@@ -53951,9 +53955,10 @@ var NightSkyRenderer = function NightSkyRenderer(_ref) {
       fade = _ref.fade,
       showSunrise = _ref.showSunrise;
 
-  var renderOccludingObjects = function renderOccludingObjects(object, i) {
+  var renderOccludingObjects = function renderOccludingObjects(object) {
     var width = object.width,
-        angle = object.angle;
+        angle = object.angle,
+        uuid = object.uuid;
     var _object$physics = object.physics,
         x = _object$physics.x,
         y = _object$physics.y;
@@ -53964,15 +53969,16 @@ var NightSkyRenderer = function NightSkyRenderer(_ref) {
       angle: angle,
       width: width + "%",
       variant: showSunrise ? 'day' : 'night'
-    }, object.type + "-" + width + "-" + i);
+    }, uuid);
   };
 
-  var renderSkyObjects = function renderSkyObjects(object, i) {
+  var renderSkyObjects = function renderSkyObjects(object) {
     var width = object.width,
         brightness = object.brightness,
         captured = object.captured,
         fadeIn = object.fadeIn,
-        angle = object.angle;
+        angle = object.angle,
+        uuid = object.uuid;
     var _object$physics2 = object.physics,
         x = _object$physics2.x,
         y = _object$physics2.y;
@@ -53988,7 +53994,7 @@ var NightSkyRenderer = function NightSkyRenderer(_ref) {
       $fadeIn: fade
     } : {
       $fadeOut: fade
-    })), object.type + "-" + width + "-" + i);
+    })), uuid);
   };
 
   return /*#__PURE__*/jsxRuntime.jsxs(NightSkyContainer, {
@@ -54197,6 +54203,7 @@ var SkyObject = function SkyObject(type, aspectRatio, position) {
   this.aspectRatio = aspectRatio;
   this.physics = this.getPhysics(type, this.width, aspectRatio, position);
   this.brightness = getBrightness(this.config.brightness);
+  this.uuid = getUuid();
 };
 
 var SkyObjects = /*#__PURE__*/function () {
@@ -54899,10 +54906,6 @@ var DynamicObject = /*#__PURE__*/function (_SkyObject) {
       }
 
       _this.angle = onlyMovesHorizontal ? 0 : round(getAngleBetweenPoints(_this.physics.pos, _this.endPosition)) + baseRotation;
-
-      if (_this.type === 'comet') {
-        console.log(_this.angle);
-      }
     };
 
     _this.getDelta = function () {
@@ -55630,7 +55633,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "54649" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "52594" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
