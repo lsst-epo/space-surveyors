@@ -138,9 +138,6 @@ export const getBrightness = (
   }
 };
 
-export const getColor = (config: WeightedOptions): string =>
-  `#${getRandomWeightedValue(config)}`;
-
 export const getUuid = (): string => random.uuid4();
 
 export const getScaledObjectSize = (
@@ -165,9 +162,7 @@ export const getScaledObjectSize = (
 
     const scaledSize: number = round(size / aspectRatio);
 
-    return target
-      ? Math.min(Math.max(scaledSize, min), max)
-      : Math.max(scaledSize, min);
+    return target ? Math.min(Math.max(scaledSize, min), max) : scaledSize;
   }
 };
 
