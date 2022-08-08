@@ -52459,7 +52459,7 @@ var WEIGHTS_OCCLUSION = {
   airplane: 1
 };
 var WEIGHTS_SPAWN = {
-  dynamic: WEIGHTS_DYNAMIC,
+  observable: WEIGHTS_DYNAMIC,
   occlusion: WEIGHTS_OCCLUSION
 };
 var WEIGHTS_STATIC = {
@@ -52468,12 +52468,19 @@ var WEIGHTS_STATIC = {
 };
 var StarConfig = {
   brightness: {
-    min: 0.5,
-    max: 1
+    bins: [[0.0, 0.33], [0.34, 0.66], [0.67, 1]],
+    weights: [0.34, 0.39, 0.17]
   },
   size: {
-    min: 0.75,
-    max: 2.5
+    bins: [[1, 1.4], [1.4, 1.8], [1.8, 2.2]],
+    weights: [0.34, 0.39, 0.17]
+  },
+  color: {
+    caeff2: 0.01,
+    d2e5ee: 0.61,
+    fff: 0.17,
+    f3ecc9: 0.15,
+    f4e1c3: 0.04
   }
 };
 var GalaxyConfig = {
@@ -52650,14 +52657,14 @@ var MIN_OVERLAP = 0.5; // Spawn
 
 var FIRST_SPAWN = {
   occlusion: 0,
-  dynamic: 1000
+  observable: 1000
 };
 var SPAWN_INTERVAL = {
   occlusion: {
     min: 5000,
     max: 10000
   },
-  dynamic: {
+  observable: {
     min: 3000,
     max: 5000
   }
@@ -52671,7 +52678,7 @@ var X_RANGE = MAX_OBJECT_X - MIN_OBJECT_X;
 var Y_RANGE = MAX_OBJECT_Y - MIN_OBJECT_Y;
 var STATIC_ROWS = 2;
 var STATIC_COLUMNS = 4;
-var STATIC_OBJECTS_PER_CELL = 3;
+var STATIC_OBJECTS_PER_CELL = 4;
 var FADE_TIME = 500;
 var SpaceSurveyorsContainer = /*#__PURE__*/styled__default.div.withConfig({
   displayName: "SpaceSurveyorsContainer",
@@ -52922,6 +52929,10 @@ var getBrightness = function getBrightness(brightnessDefinition) {
   }
 };
 
+var getColor = function getColor(config) {
+  return "#" + getRandomWeightedValue(config);
+};
+
 var getUuid = function getUuid() {
   return random.uuid4();
 };
@@ -53111,14 +53122,15 @@ var SkyObjectAttrs = function SkyObjectAttrs(_ref3) {
   var x = _ref3.x,
       y = _ref3.y,
       $captured = _ref3.$captured,
-      brightness = _ref3.brightness;
+      brightness = _ref3.brightness,
+      color = _ref3.color;
   return {
     style: _extends({
       left: x + "%",
       top: y + "%",
       opacity: $captured && brightness > 0 ? 0.85 : brightness
-    }, $captured && {
-      color: 'var(--yellow)'
+    }, ($captured || color) && {
+      color: $captured ? 'var(--yellow)' : color
     })
   };
 };
@@ -53293,9 +53305,11 @@ var LandingMenu = function LandingMenu(_ref) {
       })]
     }), /*#__PURE__*/jsxRuntime.jsxs(Instructions, {
       children: [/*#__PURE__*/jsxRuntime.jsxs("li", {
-        children: ["In Space Surveyors you will have", ' ', /*#__PURE__*/jsxRuntime.jsx("strong", {
-          children: convertMsToTime(GAME_DURATION)
-        }), " before the night ends to survey as many objects as possible. Look for these objects:", /*#__PURE__*/jsxRuntime.jsx(IconLegend, {
+        children: [/*#__PURE__*/jsxRuntime.jsxs("p", {
+          children: ["In Space Surveyors you will have", ' ', /*#__PURE__*/jsxRuntime.jsx("strong", {
+            children: convertMsToTime(GAME_DURATION)
+          }), " before the night ends to survey as many objects as possible. Look for these objects:"]
+        }), /*#__PURE__*/jsxRuntime.jsx(IconLegend, {
           children: Object.keys(icons$1).map(function (i) {
             return /*#__PURE__*/jsxRuntime.jsxs(IconItem, {
               children: [/*#__PURE__*/jsxRuntime.jsx(IconContainer, {
@@ -53305,6 +53319,10 @@ var LandingMenu = function LandingMenu(_ref) {
                 })
               }), icons$1[i]]
             }, i);
+          })
+        }), /*#__PURE__*/jsxRuntime.jsx("p", {
+          children: /*#__PURE__*/jsxRuntime.jsx("strong", {
+            children: "Objects may be very small or faint in the night sky, how can you optimize finding these difficult to see objects?"
           })
         })]
       }), /*#__PURE__*/jsxRuntime.jsxs("li", {
@@ -53978,7 +53996,8 @@ var NightSkyRenderer = function NightSkyRenderer(_ref) {
         captured = object.captured,
         fadeIn = object.fadeIn,
         angle = object.angle,
-        uuid = object.uuid;
+        uuid = object.uuid,
+        color = object.color;
     var _object$physics2 = object.physics,
         x = _object$physics2.x,
         y = _object$physics2.y;
@@ -53989,7 +54008,8 @@ var NightSkyRenderer = function NightSkyRenderer(_ref) {
       x: x,
       y: y,
       width: width + "%",
-      angle: angle
+      angle: angle,
+      color: color
     }, fadeIn ? {
       $fadeIn: fade
     } : {
@@ -54203,6 +54223,7 @@ var SkyObject = function SkyObject(type, aspectRatio, position) {
   this.aspectRatio = aspectRatio;
   this.physics = this.getPhysics(type, this.width, aspectRatio, position);
   this.brightness = getBrightness(this.config.brightness);
+  this.color = this.config.color ? getColor(this.config.color) : null;
   this.uuid = getUuid();
 };
 
@@ -54945,108 +54966,22 @@ var DynamicObject = /*#__PURE__*/function (_SkyObject) {
   return DynamicObject;
 }(SkyObject);
 
-var moveDynamicObject = function moveDynamicObject(object) {
-  var _object$delta = object.delta,
-      deltaX = _object$delta.x,
-      deltaY = _object$delta.y;
-  var _object$physics = object.physics,
-      x = _object$physics.x,
-      y = _object$physics.y;
-  object.physics.setPosition(x + deltaX, y + deltaY);
-};
-
-var isInsideBounds = function isInsideBounds(object) {
-  var xOffset = object.xOffset,
-      yOffset = object.yOffset;
-  var _object$physics2 = object.physics,
-      x = _object$physics2.x,
-      y = _object$physics2.y;
-
-  if (x >= 0 - xOffset && x <= 100 + xOffset && y >= 0 - yOffset && y <= 100 + yOffset) {
-    return true;
-  }
-
-  return false;
-};
-
-var spawnDynamicObject = function spawnDynamicObject(type, objects, system, state, group) {
+var spawnObject = function spawnObject(type, objects, system, state, group, timestamp) {
   var rateLimit = {
     cloud: MAX_OCCLUDING_OBJECTS,
     airplane: MAX_OCCLUDING_OBJECTS,
     asteroid: MAX_DYNAMIC_OBJECTS,
-    comet: MAX_DYNAMIC_OBJECTS
+    comet: MAX_DYNAMIC_OBJECTS,
+    supernova: MAX_TIMED_OBJECTS
   };
 
   if (objects.length < rateLimit[type]) {
     var aspectRatio = state.aspectRatio;
-    var newOcclusion = new DynamicObject(type, aspectRatio);
-    objects.push(newOcclusion);
-    system.insert(newOcclusion.physics);
-  }
-
-  state.nextSpawn[group] += getRandomInt(SPAWN_INTERVAL[group].min, SPAWN_INTERVAL[group].max);
-};
-
-var moveDynamicObjects = function moveDynamicObjects(entities) {
-  var skyObjects = entities.skyObjects,
-      state = entities.state;
-  var stage = state.stage;
-  var occludingObjects = skyObjects.occludingObjects,
-      movingObjects = skyObjects.movingObjects;
-
-  if (stage !== 'menu' && (occludingObjects.length > 0 || movingObjects.length > 0)) {
-    occludingObjects.forEach(moveDynamicObject);
-    movingObjects.forEach(moveDynamicObject);
-  }
-
-  return entities;
-};
-
-var cullDynamicObjects = function cullDynamicObjects(entities) {
-  var skyObjects = entities.skyObjects,
-      world = entities.world;
-  var occlusions = world.occlusions,
-      system = world.system;
-  var occludingObjects = skyObjects.occludingObjects,
-      movingObjects = skyObjects.movingObjects;
-
-  if (occludingObjects.length > 0 || movingObjects.length > 0) {
-    var remainingOccludingObjects = occludingObjects.filter(function (object) {
-      if (isInsideBounds(object)) {
-        return true;
-      }
-
-      occlusions.remove(object.physics);
-      return false;
-    });
-    var remainingMovingObjects = movingObjects.filter(function (object) {
-      if (isInsideBounds(object)) {
-        return true;
-      }
-
-      system.remove(object.physics);
-      return false;
-    });
-    return _extends({}, entities, {
-      skyObjects: _extends({}, skyObjects, {
-        occludingObjects: remainingOccludingObjects,
-        movingObjects: remainingMovingObjects
-      })
-    });
-  }
-
-  return entities;
-};
-
-var spawnObject = function spawnObject(type, objects, system, state, group, timestamp) {
-  if (objects.length < MAX_TIMED_OBJECTS) {
-    var aspectRatio = state.aspectRatio;
-    var newObject = new TimedSkyObject(type, timestamp, aspectRatio);
+    var newObject = type === 'supernova' ? new TimedSkyObject(type, timestamp, aspectRatio) : new DynamicObject(type, aspectRatio);
     objects.push(newObject);
     system.insert(newObject.physics);
+    state.nextSpawn[group] += getRandomInt(SPAWN_INTERVAL[group].min, SPAWN_INTERVAL[group].max);
   }
-
-  state.nextSpawn[group] += getRandomInt(SPAWN_INTERVAL[group].min, SPAWN_INTERVAL[group].max);
 };
 
 var prepareExpiringObjects = function prepareExpiringObjects(object, currentTime) {
@@ -55111,11 +55046,6 @@ var spawnObjects = function spawnObjects(entities, _ref2) {
     timedObject: system,
     dynamicObject: system
   };
-  var spawners = {
-    occlusion: spawnDynamicObject,
-    dynamicObject: spawnDynamicObject,
-    timedObject: spawnObject
-  };
   var event = {
     occlusion: 'spawnedOcclusion',
     timedObject: 'spawnedObject',
@@ -55128,12 +55058,86 @@ var spawnObjects = function spawnObjects(entities, _ref2) {
         var weights = WEIGHTS_SPAWN[group];
         var object = getRandomWeightedValue(weights);
         var objectType = objectTypes[object];
-        var spawner = spawners[objectType];
-        spawner(object, objects[objectType], physics[objectType], state, group, current);
+        spawnObject(object, objects[objectType], physics[objectType], state, group, current);
         dispatch({
           type: event[objectType]
         });
       }
+    });
+  }
+
+  return entities;
+};
+
+var moveDynamicObject = function moveDynamicObject(object) {
+  var _object$delta = object.delta,
+      deltaX = _object$delta.x,
+      deltaY = _object$delta.y;
+  var _object$physics = object.physics,
+      x = _object$physics.x,
+      y = _object$physics.y;
+  object.physics.setPosition(x + deltaX, y + deltaY);
+};
+
+var isInsideBounds = function isInsideBounds(object) {
+  var xOffset = object.xOffset,
+      yOffset = object.yOffset;
+  var _object$physics2 = object.physics,
+      x = _object$physics2.x,
+      y = _object$physics2.y;
+
+  if (x >= 0 - xOffset && x <= 100 + xOffset && y >= 0 - yOffset && y <= 100 + yOffset) {
+    return true;
+  }
+
+  return false;
+};
+
+var moveDynamicObjects = function moveDynamicObjects(entities) {
+  var skyObjects = entities.skyObjects,
+      state = entities.state;
+  var stage = state.stage;
+  var occludingObjects = skyObjects.occludingObjects,
+      movingObjects = skyObjects.movingObjects;
+
+  if (stage !== 'menu' && (occludingObjects.length > 0 || movingObjects.length > 0)) {
+    occludingObjects.forEach(moveDynamicObject);
+    movingObjects.forEach(moveDynamicObject);
+  }
+
+  return entities;
+};
+
+var cullDynamicObjects = function cullDynamicObjects(entities) {
+  var skyObjects = entities.skyObjects,
+      world = entities.world;
+  var occlusions = world.occlusions,
+      system = world.system;
+  var occludingObjects = skyObjects.occludingObjects,
+      movingObjects = skyObjects.movingObjects;
+
+  if (occludingObjects.length > 0 || movingObjects.length > 0) {
+    var remainingOccludingObjects = occludingObjects.filter(function (object) {
+      if (isInsideBounds(object)) {
+        return true;
+      }
+
+      occlusions.remove(object.physics);
+      return false;
+    });
+    var remainingMovingObjects = movingObjects.filter(function (object) {
+      if (isInsideBounds(object)) {
+        return true;
+      }
+
+      system.remove(object.physics);
+      return false;
+    });
+    return _extends({}, entities, {
+      skyObjects: _extends({}, skyObjects, {
+        occludingObjects: remainingOccludingObjects,
+        movingObjects: remainingMovingObjects
+      })
     });
   }
 
@@ -55633,7 +55637,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "52594" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "60374" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
