@@ -12,9 +12,13 @@ import AsteroidConfig from '@constants/objects/asteroid';
 import CometConfig from '@constants/objects/comet';
 
 export const SkyObjectConfigs: {
-  [key: string]: ObjectConfig | TimedObjectConfig | DynamicObjectConfig;
+  [key: string]:
+    | ObjectConfig
+    | TimedObjectConfig
+    | DynamicObjectConfig
+    | (() => ObjectConfig | TimedObjectConfig | DynamicObjectConfig);
 } = {
-  star: StarConfig,
+  star: () => StarConfig(),
   galaxy: GalaxyConfig,
   supernova: SupernovaConfig,
   cloud: CloudConfig,

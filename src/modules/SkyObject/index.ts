@@ -8,7 +8,6 @@ import {
 import { Polygon, Ellipse } from 'detect-collisions';
 import {
   getBrightness,
-  getColor,
   getNewPosition,
   getScaledObjectSize,
   getUuid,
@@ -33,14 +32,26 @@ export class SkyObject {
     position?: GamePosition
   ) {
     this.type = type;
-    this.config = SkyObjectConfigs[type];
+    this.config = this.getConfig(this.type);
     this.width = getScaledObjectSize(this.config.size, aspectRatio);
     this.aspectRatio = aspectRatio;
     this.physics = this.getPhysics(type, this.width, aspectRatio, position);
     this.brightness = getBrightness(this.config.brightness);
-    this.color = this.config.color ? getColor(this.config.color) : null;
+    this.color = this.config.color || null;
     this.uuid = getUuid();
   }
+
+  private getConfig = (
+    type: SkyObjectType
+  ): ObjectConfig | TimedObjectConfig | DynamicObjectConfig => {
+    const config = SkyObjectConfigs[type];
+
+    if (typeof config === 'function') {
+      return config();
+    }
+
+    return config;
+  };
 
   private getPhysics = (
     type: SkyObjectType,
