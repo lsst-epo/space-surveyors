@@ -8,6 +8,7 @@ import {
 import { Polygon, Ellipse } from 'detect-collisions';
 import {
   getBrightness,
+  getColor,
   getNewPosition,
   getScaledObjectSize,
   getUuid,
@@ -22,6 +23,7 @@ export class SkyObject {
   public physics: Polygon | Ellipse;
   public captured: boolean = false;
   public aspectRatio: number;
+  public color: string | null;
   public config: ObjectConfig | TimedObjectConfig | DynamicObjectConfig;
   public uuid: string;
 
@@ -36,6 +38,7 @@ export class SkyObject {
     this.aspectRatio = aspectRatio;
     this.physics = this.getPhysics(type, this.width, aspectRatio, position);
     this.brightness = getBrightness(this.config.brightness);
+    this.color = this.config.color ? getColor(this.config.color) : null;
     this.uuid = getUuid();
   }
 

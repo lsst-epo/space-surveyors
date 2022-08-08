@@ -1,4 +1,10 @@
-import { Edge, RangedValue, TargetedRangedValue, WeightedBins } from '.';
+import {
+  Edge,
+  RangedValue,
+  TargetedRangedValue,
+  WeightedBins,
+  WeightedOptions,
+} from '.';
 
 export type SkyObjectType =
   | 'star'
@@ -9,6 +15,7 @@ export type SkyObjectType =
   | 'cloud';
 
 export interface ObjectConfig {
+  color?: WeightedOptions;
   brightness: RangedValue | WeightedBins;
   size: RangedValue | WeightedBins;
 }

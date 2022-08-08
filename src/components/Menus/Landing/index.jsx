@@ -95,9 +95,11 @@ const LandingMenu = ({ onMenuAction }) => {
       </TitleBar>
       <Instructions>
         <li>
-          In Space Surveyors you will have{' '}
-          <strong>{convertMsToTime(GAME_DURATION)}</strong> before the night
-          ends to survey as many objects as possible. Look for these objects:
+          <p>
+            In Space Surveyors you will have{' '}
+            <strong>{convertMsToTime(GAME_DURATION)}</strong> before the night
+            ends to survey as many objects as possible. Look for these objects:
+          </p>
           <IconLegend>
             {Object.keys(icons).map((i) => (
               <IconItem key={i}>
@@ -108,6 +110,12 @@ const LandingMenu = ({ onMenuAction }) => {
               </IconItem>
             ))}
           </IconLegend>
+          <p>
+            <strong>
+              Objects may be very small or faint in the night sky, how can you
+              optimize finding these difficult to see objects?
+            </strong>
+          </p>
         </li>
         <li>
           When the timer starts, click or tap anywhere on the screen to move the
