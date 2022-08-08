@@ -38,7 +38,7 @@ const NightSkyRenderer = ({
     );
   };
   const renderSkyObjects = (object) => {
-    const { width, brightness, captured, fadeIn, angle, uuid } = object;
+    const { width, brightness, captured, fadeIn, angle, uuid, color } = object;
     const { x, y } = object.physics;
     const Object = Objects[object.type];
 
@@ -52,6 +52,7 @@ const NightSkyRenderer = ({
           y,
           width: `${width}%`,
           angle,
+          color,
           ...(fadeIn ? { $fadeIn: fade } : { $fadeOut: fade }),
         }}
       />

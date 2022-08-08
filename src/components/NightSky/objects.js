@@ -31,12 +31,12 @@ const SkyObjectBase = css`
   ${({ $fadeIn }) => ($fadeIn ? fadeInAnimation : '')}
 `;
 
-const SkyObjectAttrs = ({ width, x, y, $captured, brightness }) => ({
+const SkyObjectAttrs = ({ width, x, y, $captured, brightness, color }) => ({
   style: {
     left: `${x}%`,
     top: `${y}%`,
     opacity: $captured && brightness > 0 ? 0.85 : brightness,
-    ...($captured && { color: 'var(--yellow)' }),
+    ...(($captured || color) && { color: $captured ? 'var(--yellow)' : color }),
   },
 });
 

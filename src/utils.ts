@@ -138,6 +138,9 @@ export const getBrightness = (
   }
 };
 
+export const getColor = (config: WeightedOptions): string =>
+  `#${getRandomWeightedValue(config)}`;
+
 export const getUuid = (): string => random.uuid4();
 
 export const getScaledObjectSize = (

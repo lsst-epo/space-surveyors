@@ -53,7 +53,7 @@ export const Y_RANGE: number = MAX_OBJECT_Y - MIN_OBJECT_Y;
 export const STATIC_ROWS: number = 2;
 export const STATIC_COLUMNS: number = 4;
 export const STATIC_CELLS: number = STATIC_ROWS * STATIC_COLUMNS;
-export const STATIC_OBJECTS_PER_CELL: number = 3;
+export const STATIC_OBJECTS_PER_CELL: number = 4;
 export const FADE_TIME: number = 500;
 export * from '@constants/spawn';
 export * from '@constants/SkyObjectConfig';
