@@ -16,7 +16,7 @@ export const WEIGHTS_OCCLUSION: WeightedOptions = {
 };
 
 export const WEIGHTS_SPAWN = {
-  dynamic: WEIGHTS_DYNAMIC,
+  observable: WEIGHTS_DYNAMIC,
   occlusion: WEIGHTS_OCCLUSION,
 };
 

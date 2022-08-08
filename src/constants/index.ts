@@ -30,14 +30,14 @@ export const MIN_OVERLAP: number = 0.5;
 // Spawn
 export const FIRST_SPAWN: any = {
   occlusion: 0,
-  dynamic: 1000,
+  observable: 1000,
 };
 export const SPAWN_INTERVAL: any = {
   occlusion: {
     min: 5000,
     max: 10000,
   },
-  dynamic: {
+  observable: {
     min: 3000,
     max: 5000,
   },
