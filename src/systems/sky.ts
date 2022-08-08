@@ -1,6 +1,8 @@
 import { GameSystem, GameState, SkyObjectType } from '@shapes/index';
 import {
   FADE_TIME,
+  MAX_DYNAMIC_OBJECTS,
+  MAX_OCCLUDING_OBJECTS,
   MAX_TIMED_OBJECTS,
   SPAWN_INTERVAL,
   WEIGHTS_SPAWN,
@@ -8,27 +10,39 @@ import {
 import { getRandomInt, getRandomWeightedValue } from '../utils';
 import { System } from 'detect-collisions';
 import { TimedSkyObject } from '@modules/TimedSkyObject';
-import { spawnDynamicObject } from '@systems/dynamicObjects';
+import { DynamicObject } from '@modules/DynamicObject';
 
 const spawnObject = (
   type: SkyObjectType,
-  objects: TimedSkyObject[],
+  objects: Array<TimedSkyObject | DynamicObject>,
   system: System,
   state: GameState,
   group: string,
   timestamp: number
 ) => {
-  if (objects.length < MAX_TIMED_OBJECTS) {
+  const rateLimit = {
+    cloud: MAX_OCCLUDING_OBJECTS,
+    airplane: MAX_OCCLUDING_OBJECTS,
+    asteroid: MAX_DYNAMIC_OBJECTS,
+    comet: MAX_DYNAMIC_OBJECTS,
+    supernova: MAX_TIMED_OBJECTS,
+  };
+
+  if (objects.length < rateLimit[type]) {
     const { aspectRatio } = state;
-    const newObject = new TimedSkyObject(type, timestamp, aspectRatio);
+
+    let newObject =
+      type === 'supernova'
+        ? new TimedSkyObject(type, timestamp, aspectRatio)
+        : new DynamicObject(type, aspectRatio);
     objects.push(newObject);
     system.insert(newObject.physics);
-  }
 
-  state.nextSpawn[group] += getRandomInt(
-    SPAWN_INTERVAL[group].min,
-    SPAWN_INTERVAL[group].max
-  );
+    state.nextSpawn[group] += getRandomInt(
+      SPAWN_INTERVAL[group].min,
+      SPAWN_INTERVAL[group].max
+    );
+  }
 };
 
 const prepareExpiringObjects = (
@@ -92,12 +106,6 @@ export const spawnObjects: GameSystem = (entities, { dispatch, time }) => {
     dynamicObject: system,
   };
 
-  const spawners = {
-    occlusion: spawnDynamicObject,
-    dynamicObject: spawnDynamicObject,
-    timedObject: spawnObject,
-  };
-
   const event = {
     occlusion: 'spawnedOcclusion',
     timedObject: 'spawnedObject',
@@ -110,9 +118,8 @@ export const spawnObjects: GameSystem = (entities, { dispatch, time }) => {
         const weights = WEIGHTS_SPAWN[group];
         const object = getRandomWeightedValue(weights) as SkyObjectType;
         const objectType = objectTypes[object];
-        const spawner = spawners[objectType];
-        spawner(
-          object as SkyObjectType,
+        spawnObject(
+          object,
           objects[objectType],
           physics[objectType],
           state,
