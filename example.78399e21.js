@@ -46724,7 +46724,165 @@ function (_super) {
 
 var _default = InlineSVG;
 exports.default = _default;
-},{"react":"../node_modules/react/index.js","react-from-dom":"../node_modules/react-from-dom/esm/index.js","./helpers":"../node_modules/react-inlinesvg/esm/helpers.js","./types":"../node_modules/react-inlinesvg/esm/types.js"}],"../node_modules/sat/SAT.js":[function(require,module,exports) {
+},{"react":"../node_modules/react/index.js","react-from-dom":"../node_modules/react-from-dom/esm/index.js","./helpers":"../node_modules/react-inlinesvg/esm/helpers.js","./types":"../node_modules/react-inlinesvg/esm/types.js"}],"../node_modules/toggle-selection/index.js":[function(require,module,exports) {
+
+module.exports = function () {
+  var selection = document.getSelection();
+  if (!selection.rangeCount) {
+    return function () {};
+  }
+  var active = document.activeElement;
+
+  var ranges = [];
+  for (var i = 0; i < selection.rangeCount; i++) {
+    ranges.push(selection.getRangeAt(i));
+  }
+
+  switch (active.tagName.toUpperCase()) { // .toUpperCase handles XHTML
+    case 'INPUT':
+    case 'TEXTAREA':
+      active.blur();
+      break;
+
+    default:
+      active = null;
+      break;
+  }
+
+  selection.removeAllRanges();
+  return function () {
+    selection.type === 'Caret' &&
+    selection.removeAllRanges();
+
+    if (!selection.rangeCount) {
+      ranges.forEach(function(range) {
+        selection.addRange(range);
+      });
+    }
+
+    active &&
+    active.focus();
+  };
+};
+
+},{}],"../node_modules/copy-to-clipboard/index.js":[function(require,module,exports) {
+"use strict";
+
+var deselectCurrent = require("toggle-selection");
+
+var clipboardToIE11Formatting = {
+  "text/plain": "Text",
+  "text/html": "Url",
+  "default": "Text"
+}
+
+var defaultMessage = "Copy to clipboard: #{key}, Enter";
+
+function format(message) {
+  var copyKey = (/mac os x/i.test(navigator.userAgent) ? "⌘" : "Ctrl") + "+C";
+  return message.replace(/#{\s*key\s*}/g, copyKey);
+}
+
+function copy(text, options) {
+  var debug,
+    message,
+    reselectPrevious,
+    range,
+    selection,
+    mark,
+    success = false;
+  if (!options) {
+    options = {};
+  }
+  debug = options.debug || false;
+  try {
+    reselectPrevious = deselectCurrent();
+
+    range = document.createRange();
+    selection = document.getSelection();
+
+    mark = document.createElement("span");
+    mark.textContent = text;
+    // avoid screen readers from reading out loud the text
+    mark.ariaHidden = "true"
+    // reset user styles for span element
+    mark.style.all = "unset";
+    // prevents scrolling to the end of the page
+    mark.style.position = "fixed";
+    mark.style.top = 0;
+    mark.style.clip = "rect(0, 0, 0, 0)";
+    // used to preserve spaces and line breaks
+    mark.style.whiteSpace = "pre";
+    // do not inherit user-select (it may be `none`)
+    mark.style.webkitUserSelect = "text";
+    mark.style.MozUserSelect = "text";
+    mark.style.msUserSelect = "text";
+    mark.style.userSelect = "text";
+    mark.addEventListener("copy", function(e) {
+      e.stopPropagation();
+      if (options.format) {
+        e.preventDefault();
+        if (typeof e.clipboardData === "undefined") { // IE 11
+          debug && console.warn("unable to use e.clipboardData");
+          debug && console.warn("trying IE specific stuff");
+          window.clipboardData.clearData();
+          var format = clipboardToIE11Formatting[options.format] || clipboardToIE11Formatting["default"]
+          window.clipboardData.setData(format, text);
+        } else { // all other browsers
+          e.clipboardData.clearData();
+          e.clipboardData.setData(options.format, text);
+        }
+      }
+      if (options.onCopy) {
+        e.preventDefault();
+        options.onCopy(e.clipboardData);
+      }
+    });
+
+    document.body.appendChild(mark);
+
+    range.selectNodeContents(mark);
+    selection.addRange(range);
+
+    var successful = document.execCommand("copy");
+    if (!successful) {
+      throw new Error("copy command was unsuccessful");
+    }
+    success = true;
+  } catch (err) {
+    debug && console.error("unable to copy using execCommand: ", err);
+    debug && console.warn("trying IE specific stuff");
+    try {
+      window.clipboardData.setData(options.format || "text", text);
+      options.onCopy && options.onCopy(window.clipboardData);
+      success = true;
+    } catch (err) {
+      debug && console.error("unable to copy using clipboardData: ", err);
+      debug && console.error("falling back to prompt");
+      message = format("message" in options ? options.message : defaultMessage);
+      window.prompt(message, text);
+    }
+  } finally {
+    if (selection) {
+      if (typeof selection.removeRange == "function") {
+        selection.removeRange(range);
+      } else {
+        selection.removeAllRanges();
+      }
+    }
+
+    if (mark) {
+      document.body.removeChild(mark);
+    }
+    reselectPrevious();
+  }
+
+  return success;
+}
+
+module.exports = copy;
+
+},{"toggle-selection":"../node_modules/toggle-selection/index.js"}],"../node_modules/sat/SAT.js":[function(require,module,exports) {
 var define;
 // Version 0.9.0 - Copyright 2012 - 2021 -  Jim Riecken <jimr@jimr.ca>
 //
@@ -51887,6 +52045,8 @@ var jsxRuntime = require('react/jsx-runtime');
 
 var SVG = _interopDefault(require('react-inlinesvg'));
 
+var copy = _interopDefault(require('copy-to-clipboard'));
+
 var detectCollisions = require('detect-collisions');
 
 var howler = require('howler');
@@ -52624,7 +52784,7 @@ var getScaledObjectSize = function getScaledObjectSize(sizeConfig, aspectRatio) 
 
     var _scaledSize = round(_size / aspectRatio);
 
-    return target ? Math.min(Math.max(_scaledSize, _min2), _max2) : _scaledSize;
+    return target ? Math.min(Math.max(_scaledSize, _min2), _max2) : Math.max(_scaledSize, _min2 * 0.75);
   }
 };
 
@@ -52729,8 +52889,8 @@ var AirplaneConfig = {
     max: 1
   },
   size: {
-    min: 3,
-    max: 3
+    min: 3.5,
+    max: 4.5
   },
   spawnEdge: {
     left: 1,
@@ -52739,9 +52899,9 @@ var AirplaneConfig = {
     bottom: 3
   },
   speed: {
-    min: 0.015,
-    target: 0.02,
-    max: 0.025
+    min: 0.025,
+    target: 0.03,
+    max: 0.035
   },
   baseRotation: 90,
   onlyMovesHorizontal: false
@@ -52762,9 +52922,9 @@ var AsteroidConfig = {
     bottom: 3
   },
   speed: {
-    min: 0.02,
-    target: 0.0225,
-    max: 0.03
+    min: 0.04,
+    target: 0.045,
+    max: 0.05
   },
   baseRotation: 0,
   onlyMovesHorizontal: false
@@ -53398,6 +53558,37 @@ var ScoreList = function ScoreList(_ref) {
   });
 };
 
+var ShareScoreButton = function ShareScoreButton(_ref) {
+  var score = _ref.score,
+      total = _ref.total;
+
+  var _useState = React.useState('Share score'),
+      buttonText = _useState[0],
+      setButtonText = _useState[1];
+
+  var copyScore = function copyScore() {
+    var asteroid = score.asteroid,
+        comet = score.comet,
+        galaxy = score.galaxy,
+        supernova = score.supernova,
+        star = score.star;
+    var toCopy = "I discovered " + total + " objects in Rubin #SpaceSurveyors\r\n\r\n\uD83E\uDEA8 - " + asteroid + " \u2604\uFE0F - " + comet + " \uD83C\uDF0C - " + galaxy + " \u2B50 - " + star + " \uD83D\uDCA5 - " + supernova + "\r\n\r\nhttps://spacesurveyors.app/";
+    var didCopy = copy(toCopy);
+
+    if (didCopy) {
+      setButtonText('Copied!');
+      setTimeout(function () {
+        setButtonText('Share score');
+      }, 3000);
+    }
+  };
+
+  return /*#__PURE__*/jsxRuntime.jsx(Button$1, {
+    onClick: copyScore,
+    children: buttonText
+  });
+};
+
 var SummaryMenuContainer = /*#__PURE__*/styled__default(BaseMenu).withConfig({
   displayName: "Summary__SummaryMenuContainer",
   componentId: "space-surveyors__sc-32pvpe-0"
@@ -53470,11 +53661,14 @@ var SummaryMenu = function SummaryMenu(_ref3) {
       }), /*#__PURE__*/jsxRuntime.jsx(ScaledScoreList, {
         $width: width,
         score: score
-      }), /*#__PURE__*/jsxRuntime.jsx(ButtonContainer, {
-        children: /*#__PURE__*/jsxRuntime.jsx(Button$1, {
+      }), /*#__PURE__*/jsxRuntime.jsxs(ButtonContainer, {
+        children: [/*#__PURE__*/jsxRuntime.jsx(Button$1, {
           onClick: handleGameRestart,
           children: "Play again!"
-        })
+        }), /*#__PURE__*/jsxRuntime.jsx(ShareScoreButton, {
+          score: score,
+          total: scoreSum
+        })]
       })]
     })
   });
@@ -55514,7 +55708,7 @@ var index = function index() {
 };
 
 exports.default = index;
-},{"react":"../node_modules/react/index.js","styled-components":"../node_modules/styled-components/dist/styled-components.browser.esm.js","@castiron/style-mixins":"../node_modules/@castiron/style-mixins/dist/index.js","use-resize-observer":"../node_modules/use-resize-observer/dist/bundle.esm.js","react-game-engine":"../node_modules/react-game-engine/build/index.js","random-js-no-node":"../node_modules/random-js-no-node/dist/random-js.esm.js","weighted":"../node_modules/weighted/index.js","prop-types":"../node_modules/prop-types/index.js","react/jsx-runtime":"../node_modules/react/jsx-runtime.js","react-inlinesvg":"../node_modules/react-inlinesvg/esm/index.js","detect-collisions":"../node_modules/detect-collisions/dist/index.js","howler":"../node_modules/howler/dist/howler.js"}],"../dist/index.js":[function(require,module,exports) {
+},{"react":"../node_modules/react/index.js","styled-components":"../node_modules/styled-components/dist/styled-components.browser.esm.js","@castiron/style-mixins":"../node_modules/@castiron/style-mixins/dist/index.js","use-resize-observer":"../node_modules/use-resize-observer/dist/bundle.esm.js","react-game-engine":"../node_modules/react-game-engine/build/index.js","random-js-no-node":"../node_modules/random-js-no-node/dist/random-js.esm.js","weighted":"../node_modules/weighted/index.js","prop-types":"../node_modules/prop-types/index.js","react/jsx-runtime":"../node_modules/react/jsx-runtime.js","react-inlinesvg":"../node_modules/react-inlinesvg/esm/index.js","copy-to-clipboard":"../node_modules/copy-to-clipboard/index.js","detect-collisions":"../node_modules/detect-collisions/dist/index.js","howler":"../node_modules/howler/dist/howler.js"}],"../dist/index.js":[function(require,module,exports) {
 'use strict';
 
 if ("development" === 'production') {
@@ -55669,7 +55863,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "49587" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "62026" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
