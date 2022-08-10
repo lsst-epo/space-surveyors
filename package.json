@@ -75,6 +75,7 @@
     "typescript": "^4.7.3"
   },
   "dependencies": {
+    "copy-to-clipboard": "^3.3.2",
     "detect-collisions": "^6.0.2",
     "howler": "^2.2.3",
     "prop-types": "^15.8.1",
