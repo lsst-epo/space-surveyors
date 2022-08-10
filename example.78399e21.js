@@ -41987,1176 +41987,7 @@ exports.Timer = _DefaultTimer2.default;
 
 /***/ })
 /******/ ]);
-},{"react":"../node_modules/react/index.js"}],"../node_modules/random-js-no-node/dist/random-js.esm.js":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.Random = exports.MersenneTwister19937 = void 0;
-exports.bool = bool;
-exports.browserCrypto = void 0;
-exports.createEntropy = createEntropy;
-exports.date = date;
-exports.dice = dice;
-exports.die = die;
-exports.hex = hex;
-exports.int32 = int32;
-exports.int53 = int53;
-exports.int53Full = int53Full;
-exports.integer = integer;
-exports.nativeMath = void 0;
-exports.pick = pick;
-exports.picker = picker;
-exports.real = real;
-exports.realZeroToOneExclusive = realZeroToOneExclusive;
-exports.realZeroToOneInclusive = realZeroToOneInclusive;
-exports.sample = sample;
-exports.shuffle = shuffle;
-exports.string = string;
-exports.uint32 = uint32;
-exports.uint53 = uint53;
-exports.uint53Full = uint53Full;
-exports.uuid4 = uuid4;
-const SMALLEST_UNSAFE_INTEGER = 0x20000000000000;
-const LARGEST_SAFE_INTEGER = SMALLEST_UNSAFE_INTEGER - 1;
-const UINT32_MAX = -1 >>> 0;
-const UINT32_SIZE = UINT32_MAX + 1;
-const INT32_SIZE = UINT32_SIZE / 2;
-const INT32_MAX = INT32_SIZE - 1;
-const UINT21_SIZE = 1 << 21;
-const UINT21_MAX = UINT21_SIZE - 1;
-/**
- * Returns a value within [-0x80000000, 0x7fffffff]
- */
-
-function int32(engine) {
-  return engine.next() | 0;
-}
-
-function add(distribution, addend) {
-  if (addend === 0) {
-    return distribution;
-  } else {
-    return engine => distribution(engine) + addend;
-  }
-}
-/**
- * Returns a value within [-0x20000000000000, 0x1fffffffffffff]
- */
-
-
-function int53(engine) {
-  const high = engine.next() | 0;
-  const low = engine.next() >>> 0;
-  return (high & UINT21_MAX) * UINT32_SIZE + low + (high & UINT21_SIZE ? -SMALLEST_UNSAFE_INTEGER : 0);
-}
-/**
- * Returns a value within [-0x20000000000000, 0x20000000000000]
- */
-
-
-function int53Full(engine) {
-  while (true) {
-    const high = engine.next() | 0;
-
-    if (high & 0x400000) {
-      if ((high & 0x7fffff) === 0x400000 && (engine.next() | 0) === 0) {
-        return SMALLEST_UNSAFE_INTEGER;
-      }
-    } else {
-      const low = engine.next() >>> 0;
-      return (high & UINT21_MAX) * UINT32_SIZE + low + (high & UINT21_SIZE ? -SMALLEST_UNSAFE_INTEGER : 0);
-    }
-  }
-}
-/**
- * Returns a value within [0, 0xffffffff]
- */
-
-
-function uint32(engine) {
-  return engine.next() >>> 0;
-}
-/**
- * Returns a value within [0, 0x1fffffffffffff]
- */
-
-
-function uint53(engine) {
-  const high = engine.next() & UINT21_MAX;
-  const low = engine.next() >>> 0;
-  return high * UINT32_SIZE + low;
-}
-/**
- * Returns a value within [0, 0x20000000000000]
- */
-
-
-function uint53Full(engine) {
-  while (true) {
-    const high = engine.next() | 0;
-
-    if (high & UINT21_SIZE) {
-      if ((high & UINT21_MAX) === 0 && (engine.next() | 0) === 0) {
-        return SMALLEST_UNSAFE_INTEGER;
-      }
-    } else {
-      const low = engine.next() >>> 0;
-      return (high & UINT21_MAX) * UINT32_SIZE + low;
-    }
-  }
-}
-
-function isPowerOfTwoMinusOne(value) {
-  return (value + 1 & value) === 0;
-}
-
-function bitmask(masking) {
-  return engine => engine.next() & masking;
-}
-
-function downscaleToLoopCheckedRange(range) {
-  const extendedRange = range + 1;
-  const maximum = extendedRange * Math.floor(UINT32_SIZE / extendedRange);
-  return engine => {
-    let value = 0;
-
-    do {
-      value = engine.next() >>> 0;
-    } while (value >= maximum);
-
-    return value % extendedRange;
-  };
-}
-
-function downscaleToRange(range) {
-  if (isPowerOfTwoMinusOne(range)) {
-    return bitmask(range);
-  } else {
-    return downscaleToLoopCheckedRange(range);
-  }
-}
-
-function isEvenlyDivisibleByMaxInt32(value) {
-  return (value | 0) === 0;
-}
-
-function upscaleWithHighMasking(masking) {
-  return engine => {
-    const high = engine.next() & masking;
-    const low = engine.next() >>> 0;
-    return high * UINT32_SIZE + low;
-  };
-}
-
-function upscaleToLoopCheckedRange(extendedRange) {
-  const maximum = extendedRange * Math.floor(SMALLEST_UNSAFE_INTEGER / extendedRange);
-  return engine => {
-    let ret = 0;
-
-    do {
-      const high = engine.next() & UINT21_MAX;
-      const low = engine.next() >>> 0;
-      ret = high * UINT32_SIZE + low;
-    } while (ret >= maximum);
-
-    return ret % extendedRange;
-  };
-}
-
-function upscaleWithinU53(range) {
-  const extendedRange = range + 1;
-
-  if (isEvenlyDivisibleByMaxInt32(extendedRange)) {
-    const highRange = (extendedRange / UINT32_SIZE | 0) - 1;
-
-    if (isPowerOfTwoMinusOne(highRange)) {
-      return upscaleWithHighMasking(highRange);
-    }
-  }
-
-  return upscaleToLoopCheckedRange(extendedRange);
-}
-
-function upscaleWithinI53AndLoopCheck(min, max) {
-  return engine => {
-    let ret = 0;
-
-    do {
-      const high = engine.next() | 0;
-      const low = engine.next() >>> 0;
-      ret = (high & UINT21_MAX) * UINT32_SIZE + low + (high & UINT21_SIZE ? -SMALLEST_UNSAFE_INTEGER : 0);
-    } while (ret < min || ret > max);
-
-    return ret;
-  };
-}
-/**
- * Returns a Distribution to return a value within [min, max]
- * @param min The minimum integer value, inclusive. No less than -0x20000000000000.
- * @param max The maximum integer value, inclusive. No greater than 0x20000000000000.
- */
-
-
-function integer(min, max) {
-  min = Math.floor(min);
-  max = Math.floor(max);
-
-  if (min < -SMALLEST_UNSAFE_INTEGER || !isFinite(min)) {
-    throw new RangeError(`Expected min to be at least ${-SMALLEST_UNSAFE_INTEGER}`);
-  } else if (max > SMALLEST_UNSAFE_INTEGER || !isFinite(max)) {
-    throw new RangeError(`Expected max to be at most ${SMALLEST_UNSAFE_INTEGER}`);
-  }
-
-  const range = max - min;
-
-  if (range <= 0 || !isFinite(range)) {
-    return () => min;
-  } else if (range === UINT32_MAX) {
-    if (min === 0) {
-      return uint32;
-    } else {
-      return add(int32, min + INT32_SIZE);
-    }
-  } else if (range < UINT32_MAX) {
-    return add(downscaleToRange(range), min);
-  } else if (range === LARGEST_SAFE_INTEGER) {
-    return add(uint53, min);
-  } else if (range < LARGEST_SAFE_INTEGER) {
-    return add(upscaleWithinU53(range), min);
-  } else if (max - 1 - min === LARGEST_SAFE_INTEGER) {
-    return add(uint53Full, min);
-  } else if (min === -SMALLEST_UNSAFE_INTEGER && max === SMALLEST_UNSAFE_INTEGER) {
-    return int53Full;
-  } else if (min === -SMALLEST_UNSAFE_INTEGER && max === LARGEST_SAFE_INTEGER) {
-    return int53;
-  } else if (min === -LARGEST_SAFE_INTEGER && max === SMALLEST_UNSAFE_INTEGER) {
-    return add(int53, 1);
-  } else if (max === SMALLEST_UNSAFE_INTEGER) {
-    return add(upscaleWithinI53AndLoopCheck(min - 1, max - 1), 1);
-  } else {
-    return upscaleWithinI53AndLoopCheck(min, max);
-  }
-}
-
-function isLeastBitTrue(engine) {
-  return (engine.next() & 1) === 1;
-}
-
-function lessThan(distribution, value) {
-  return engine => distribution(engine) < value;
-}
-
-function probability(percentage) {
-  if (percentage <= 0) {
-    return () => false;
-  } else if (percentage >= 1) {
-    return () => true;
-  } else {
-    const scaled = percentage * UINT32_SIZE;
-
-    if (scaled % 1 === 0) {
-      return lessThan(int32, scaled - INT32_SIZE | 0);
-    } else {
-      return lessThan(uint53, Math.round(percentage * SMALLEST_UNSAFE_INTEGER));
-    }
-  }
-}
-
-function bool(numerator, denominator) {
-  if (denominator == null) {
-    if (numerator == null) {
-      return isLeastBitTrue;
-    }
-
-    return probability(numerator);
-  } else {
-    if (numerator <= 0) {
-      return () => false;
-    } else if (numerator >= denominator) {
-      return () => true;
-    }
-
-    return lessThan(integer(0, denominator - 1), numerator);
-  }
-}
-/**
- * Returns a Distribution that returns a random `Date` within the inclusive
- * range of [`start`, `end`].
- * @param start The minimum `Date`
- * @param end The maximum `Date`
- */
-
-
-function date(start, end) {
-  const distribution = integer(+start, +end);
-  return engine => new Date(distribution(engine));
-}
-/**
- * Returns a Distribution to return a value within [1, sideCount]
- * @param sideCount The number of sides of the die
- */
-
-
-function die(sideCount) {
-  return integer(1, sideCount);
-}
-/**
- * Returns a distribution that returns an array of length `dieCount` of values
- * within [1, `sideCount`]
- * @param sideCount The number of sides of each die
- * @param dieCount The number of dice
- */
-
-
-function dice(sideCount, dieCount) {
-  const distribution = die(sideCount);
-  return engine => {
-    const result = [];
-
-    for (let i = 0; i < dieCount; ++i) {
-      result.push(distribution(engine));
-    }
-
-    return result;
-  };
-} // tslint:disable:unified-signatures
-// has 2**x chars, for faster uniform distribution
-
-
-const DEFAULT_STRING_POOL = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-";
-
-function string(pool = DEFAULT_STRING_POOL) {
-  const poolLength = pool.length;
-
-  if (!poolLength) {
-    throw new Error("Expected pool not to be an empty string");
-  }
-
-  const distribution = integer(0, poolLength - 1);
-  return (engine, length) => {
-    let result = "";
-
-    for (let i = 0; i < length; ++i) {
-      const j = distribution(engine);
-      result += pool.charAt(j);
-    }
-
-    return result;
-  };
-}
-
-const LOWER_HEX_POOL = "0123456789abcdef";
-const lowerHex = string(LOWER_HEX_POOL);
-const upperHex = string(LOWER_HEX_POOL.toUpperCase());
-/**
- * Returns a Distribution that returns a random string comprised of numbers
- * or the characters `abcdef` (or `ABCDEF`) of length `length`.
- * @param length Length of the result string
- * @param uppercase Whether the string should use `ABCDEF` instead of `abcdef`
- */
-
-function hex(uppercase) {
-  if (uppercase) {
-    return upperHex;
-  } else {
-    return lowerHex;
-  }
-}
-
-function convertSliceArgument(value, length) {
-  if (value < 0) {
-    return Math.max(value + length, 0);
-  } else {
-    return Math.min(value, length);
-  }
-}
-
-function toInteger(value) {
-  const num = +value;
-
-  if (num < 0) {
-    return Math.ceil(num);
-  } else {
-    return Math.floor(num);
-  }
-}
-/**
- * Returns a random value within the provided `source` within the sliced
- * bounds of `begin` and `end`.
- * @param source an array of items to pick from
- * @param begin the beginning slice index (defaults to `0`)
- * @param end the ending slice index (defaults to `source.length`)
- */
-
-
-function pick(engine, source, begin, end) {
-  const length = source.length;
-
-  if (length === 0) {
-    throw new RangeError("Cannot pick from an empty array");
-  }
-
-  const start = begin == null ? 0 : convertSliceArgument(toInteger(begin), length);
-  const finish = end === void 0 ? length : convertSliceArgument(toInteger(end), length);
-
-  if (start >= finish) {
-    throw new RangeError(`Cannot pick between bounds ${start} and ${finish}`);
-  }
-
-  const distribution = integer(start, finish - 1);
-  return source[distribution(engine)];
-}
-
-function multiply(distribution, multiplier) {
-  if (multiplier === 1) {
-    return distribution;
-  } else if (multiplier === 0) {
-    return () => 0;
-  } else {
-    return engine => distribution(engine) * multiplier;
-  }
-}
-/**
- * Returns a floating-point value within [0.0, 1.0)
- */
-
-
-function realZeroToOneExclusive(engine) {
-  return uint53(engine) / SMALLEST_UNSAFE_INTEGER;
-}
-/**
- * Returns a floating-point value within [0.0, 1.0]
- */
-
-
-function realZeroToOneInclusive(engine) {
-  return uint53Full(engine) / SMALLEST_UNSAFE_INTEGER;
-}
-/**
- * Returns a floating-point value within [min, max) or [min, max]
- * @param min The minimum floating-point value, inclusive.
- * @param max The maximum floating-point value.
- * @param inclusive If true, `max` will be inclusive.
- */
-
-
-function real(min, max, inclusive = false) {
-  if (!isFinite(min)) {
-    throw new RangeError("Expected min to be a finite number");
-  } else if (!isFinite(max)) {
-    throw new RangeError("Expected max to be a finite number");
-  }
-
-  return add(multiply(inclusive ? realZeroToOneInclusive : realZeroToOneExclusive, max - min), min);
-}
-
-const sliceArray = Array.prototype.slice;
-/**
- * Shuffles an array in-place
- * @param engine The Engine to use when choosing random values
- * @param array The array to shuffle
- * @param downTo minimum index to shuffle. Only used internally.
- */
-
-function shuffle(engine, array, downTo = 0) {
-  const length = array.length;
-
-  if (length) {
-    for (let i = length - 1 >>> 0; i > downTo; --i) {
-      const distribution = integer(0, i);
-      const j = distribution(engine);
-
-      if (i !== j) {
-        const tmp = array[i];
-        array[i] = array[j];
-        array[j] = tmp;
-      }
-    }
-  }
-
-  return array;
-}
-/**
- * From the population array, produce an array with sampleSize elements that
- * are randomly chosen without repeats.
- * @param engine The Engine to use when choosing random values
- * @param population An array that has items to choose a sample from
- * @param sampleSize The size of the result array
- */
-
-
-function sample(engine, population, sampleSize) {
-  if (sampleSize < 0 || sampleSize > population.length || !isFinite(sampleSize)) {
-    throw new RangeError("Expected sampleSize to be within 0 and the length of the population");
-  }
-
-  if (sampleSize === 0) {
-    return [];
-  }
-
-  const clone = sliceArray.call(population);
-  const length = clone.length;
-
-  if (length === sampleSize) {
-    return shuffle(engine, clone, 0);
-  }
-
-  const tailLength = length - sampleSize;
-  return shuffle(engine, clone, tailLength - 1).slice(tailLength);
-}
-
-const stringRepeat = (() => {
-  try {
-    if ("x".repeat(3) === "xxx") {
-      return (pattern, count) => pattern.repeat(count);
-    }
-  } catch (_) {// nothing to do here
-  }
-
-  return (pattern, count) => {
-    let result = "";
-
-    while (count > 0) {
-      if (count & 1) {
-        result += pattern;
-      }
-
-      count >>= 1;
-      pattern += pattern;
-    }
-
-    return result;
-  };
-})();
-
-function zeroPad(text, zeroCount) {
-  return stringRepeat("0", zeroCount - text.length) + text;
-}
-/**
- * Returns a Universally Unique Identifier Version 4.
- *
- * See http://en.wikipedia.org/wiki/Universally_unique_identifier
- */
-
-
-function uuid4(engine) {
-  const a = engine.next() >>> 0;
-  const b = engine.next() | 0;
-  const c = engine.next() | 0;
-  const d = engine.next() >>> 0;
-  return zeroPad(a.toString(16), 8) + "-" + zeroPad((b & 0xffff).toString(16), 4) + "-" + zeroPad((b >> 4 & 0x0fff | 0x4000).toString(16), 4) + "-" + zeroPad((c & 0x3fff | 0x8000).toString(16), 4) + "-" + zeroPad((c >> 4 & 0xffff).toString(16), 4) + zeroPad(d.toString(16), 8);
-}
-/**
- * An int32-producing Engine that uses `Math.random()`
- */
-
-
-const nativeMath = {
-  next() {
-    return Math.random() * UINT32_SIZE | 0;
-  }
-
-}; // tslint:disable:unified-signatures
-
-/**
- * A wrapper around an Engine that provides easy-to-use methods for
- * producing values based on known distributions
- */
-
-exports.nativeMath = nativeMath;
-
-class Random {
-  /**
-   * Creates a new Random wrapper
-   * @param engine The engine to use (defaults to a `Math.random`-based implementation)
-   */
-  constructor(engine = nativeMath) {
-    this.engine = engine;
-  }
-  /**
-   * Returns a value within [-0x80000000, 0x7fffffff]
-   */
-
-
-  int32() {
-    return int32(this.engine);
-  }
-  /**
-   * Returns a value within [0, 0xffffffff]
-   */
-
-
-  uint32() {
-    return uint32(this.engine);
-  }
-  /**
-   * Returns a value within [0, 0x1fffffffffffff]
-   */
-
-
-  uint53() {
-    return uint53(this.engine);
-  }
-  /**
-   * Returns a value within [0, 0x20000000000000]
-   */
-
-
-  uint53Full() {
-    return uint53Full(this.engine);
-  }
-  /**
-   * Returns a value within [-0x20000000000000, 0x1fffffffffffff]
-   */
-
-
-  int53() {
-    return int53(this.engine);
-  }
-  /**
-   * Returns a value within [-0x20000000000000, 0x20000000000000]
-   */
-
-
-  int53Full() {
-    return int53Full(this.engine);
-  }
-  /**
-   * Returns a value within [min, max]
-   * @param min The minimum integer value, inclusive. No less than -0x20000000000000.
-   * @param max The maximum integer value, inclusive. No greater than 0x20000000000000.
-   */
-
-
-  integer(min, max) {
-    return integer(min, max)(this.engine);
-  }
-  /**
-   * Returns a floating-point value within [0.0, 1.0]
-   */
-
-
-  realZeroToOneInclusive() {
-    return realZeroToOneInclusive(this.engine);
-  }
-  /**
-   * Returns a floating-point value within [0.0, 1.0)
-   */
-
-
-  realZeroToOneExclusive() {
-    return realZeroToOneExclusive(this.engine);
-  }
-  /**
-   * Returns a floating-point value within [min, max) or [min, max]
-   * @param min The minimum floating-point value, inclusive.
-   * @param max The maximum floating-point value.
-   * @param inclusive If true, `max` will be inclusive.
-   */
-
-
-  real(min, max, inclusive = false) {
-    return real(min, max, inclusive)(this.engine);
-  }
-
-  bool(numerator, denominator) {
-    return bool(numerator, denominator)(this.engine);
-  }
-  /**
-   * Return a random value within the provided `source` within the sliced
-   * bounds of `begin` and `end`.
-   * @param source an array of items to pick from
-   * @param begin the beginning slice index (defaults to `0`)
-   * @param end the ending slice index (defaults to `source.length`)
-   */
-
-
-  pick(source, begin, end) {
-    return pick(this.engine, source, begin, end);
-  }
-  /**
-   * Shuffles an array in-place
-   * @param array The array to shuffle
-   */
-
-
-  shuffle(array) {
-    return shuffle(this.engine, array);
-  }
-  /**
-   * From the population array, returns an array with sampleSize elements that
-   * are randomly chosen without repeats.
-   * @param population An array that has items to choose a sample from
-   * @param sampleSize The size of the result array
-   */
-
-
-  sample(population, sampleSize) {
-    return sample(this.engine, population, sampleSize);
-  }
-  /**
-   * Returns a value within [1, sideCount]
-   * @param sideCount The number of sides of the die
-   */
-
-
-  die(sideCount) {
-    return die(sideCount)(this.engine);
-  }
-  /**
-   * Returns an array of length `dieCount` of values within [1, sideCount]
-   * @param sideCount The number of sides of each die
-   * @param dieCount The number of dice
-   */
-
-
-  dice(sideCount, dieCount) {
-    return dice(sideCount, dieCount)(this.engine);
-  }
-  /**
-   * Returns a Universally Unique Identifier Version 4.
-   *
-   * See http://en.wikipedia.org/wiki/Universally_unique_identifier
-   */
-
-
-  uuid4() {
-    return uuid4(this.engine);
-  }
-
-  string(length, pool) {
-    return string(pool)(this.engine, length);
-  }
-  /**
-   * Returns a random string comprised of numbers or the characters `abcdef`
-   * (or `ABCDEF`) of length `length`.
-   * @param length Length of the result string
-   * @param uppercase Whether the string should use `ABCDEF` instead of `abcdef`
-   */
-
-
-  hex(length, uppercase) {
-    return hex(uppercase)(this.engine, length);
-  }
-  /**
-   * Returns a random `Date` within the inclusive range of [`start`, `end`].
-   * @param start The minimum `Date`
-   * @param end The maximum `Date`
-   */
-
-
-  date(start, end) {
-    return date(start, end)(this.engine);
-  }
-
-}
-/**
- * See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Int32Array
- */
-
-
-exports.Random = Random;
-
-const I32Array = (() => {
-  try {
-    const buffer = new ArrayBuffer(4);
-    const view = new Int32Array(buffer);
-    view[0] = INT32_SIZE;
-
-    if (view[0] === -INT32_SIZE) {
-      return Int32Array;
-    }
-  } catch (_) {// nothing to do here
-  }
-
-  return Array;
-})();
-
-let data = null;
-const COUNT = 128;
-let index = COUNT;
-/**
- * An Engine that relies on the globally-available `crypto.getRandomValues`,
- * which is typically available in modern browsers.
- *
- * See https://developer.mozilla.org/en-US/docs/Web/API/Crypto/getRandomValues
- *
- * If unavailable or otherwise non-functioning, then `browserCrypto` will
- * likely `throw` on the first call to `next()`.
- */
-
-const browserCrypto = {
-  next() {
-    if (index >= COUNT) {
-      if (data === null) {
-        data = new I32Array(COUNT);
-      }
-
-      crypto.getRandomValues(data);
-      index = 0;
-    }
-
-    return data[index++] | 0;
-  }
-
-};
-/**
- * Returns an array of random int32 values, based on current time
- * and a random number engine
- *
- * @param engine an Engine to pull random values from, default `nativeMath`
- * @param length the length of the Array, minimum 1, default 16
- */
-
-exports.browserCrypto = browserCrypto;
-
-function createEntropy(engine = nativeMath, length = 16) {
-  const array = [];
-  array.push(new Date().getTime() | 0);
-
-  for (let i = 1; i < length; ++i) {
-    array[i] = engine.next() | 0;
-  }
-
-  return array;
-}
-/**
- * See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/imul
- */
-
-
-const imul = (() => {
-  try {
-    if (Math.imul(UINT32_MAX, 5) === -5) {
-      return Math.imul;
-    }
-  } catch (_) {// nothing to do here
-  }
-
-  const UINT16_MAX = 0xffff;
-  return (a, b) => {
-    const ah = a >>> 16 & UINT16_MAX;
-    const al = a & UINT16_MAX;
-    const bh = b >>> 16 & UINT16_MAX;
-    const bl = b & UINT16_MAX; // the shift by 0 fixes the sign on the high part
-    // the final |0 converts the unsigned value into a signed value
-
-    return al * bl + (ah * bl + al * bh << 16 >>> 0) | 0;
-  };
-})();
-
-const ARRAY_SIZE = 624;
-const ARRAY_MAX = ARRAY_SIZE - 1;
-const M = 397;
-const ARRAY_SIZE_MINUS_M = ARRAY_SIZE - M;
-const A = 0x9908b0df;
-/**
- * An Engine that is a pseudorandom number generator using the Mersenne
- * Twister algorithm based on the prime 2**19937 − 1
- *
- * See http://en.wikipedia.org/wiki/Mersenne_twister
- */
-
-class MersenneTwister19937 {
-  /**
-   * MersenneTwister19937 should not be instantiated directly.
-   * Instead, use the static methods `seed`, `seedWithArray`, or `autoSeed`.
-   */
-  constructor() {
-    this.data = new I32Array(ARRAY_SIZE);
-    this.index = 0; // integer within [0, 624]
-
-    this.uses = 0;
-  }
-  /**
-   * Returns a MersenneTwister19937 seeded with an initial int32 value
-   * @param initial the initial seed value
-   */
-
-
-  static seed(initial) {
-    return new MersenneTwister19937().seed(initial);
-  }
-  /**
-   * Returns a MersenneTwister19937 seeded with zero or more int32 values
-   * @param source A series of int32 values
-   */
-
-
-  static seedWithArray(source) {
-    return new MersenneTwister19937().seedWithArray(source);
-  }
-  /**
-   * Returns a MersenneTwister19937 seeded with the current time and
-   * a series of natively-generated random values
-   */
-
-
-  static autoSeed() {
-    return MersenneTwister19937.seedWithArray(createEntropy());
-  }
-  /**
-   * Returns the next int32 value of the sequence
-   */
-
-
-  next() {
-    if ((this.index | 0) >= ARRAY_SIZE) {
-      refreshData(this.data);
-      this.index = 0;
-    }
-
-    const value = this.data[this.index];
-    this.index = this.index + 1 | 0;
-    this.uses += 1;
-    return temper(value) | 0;
-  }
-  /**
-   * Returns the number of times that the Engine has been used.
-   *
-   * This can be provided to an unused MersenneTwister19937 with the same
-   * seed, bringing it to the exact point that was left off.
-   */
-
-
-  getUseCount() {
-    return this.uses;
-  }
-  /**
-   * Discards one or more items from the engine
-   * @param count The count of items to discard
-   */
-
-
-  discard(count) {
-    if (count <= 0) {
-      return this;
-    }
-
-    this.uses += count;
-
-    if ((this.index | 0) >= ARRAY_SIZE) {
-      refreshData(this.data);
-      this.index = 0;
-    }
-
-    while (count + this.index > ARRAY_SIZE) {
-      count -= ARRAY_SIZE - this.index;
-      refreshData(this.data);
-      this.index = 0;
-    }
-
-    this.index = this.index + count | 0;
-    return this;
-  }
-
-  seed(initial) {
-    let previous = 0;
-    this.data[0] = previous = initial | 0;
-
-    for (let i = 1; i < ARRAY_SIZE; i = i + 1 | 0) {
-      this.data[i] = previous = imul(previous ^ previous >>> 30, 0x6c078965) + i | 0;
-    }
-
-    this.index = ARRAY_SIZE;
-    this.uses = 0;
-    return this;
-  }
-
-  seedWithArray(source) {
-    this.seed(0x012bd6aa);
-    seedWithArray(this.data, source);
-    return this;
-  }
-
-}
-
-exports.MersenneTwister19937 = MersenneTwister19937;
-
-function refreshData(data) {
-  let k = 0;
-  let tmp = 0;
-
-  for (; (k | 0) < ARRAY_SIZE_MINUS_M; k = k + 1 | 0) {
-    tmp = data[k] & INT32_SIZE | data[k + 1 | 0] & INT32_MAX;
-    data[k] = data[k + M | 0] ^ tmp >>> 1 ^ (tmp & 0x1 ? A : 0);
-  }
-
-  for (; (k | 0) < ARRAY_MAX; k = k + 1 | 0) {
-    tmp = data[k] & INT32_SIZE | data[k + 1 | 0] & INT32_MAX;
-    data[k] = data[k - ARRAY_SIZE_MINUS_M | 0] ^ tmp >>> 1 ^ (tmp & 0x1 ? A : 0);
-  }
-
-  tmp = data[ARRAY_MAX] & INT32_SIZE | data[0] & INT32_MAX;
-  data[ARRAY_MAX] = data[M - 1] ^ tmp >>> 1 ^ (tmp & 0x1 ? A : 0);
-}
-
-function temper(value) {
-  value ^= value >>> 11;
-  value ^= value << 7 & 0x9d2c5680;
-  value ^= value << 15 & 0xefc60000;
-  return value ^ value >>> 18;
-}
-
-function seedWithArray(data, source) {
-  let i = 1;
-  let j = 0;
-  const sourceLength = source.length;
-  let k = Math.max(sourceLength, ARRAY_SIZE) | 0;
-  let previous = data[0] | 0;
-
-  for (; (k | 0) > 0; --k) {
-    data[i] = previous = (data[i] ^ imul(previous ^ previous >>> 30, 0x0019660d)) + (source[j] | 0) + (j | 0) | 0;
-    i = i + 1 | 0;
-    ++j;
-
-    if ((i | 0) > ARRAY_MAX) {
-      data[0] = data[ARRAY_MAX];
-      i = 1;
-    }
-
-    if (j >= sourceLength) {
-      j = 0;
-    }
-  }
-
-  for (k = ARRAY_MAX; (k | 0) > 0; --k) {
-    data[i] = previous = (data[i] ^ imul(previous ^ previous >>> 30, 0x5d588b65)) - i | 0;
-    i = i + 1 | 0;
-
-    if ((i | 0) > ARRAY_MAX) {
-      data[0] = data[ARRAY_MAX];
-      i = 1;
-    }
-  }
-
-  data[0] = INT32_SIZE;
-}
-/**
- * Returns a Distribution to random value within the provided `source`
- * within the sliced bounds of `begin` and `end`.
- * @param source an array of items to pick from
- * @param begin the beginning slice index (defaults to `0`)
- * @param end the ending slice index (defaults to `source.length`)
- */
-
-
-function picker(source, begin, end) {
-  const clone = sliceArray.call(source, begin, end);
-
-  if (clone.length === 0) {
-    throw new RangeError(`Cannot pick from a source with no items`);
-  }
-
-  const distribution = integer(0, clone.length - 1);
-  return engine => clone[distribution(engine)];
-}
-},{}],"../node_modules/weighted/lib/weighted.js":[function(require,module,exports) {
-function getTotal(weights) {
-  var total = weights.__weighted_total
-
-  if (total != null) {
-    return total
-  }
-
-  function wrap(arr, fn) {
-    return function () {
-      arr.__weighted_total = null
-      fn.apply(arr, arguments)
-    }
-  }
-
-  if (total === undefined) {
-    ;['pop', 'push', 'shift', 'unshift', 'splice'].forEach(function (key) {
-      weights[key] = wrap(weights, weights[key])
-    })
-  }
-
-  total = weights.__weighted_total = weights.reduce(function (prev, curr) {
-    return prev + curr
-  }, 0)
-
-  return total
-}
-
-function _selectArr(set, weights, options) {
-  if (typeof options.rand !== 'function') {
-    options.rand = Math.random
-  }
-
-  if (set.length !== weights.length) {
-    throw new TypeError('Different number of options & weights.')
-  }
-
-  var total = options.total || (options.normal ? 1 : getTotal(weights))
-    , key = options.rand() * total
-    , index = 0
-
-  for (;index < weights.length; index++) {
-    key -= weights[index]
-
-    if (key < 0) {
-      return set[index]
-    }
-  }
-
-  throw new RangeError('All weights do not add up to >= 1 as expected.')
-}
-
-function _selectObj(obj, options) {
-  var keys = Object.keys(obj)
-    , values = keys.map(function (key) {
-        return obj[key]
-      })
-
-  return _selectArr(keys, values, options)
-}
-
-function select(set, weights, options) {
-  if (typeof options === 'function') {
-    options = {
-      rand: options
-    }
-  }
-
-  if (options == null) {
-    options = {}
-  }
-
-  if (Array.isArray(set)) {
-    if (weights == null) {
-      weights = set.map(function () {
-        return 1
-      })
-    }
-
-    if (Array.isArray(weights)) {
-      if (set.length === weights.length) {
-        return _selectArr(set, weights, options)
-      }
-
-      throw new TypeError('Set and Weights are different sizes.')
-    }
-
-    throw new TypeError('Set is an Array, and Weights is not.')
-  }
-
-  if (typeof set === 'object') {
-    return _selectObj(set, weights || options)
-  }
-
-  throw new TypeError('Set is not an Object, nor is it an Array.')
-}
-
-module.exports = select
-module.exports.select = select
-
-},{}],"../node_modules/weighted/index.js":[function(require,module,exports) {
-module.exports = require('./lib/weighted')
-
-},{"./lib/weighted":"../node_modules/weighted/lib/weighted.js"}],"../node_modules/object-assign/index.js":[function(require,module,exports) {
+},{"react":"../node_modules/react/index.js"}],"../node_modules/object-assign/index.js":[function(require,module,exports) {
 /*
 object-assign
 (c) Sindre Sorhus
@@ -46724,165 +45555,1176 @@ function (_super) {
 
 var _default = InlineSVG;
 exports.default = _default;
-},{"react":"../node_modules/react/index.js","react-from-dom":"../node_modules/react-from-dom/esm/index.js","./helpers":"../node_modules/react-inlinesvg/esm/helpers.js","./types":"../node_modules/react-inlinesvg/esm/types.js"}],"../node_modules/toggle-selection/index.js":[function(require,module,exports) {
-
-module.exports = function () {
-  var selection = document.getSelection();
-  if (!selection.rangeCount) {
-    return function () {};
-  }
-  var active = document.activeElement;
-
-  var ranges = [];
-  for (var i = 0; i < selection.rangeCount; i++) {
-    ranges.push(selection.getRangeAt(i));
-  }
-
-  switch (active.tagName.toUpperCase()) { // .toUpperCase handles XHTML
-    case 'INPUT':
-    case 'TEXTAREA':
-      active.blur();
-      break;
-
-    default:
-      active = null;
-      break;
-  }
-
-  selection.removeAllRanges();
-  return function () {
-    selection.type === 'Caret' &&
-    selection.removeAllRanges();
-
-    if (!selection.rangeCount) {
-      ranges.forEach(function(range) {
-        selection.addRange(range);
-      });
-    }
-
-    active &&
-    active.focus();
-  };
-};
-
-},{}],"../node_modules/copy-to-clipboard/index.js":[function(require,module,exports) {
+},{"react":"../node_modules/react/index.js","react-from-dom":"../node_modules/react-from-dom/esm/index.js","./helpers":"../node_modules/react-inlinesvg/esm/helpers.js","./types":"../node_modules/react-inlinesvg/esm/types.js"}],"../node_modules/random-js-no-node/dist/random-js.esm.js":[function(require,module,exports) {
 "use strict";
 
-var deselectCurrent = require("toggle-selection");
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.Random = exports.MersenneTwister19937 = void 0;
+exports.bool = bool;
+exports.browserCrypto = void 0;
+exports.createEntropy = createEntropy;
+exports.date = date;
+exports.dice = dice;
+exports.die = die;
+exports.hex = hex;
+exports.int32 = int32;
+exports.int53 = int53;
+exports.int53Full = int53Full;
+exports.integer = integer;
+exports.nativeMath = void 0;
+exports.pick = pick;
+exports.picker = picker;
+exports.real = real;
+exports.realZeroToOneExclusive = realZeroToOneExclusive;
+exports.realZeroToOneInclusive = realZeroToOneInclusive;
+exports.sample = sample;
+exports.shuffle = shuffle;
+exports.string = string;
+exports.uint32 = uint32;
+exports.uint53 = uint53;
+exports.uint53Full = uint53Full;
+exports.uuid4 = uuid4;
+const SMALLEST_UNSAFE_INTEGER = 0x20000000000000;
+const LARGEST_SAFE_INTEGER = SMALLEST_UNSAFE_INTEGER - 1;
+const UINT32_MAX = -1 >>> 0;
+const UINT32_SIZE = UINT32_MAX + 1;
+const INT32_SIZE = UINT32_SIZE / 2;
+const INT32_MAX = INT32_SIZE - 1;
+const UINT21_SIZE = 1 << 21;
+const UINT21_MAX = UINT21_SIZE - 1;
+/**
+ * Returns a value within [-0x80000000, 0x7fffffff]
+ */
 
-var clipboardToIE11Formatting = {
-  "text/plain": "Text",
-  "text/html": "Url",
-  "default": "Text"
+function int32(engine) {
+  return engine.next() | 0;
 }
 
-var defaultMessage = "Copy to clipboard: #{key}, Enter";
-
-function format(message) {
-  var copyKey = (/mac os x/i.test(navigator.userAgent) ? "⌘" : "Ctrl") + "+C";
-  return message.replace(/#{\s*key\s*}/g, copyKey);
-}
-
-function copy(text, options) {
-  var debug,
-    message,
-    reselectPrevious,
-    range,
-    selection,
-    mark,
-    success = false;
-  if (!options) {
-    options = {};
+function add(distribution, addend) {
+  if (addend === 0) {
+    return distribution;
+  } else {
+    return engine => distribution(engine) + addend;
   }
-  debug = options.debug || false;
+}
+/**
+ * Returns a value within [-0x20000000000000, 0x1fffffffffffff]
+ */
+
+
+function int53(engine) {
+  const high = engine.next() | 0;
+  const low = engine.next() >>> 0;
+  return (high & UINT21_MAX) * UINT32_SIZE + low + (high & UINT21_SIZE ? -SMALLEST_UNSAFE_INTEGER : 0);
+}
+/**
+ * Returns a value within [-0x20000000000000, 0x20000000000000]
+ */
+
+
+function int53Full(engine) {
+  while (true) {
+    const high = engine.next() | 0;
+
+    if (high & 0x400000) {
+      if ((high & 0x7fffff) === 0x400000 && (engine.next() | 0) === 0) {
+        return SMALLEST_UNSAFE_INTEGER;
+      }
+    } else {
+      const low = engine.next() >>> 0;
+      return (high & UINT21_MAX) * UINT32_SIZE + low + (high & UINT21_SIZE ? -SMALLEST_UNSAFE_INTEGER : 0);
+    }
+  }
+}
+/**
+ * Returns a value within [0, 0xffffffff]
+ */
+
+
+function uint32(engine) {
+  return engine.next() >>> 0;
+}
+/**
+ * Returns a value within [0, 0x1fffffffffffff]
+ */
+
+
+function uint53(engine) {
+  const high = engine.next() & UINT21_MAX;
+  const low = engine.next() >>> 0;
+  return high * UINT32_SIZE + low;
+}
+/**
+ * Returns a value within [0, 0x20000000000000]
+ */
+
+
+function uint53Full(engine) {
+  while (true) {
+    const high = engine.next() | 0;
+
+    if (high & UINT21_SIZE) {
+      if ((high & UINT21_MAX) === 0 && (engine.next() | 0) === 0) {
+        return SMALLEST_UNSAFE_INTEGER;
+      }
+    } else {
+      const low = engine.next() >>> 0;
+      return (high & UINT21_MAX) * UINT32_SIZE + low;
+    }
+  }
+}
+
+function isPowerOfTwoMinusOne(value) {
+  return (value + 1 & value) === 0;
+}
+
+function bitmask(masking) {
+  return engine => engine.next() & masking;
+}
+
+function downscaleToLoopCheckedRange(range) {
+  const extendedRange = range + 1;
+  const maximum = extendedRange * Math.floor(UINT32_SIZE / extendedRange);
+  return engine => {
+    let value = 0;
+
+    do {
+      value = engine.next() >>> 0;
+    } while (value >= maximum);
+
+    return value % extendedRange;
+  };
+}
+
+function downscaleToRange(range) {
+  if (isPowerOfTwoMinusOne(range)) {
+    return bitmask(range);
+  } else {
+    return downscaleToLoopCheckedRange(range);
+  }
+}
+
+function isEvenlyDivisibleByMaxInt32(value) {
+  return (value | 0) === 0;
+}
+
+function upscaleWithHighMasking(masking) {
+  return engine => {
+    const high = engine.next() & masking;
+    const low = engine.next() >>> 0;
+    return high * UINT32_SIZE + low;
+  };
+}
+
+function upscaleToLoopCheckedRange(extendedRange) {
+  const maximum = extendedRange * Math.floor(SMALLEST_UNSAFE_INTEGER / extendedRange);
+  return engine => {
+    let ret = 0;
+
+    do {
+      const high = engine.next() & UINT21_MAX;
+      const low = engine.next() >>> 0;
+      ret = high * UINT32_SIZE + low;
+    } while (ret >= maximum);
+
+    return ret % extendedRange;
+  };
+}
+
+function upscaleWithinU53(range) {
+  const extendedRange = range + 1;
+
+  if (isEvenlyDivisibleByMaxInt32(extendedRange)) {
+    const highRange = (extendedRange / UINT32_SIZE | 0) - 1;
+
+    if (isPowerOfTwoMinusOne(highRange)) {
+      return upscaleWithHighMasking(highRange);
+    }
+  }
+
+  return upscaleToLoopCheckedRange(extendedRange);
+}
+
+function upscaleWithinI53AndLoopCheck(min, max) {
+  return engine => {
+    let ret = 0;
+
+    do {
+      const high = engine.next() | 0;
+      const low = engine.next() >>> 0;
+      ret = (high & UINT21_MAX) * UINT32_SIZE + low + (high & UINT21_SIZE ? -SMALLEST_UNSAFE_INTEGER : 0);
+    } while (ret < min || ret > max);
+
+    return ret;
+  };
+}
+/**
+ * Returns a Distribution to return a value within [min, max]
+ * @param min The minimum integer value, inclusive. No less than -0x20000000000000.
+ * @param max The maximum integer value, inclusive. No greater than 0x20000000000000.
+ */
+
+
+function integer(min, max) {
+  min = Math.floor(min);
+  max = Math.floor(max);
+
+  if (min < -SMALLEST_UNSAFE_INTEGER || !isFinite(min)) {
+    throw new RangeError(`Expected min to be at least ${-SMALLEST_UNSAFE_INTEGER}`);
+  } else if (max > SMALLEST_UNSAFE_INTEGER || !isFinite(max)) {
+    throw new RangeError(`Expected max to be at most ${SMALLEST_UNSAFE_INTEGER}`);
+  }
+
+  const range = max - min;
+
+  if (range <= 0 || !isFinite(range)) {
+    return () => min;
+  } else if (range === UINT32_MAX) {
+    if (min === 0) {
+      return uint32;
+    } else {
+      return add(int32, min + INT32_SIZE);
+    }
+  } else if (range < UINT32_MAX) {
+    return add(downscaleToRange(range), min);
+  } else if (range === LARGEST_SAFE_INTEGER) {
+    return add(uint53, min);
+  } else if (range < LARGEST_SAFE_INTEGER) {
+    return add(upscaleWithinU53(range), min);
+  } else if (max - 1 - min === LARGEST_SAFE_INTEGER) {
+    return add(uint53Full, min);
+  } else if (min === -SMALLEST_UNSAFE_INTEGER && max === SMALLEST_UNSAFE_INTEGER) {
+    return int53Full;
+  } else if (min === -SMALLEST_UNSAFE_INTEGER && max === LARGEST_SAFE_INTEGER) {
+    return int53;
+  } else if (min === -LARGEST_SAFE_INTEGER && max === SMALLEST_UNSAFE_INTEGER) {
+    return add(int53, 1);
+  } else if (max === SMALLEST_UNSAFE_INTEGER) {
+    return add(upscaleWithinI53AndLoopCheck(min - 1, max - 1), 1);
+  } else {
+    return upscaleWithinI53AndLoopCheck(min, max);
+  }
+}
+
+function isLeastBitTrue(engine) {
+  return (engine.next() & 1) === 1;
+}
+
+function lessThan(distribution, value) {
+  return engine => distribution(engine) < value;
+}
+
+function probability(percentage) {
+  if (percentage <= 0) {
+    return () => false;
+  } else if (percentage >= 1) {
+    return () => true;
+  } else {
+    const scaled = percentage * UINT32_SIZE;
+
+    if (scaled % 1 === 0) {
+      return lessThan(int32, scaled - INT32_SIZE | 0);
+    } else {
+      return lessThan(uint53, Math.round(percentage * SMALLEST_UNSAFE_INTEGER));
+    }
+  }
+}
+
+function bool(numerator, denominator) {
+  if (denominator == null) {
+    if (numerator == null) {
+      return isLeastBitTrue;
+    }
+
+    return probability(numerator);
+  } else {
+    if (numerator <= 0) {
+      return () => false;
+    } else if (numerator >= denominator) {
+      return () => true;
+    }
+
+    return lessThan(integer(0, denominator - 1), numerator);
+  }
+}
+/**
+ * Returns a Distribution that returns a random `Date` within the inclusive
+ * range of [`start`, `end`].
+ * @param start The minimum `Date`
+ * @param end The maximum `Date`
+ */
+
+
+function date(start, end) {
+  const distribution = integer(+start, +end);
+  return engine => new Date(distribution(engine));
+}
+/**
+ * Returns a Distribution to return a value within [1, sideCount]
+ * @param sideCount The number of sides of the die
+ */
+
+
+function die(sideCount) {
+  return integer(1, sideCount);
+}
+/**
+ * Returns a distribution that returns an array of length `dieCount` of values
+ * within [1, `sideCount`]
+ * @param sideCount The number of sides of each die
+ * @param dieCount The number of dice
+ */
+
+
+function dice(sideCount, dieCount) {
+  const distribution = die(sideCount);
+  return engine => {
+    const result = [];
+
+    for (let i = 0; i < dieCount; ++i) {
+      result.push(distribution(engine));
+    }
+
+    return result;
+  };
+} // tslint:disable:unified-signatures
+// has 2**x chars, for faster uniform distribution
+
+
+const DEFAULT_STRING_POOL = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-";
+
+function string(pool = DEFAULT_STRING_POOL) {
+  const poolLength = pool.length;
+
+  if (!poolLength) {
+    throw new Error("Expected pool not to be an empty string");
+  }
+
+  const distribution = integer(0, poolLength - 1);
+  return (engine, length) => {
+    let result = "";
+
+    for (let i = 0; i < length; ++i) {
+      const j = distribution(engine);
+      result += pool.charAt(j);
+    }
+
+    return result;
+  };
+}
+
+const LOWER_HEX_POOL = "0123456789abcdef";
+const lowerHex = string(LOWER_HEX_POOL);
+const upperHex = string(LOWER_HEX_POOL.toUpperCase());
+/**
+ * Returns a Distribution that returns a random string comprised of numbers
+ * or the characters `abcdef` (or `ABCDEF`) of length `length`.
+ * @param length Length of the result string
+ * @param uppercase Whether the string should use `ABCDEF` instead of `abcdef`
+ */
+
+function hex(uppercase) {
+  if (uppercase) {
+    return upperHex;
+  } else {
+    return lowerHex;
+  }
+}
+
+function convertSliceArgument(value, length) {
+  if (value < 0) {
+    return Math.max(value + length, 0);
+  } else {
+    return Math.min(value, length);
+  }
+}
+
+function toInteger(value) {
+  const num = +value;
+
+  if (num < 0) {
+    return Math.ceil(num);
+  } else {
+    return Math.floor(num);
+  }
+}
+/**
+ * Returns a random value within the provided `source` within the sliced
+ * bounds of `begin` and `end`.
+ * @param source an array of items to pick from
+ * @param begin the beginning slice index (defaults to `0`)
+ * @param end the ending slice index (defaults to `source.length`)
+ */
+
+
+function pick(engine, source, begin, end) {
+  const length = source.length;
+
+  if (length === 0) {
+    throw new RangeError("Cannot pick from an empty array");
+  }
+
+  const start = begin == null ? 0 : convertSliceArgument(toInteger(begin), length);
+  const finish = end === void 0 ? length : convertSliceArgument(toInteger(end), length);
+
+  if (start >= finish) {
+    throw new RangeError(`Cannot pick between bounds ${start} and ${finish}`);
+  }
+
+  const distribution = integer(start, finish - 1);
+  return source[distribution(engine)];
+}
+
+function multiply(distribution, multiplier) {
+  if (multiplier === 1) {
+    return distribution;
+  } else if (multiplier === 0) {
+    return () => 0;
+  } else {
+    return engine => distribution(engine) * multiplier;
+  }
+}
+/**
+ * Returns a floating-point value within [0.0, 1.0)
+ */
+
+
+function realZeroToOneExclusive(engine) {
+  return uint53(engine) / SMALLEST_UNSAFE_INTEGER;
+}
+/**
+ * Returns a floating-point value within [0.0, 1.0]
+ */
+
+
+function realZeroToOneInclusive(engine) {
+  return uint53Full(engine) / SMALLEST_UNSAFE_INTEGER;
+}
+/**
+ * Returns a floating-point value within [min, max) or [min, max]
+ * @param min The minimum floating-point value, inclusive.
+ * @param max The maximum floating-point value.
+ * @param inclusive If true, `max` will be inclusive.
+ */
+
+
+function real(min, max, inclusive = false) {
+  if (!isFinite(min)) {
+    throw new RangeError("Expected min to be a finite number");
+  } else if (!isFinite(max)) {
+    throw new RangeError("Expected max to be a finite number");
+  }
+
+  return add(multiply(inclusive ? realZeroToOneInclusive : realZeroToOneExclusive, max - min), min);
+}
+
+const sliceArray = Array.prototype.slice;
+/**
+ * Shuffles an array in-place
+ * @param engine The Engine to use when choosing random values
+ * @param array The array to shuffle
+ * @param downTo minimum index to shuffle. Only used internally.
+ */
+
+function shuffle(engine, array, downTo = 0) {
+  const length = array.length;
+
+  if (length) {
+    for (let i = length - 1 >>> 0; i > downTo; --i) {
+      const distribution = integer(0, i);
+      const j = distribution(engine);
+
+      if (i !== j) {
+        const tmp = array[i];
+        array[i] = array[j];
+        array[j] = tmp;
+      }
+    }
+  }
+
+  return array;
+}
+/**
+ * From the population array, produce an array with sampleSize elements that
+ * are randomly chosen without repeats.
+ * @param engine The Engine to use when choosing random values
+ * @param population An array that has items to choose a sample from
+ * @param sampleSize The size of the result array
+ */
+
+
+function sample(engine, population, sampleSize) {
+  if (sampleSize < 0 || sampleSize > population.length || !isFinite(sampleSize)) {
+    throw new RangeError("Expected sampleSize to be within 0 and the length of the population");
+  }
+
+  if (sampleSize === 0) {
+    return [];
+  }
+
+  const clone = sliceArray.call(population);
+  const length = clone.length;
+
+  if (length === sampleSize) {
+    return shuffle(engine, clone, 0);
+  }
+
+  const tailLength = length - sampleSize;
+  return shuffle(engine, clone, tailLength - 1).slice(tailLength);
+}
+
+const stringRepeat = (() => {
   try {
-    reselectPrevious = deselectCurrent();
-
-    range = document.createRange();
-    selection = document.getSelection();
-
-    mark = document.createElement("span");
-    mark.textContent = text;
-    // avoid screen readers from reading out loud the text
-    mark.ariaHidden = "true"
-    // reset user styles for span element
-    mark.style.all = "unset";
-    // prevents scrolling to the end of the page
-    mark.style.position = "fixed";
-    mark.style.top = 0;
-    mark.style.clip = "rect(0, 0, 0, 0)";
-    // used to preserve spaces and line breaks
-    mark.style.whiteSpace = "pre";
-    // do not inherit user-select (it may be `none`)
-    mark.style.webkitUserSelect = "text";
-    mark.style.MozUserSelect = "text";
-    mark.style.msUserSelect = "text";
-    mark.style.userSelect = "text";
-    mark.addEventListener("copy", function(e) {
-      e.stopPropagation();
-      if (options.format) {
-        e.preventDefault();
-        if (typeof e.clipboardData === "undefined") { // IE 11
-          debug && console.warn("unable to use e.clipboardData");
-          debug && console.warn("trying IE specific stuff");
-          window.clipboardData.clearData();
-          var format = clipboardToIE11Formatting[options.format] || clipboardToIE11Formatting["default"]
-          window.clipboardData.setData(format, text);
-        } else { // all other browsers
-          e.clipboardData.clearData();
-          e.clipboardData.setData(options.format, text);
-        }
-      }
-      if (options.onCopy) {
-        e.preventDefault();
-        options.onCopy(e.clipboardData);
-      }
-    });
-
-    document.body.appendChild(mark);
-
-    range.selectNodeContents(mark);
-    selection.addRange(range);
-
-    var successful = document.execCommand("copy");
-    if (!successful) {
-      throw new Error("copy command was unsuccessful");
+    if ("x".repeat(3) === "xxx") {
+      return (pattern, count) => pattern.repeat(count);
     }
-    success = true;
-  } catch (err) {
-    debug && console.error("unable to copy using execCommand: ", err);
-    debug && console.warn("trying IE specific stuff");
-    try {
-      window.clipboardData.setData(options.format || "text", text);
-      options.onCopy && options.onCopy(window.clipboardData);
-      success = true;
-    } catch (err) {
-      debug && console.error("unable to copy using clipboardData: ", err);
-      debug && console.error("falling back to prompt");
-      message = format("message" in options ? options.message : defaultMessage);
-      window.prompt(message, text);
-    }
-  } finally {
-    if (selection) {
-      if (typeof selection.removeRange == "function") {
-        selection.removeRange(range);
-      } else {
-        selection.removeAllRanges();
-      }
-    }
-
-    if (mark) {
-      document.body.removeChild(mark);
-    }
-    reselectPrevious();
+  } catch (_) {// nothing to do here
   }
 
-  return success;
+  return (pattern, count) => {
+    let result = "";
+
+    while (count > 0) {
+      if (count & 1) {
+        result += pattern;
+      }
+
+      count >>= 1;
+      pattern += pattern;
+    }
+
+    return result;
+  };
+})();
+
+function zeroPad(text, zeroCount) {
+  return stringRepeat("0", zeroCount - text.length) + text;
+}
+/**
+ * Returns a Universally Unique Identifier Version 4.
+ *
+ * See http://en.wikipedia.org/wiki/Universally_unique_identifier
+ */
+
+
+function uuid4(engine) {
+  const a = engine.next() >>> 0;
+  const b = engine.next() | 0;
+  const c = engine.next() | 0;
+  const d = engine.next() >>> 0;
+  return zeroPad(a.toString(16), 8) + "-" + zeroPad((b & 0xffff).toString(16), 4) + "-" + zeroPad((b >> 4 & 0x0fff | 0x4000).toString(16), 4) + "-" + zeroPad((c & 0x3fff | 0x8000).toString(16), 4) + "-" + zeroPad((c >> 4 & 0xffff).toString(16), 4) + zeroPad(d.toString(16), 8);
+}
+/**
+ * An int32-producing Engine that uses `Math.random()`
+ */
+
+
+const nativeMath = {
+  next() {
+    return Math.random() * UINT32_SIZE | 0;
+  }
+
+}; // tslint:disable:unified-signatures
+
+/**
+ * A wrapper around an Engine that provides easy-to-use methods for
+ * producing values based on known distributions
+ */
+
+exports.nativeMath = nativeMath;
+
+class Random {
+  /**
+   * Creates a new Random wrapper
+   * @param engine The engine to use (defaults to a `Math.random`-based implementation)
+   */
+  constructor(engine = nativeMath) {
+    this.engine = engine;
+  }
+  /**
+   * Returns a value within [-0x80000000, 0x7fffffff]
+   */
+
+
+  int32() {
+    return int32(this.engine);
+  }
+  /**
+   * Returns a value within [0, 0xffffffff]
+   */
+
+
+  uint32() {
+    return uint32(this.engine);
+  }
+  /**
+   * Returns a value within [0, 0x1fffffffffffff]
+   */
+
+
+  uint53() {
+    return uint53(this.engine);
+  }
+  /**
+   * Returns a value within [0, 0x20000000000000]
+   */
+
+
+  uint53Full() {
+    return uint53Full(this.engine);
+  }
+  /**
+   * Returns a value within [-0x20000000000000, 0x1fffffffffffff]
+   */
+
+
+  int53() {
+    return int53(this.engine);
+  }
+  /**
+   * Returns a value within [-0x20000000000000, 0x20000000000000]
+   */
+
+
+  int53Full() {
+    return int53Full(this.engine);
+  }
+  /**
+   * Returns a value within [min, max]
+   * @param min The minimum integer value, inclusive. No less than -0x20000000000000.
+   * @param max The maximum integer value, inclusive. No greater than 0x20000000000000.
+   */
+
+
+  integer(min, max) {
+    return integer(min, max)(this.engine);
+  }
+  /**
+   * Returns a floating-point value within [0.0, 1.0]
+   */
+
+
+  realZeroToOneInclusive() {
+    return realZeroToOneInclusive(this.engine);
+  }
+  /**
+   * Returns a floating-point value within [0.0, 1.0)
+   */
+
+
+  realZeroToOneExclusive() {
+    return realZeroToOneExclusive(this.engine);
+  }
+  /**
+   * Returns a floating-point value within [min, max) or [min, max]
+   * @param min The minimum floating-point value, inclusive.
+   * @param max The maximum floating-point value.
+   * @param inclusive If true, `max` will be inclusive.
+   */
+
+
+  real(min, max, inclusive = false) {
+    return real(min, max, inclusive)(this.engine);
+  }
+
+  bool(numerator, denominator) {
+    return bool(numerator, denominator)(this.engine);
+  }
+  /**
+   * Return a random value within the provided `source` within the sliced
+   * bounds of `begin` and `end`.
+   * @param source an array of items to pick from
+   * @param begin the beginning slice index (defaults to `0`)
+   * @param end the ending slice index (defaults to `source.length`)
+   */
+
+
+  pick(source, begin, end) {
+    return pick(this.engine, source, begin, end);
+  }
+  /**
+   * Shuffles an array in-place
+   * @param array The array to shuffle
+   */
+
+
+  shuffle(array) {
+    return shuffle(this.engine, array);
+  }
+  /**
+   * From the population array, returns an array with sampleSize elements that
+   * are randomly chosen without repeats.
+   * @param population An array that has items to choose a sample from
+   * @param sampleSize The size of the result array
+   */
+
+
+  sample(population, sampleSize) {
+    return sample(this.engine, population, sampleSize);
+  }
+  /**
+   * Returns a value within [1, sideCount]
+   * @param sideCount The number of sides of the die
+   */
+
+
+  die(sideCount) {
+    return die(sideCount)(this.engine);
+  }
+  /**
+   * Returns an array of length `dieCount` of values within [1, sideCount]
+   * @param sideCount The number of sides of each die
+   * @param dieCount The number of dice
+   */
+
+
+  dice(sideCount, dieCount) {
+    return dice(sideCount, dieCount)(this.engine);
+  }
+  /**
+   * Returns a Universally Unique Identifier Version 4.
+   *
+   * See http://en.wikipedia.org/wiki/Universally_unique_identifier
+   */
+
+
+  uuid4() {
+    return uuid4(this.engine);
+  }
+
+  string(length, pool) {
+    return string(pool)(this.engine, length);
+  }
+  /**
+   * Returns a random string comprised of numbers or the characters `abcdef`
+   * (or `ABCDEF`) of length `length`.
+   * @param length Length of the result string
+   * @param uppercase Whether the string should use `ABCDEF` instead of `abcdef`
+   */
+
+
+  hex(length, uppercase) {
+    return hex(uppercase)(this.engine, length);
+  }
+  /**
+   * Returns a random `Date` within the inclusive range of [`start`, `end`].
+   * @param start The minimum `Date`
+   * @param end The maximum `Date`
+   */
+
+
+  date(start, end) {
+    return date(start, end)(this.engine);
+  }
+
+}
+/**
+ * See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Int32Array
+ */
+
+
+exports.Random = Random;
+
+const I32Array = (() => {
+  try {
+    const buffer = new ArrayBuffer(4);
+    const view = new Int32Array(buffer);
+    view[0] = INT32_SIZE;
+
+    if (view[0] === -INT32_SIZE) {
+      return Int32Array;
+    }
+  } catch (_) {// nothing to do here
+  }
+
+  return Array;
+})();
+
+let data = null;
+const COUNT = 128;
+let index = COUNT;
+/**
+ * An Engine that relies on the globally-available `crypto.getRandomValues`,
+ * which is typically available in modern browsers.
+ *
+ * See https://developer.mozilla.org/en-US/docs/Web/API/Crypto/getRandomValues
+ *
+ * If unavailable or otherwise non-functioning, then `browserCrypto` will
+ * likely `throw` on the first call to `next()`.
+ */
+
+const browserCrypto = {
+  next() {
+    if (index >= COUNT) {
+      if (data === null) {
+        data = new I32Array(COUNT);
+      }
+
+      crypto.getRandomValues(data);
+      index = 0;
+    }
+
+    return data[index++] | 0;
+  }
+
+};
+/**
+ * Returns an array of random int32 values, based on current time
+ * and a random number engine
+ *
+ * @param engine an Engine to pull random values from, default `nativeMath`
+ * @param length the length of the Array, minimum 1, default 16
+ */
+
+exports.browserCrypto = browserCrypto;
+
+function createEntropy(engine = nativeMath, length = 16) {
+  const array = [];
+  array.push(new Date().getTime() | 0);
+
+  for (let i = 1; i < length; ++i) {
+    array[i] = engine.next() | 0;
+  }
+
+  return array;
+}
+/**
+ * See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/imul
+ */
+
+
+const imul = (() => {
+  try {
+    if (Math.imul(UINT32_MAX, 5) === -5) {
+      return Math.imul;
+    }
+  } catch (_) {// nothing to do here
+  }
+
+  const UINT16_MAX = 0xffff;
+  return (a, b) => {
+    const ah = a >>> 16 & UINT16_MAX;
+    const al = a & UINT16_MAX;
+    const bh = b >>> 16 & UINT16_MAX;
+    const bl = b & UINT16_MAX; // the shift by 0 fixes the sign on the high part
+    // the final |0 converts the unsigned value into a signed value
+
+    return al * bl + (ah * bl + al * bh << 16 >>> 0) | 0;
+  };
+})();
+
+const ARRAY_SIZE = 624;
+const ARRAY_MAX = ARRAY_SIZE - 1;
+const M = 397;
+const ARRAY_SIZE_MINUS_M = ARRAY_SIZE - M;
+const A = 0x9908b0df;
+/**
+ * An Engine that is a pseudorandom number generator using the Mersenne
+ * Twister algorithm based on the prime 2**19937 − 1
+ *
+ * See http://en.wikipedia.org/wiki/Mersenne_twister
+ */
+
+class MersenneTwister19937 {
+  /**
+   * MersenneTwister19937 should not be instantiated directly.
+   * Instead, use the static methods `seed`, `seedWithArray`, or `autoSeed`.
+   */
+  constructor() {
+    this.data = new I32Array(ARRAY_SIZE);
+    this.index = 0; // integer within [0, 624]
+
+    this.uses = 0;
+  }
+  /**
+   * Returns a MersenneTwister19937 seeded with an initial int32 value
+   * @param initial the initial seed value
+   */
+
+
+  static seed(initial) {
+    return new MersenneTwister19937().seed(initial);
+  }
+  /**
+   * Returns a MersenneTwister19937 seeded with zero or more int32 values
+   * @param source A series of int32 values
+   */
+
+
+  static seedWithArray(source) {
+    return new MersenneTwister19937().seedWithArray(source);
+  }
+  /**
+   * Returns a MersenneTwister19937 seeded with the current time and
+   * a series of natively-generated random values
+   */
+
+
+  static autoSeed() {
+    return MersenneTwister19937.seedWithArray(createEntropy());
+  }
+  /**
+   * Returns the next int32 value of the sequence
+   */
+
+
+  next() {
+    if ((this.index | 0) >= ARRAY_SIZE) {
+      refreshData(this.data);
+      this.index = 0;
+    }
+
+    const value = this.data[this.index];
+    this.index = this.index + 1 | 0;
+    this.uses += 1;
+    return temper(value) | 0;
+  }
+  /**
+   * Returns the number of times that the Engine has been used.
+   *
+   * This can be provided to an unused MersenneTwister19937 with the same
+   * seed, bringing it to the exact point that was left off.
+   */
+
+
+  getUseCount() {
+    return this.uses;
+  }
+  /**
+   * Discards one or more items from the engine
+   * @param count The count of items to discard
+   */
+
+
+  discard(count) {
+    if (count <= 0) {
+      return this;
+    }
+
+    this.uses += count;
+
+    if ((this.index | 0) >= ARRAY_SIZE) {
+      refreshData(this.data);
+      this.index = 0;
+    }
+
+    while (count + this.index > ARRAY_SIZE) {
+      count -= ARRAY_SIZE - this.index;
+      refreshData(this.data);
+      this.index = 0;
+    }
+
+    this.index = this.index + count | 0;
+    return this;
+  }
+
+  seed(initial) {
+    let previous = 0;
+    this.data[0] = previous = initial | 0;
+
+    for (let i = 1; i < ARRAY_SIZE; i = i + 1 | 0) {
+      this.data[i] = previous = imul(previous ^ previous >>> 30, 0x6c078965) + i | 0;
+    }
+
+    this.index = ARRAY_SIZE;
+    this.uses = 0;
+    return this;
+  }
+
+  seedWithArray(source) {
+    this.seed(0x012bd6aa);
+    seedWithArray(this.data, source);
+    return this;
+  }
+
 }
 
-module.exports = copy;
+exports.MersenneTwister19937 = MersenneTwister19937;
 
-},{"toggle-selection":"../node_modules/toggle-selection/index.js"}],"../node_modules/sat/SAT.js":[function(require,module,exports) {
+function refreshData(data) {
+  let k = 0;
+  let tmp = 0;
+
+  for (; (k | 0) < ARRAY_SIZE_MINUS_M; k = k + 1 | 0) {
+    tmp = data[k] & INT32_SIZE | data[k + 1 | 0] & INT32_MAX;
+    data[k] = data[k + M | 0] ^ tmp >>> 1 ^ (tmp & 0x1 ? A : 0);
+  }
+
+  for (; (k | 0) < ARRAY_MAX; k = k + 1 | 0) {
+    tmp = data[k] & INT32_SIZE | data[k + 1 | 0] & INT32_MAX;
+    data[k] = data[k - ARRAY_SIZE_MINUS_M | 0] ^ tmp >>> 1 ^ (tmp & 0x1 ? A : 0);
+  }
+
+  tmp = data[ARRAY_MAX] & INT32_SIZE | data[0] & INT32_MAX;
+  data[ARRAY_MAX] = data[M - 1] ^ tmp >>> 1 ^ (tmp & 0x1 ? A : 0);
+}
+
+function temper(value) {
+  value ^= value >>> 11;
+  value ^= value << 7 & 0x9d2c5680;
+  value ^= value << 15 & 0xefc60000;
+  return value ^ value >>> 18;
+}
+
+function seedWithArray(data, source) {
+  let i = 1;
+  let j = 0;
+  const sourceLength = source.length;
+  let k = Math.max(sourceLength, ARRAY_SIZE) | 0;
+  let previous = data[0] | 0;
+
+  for (; (k | 0) > 0; --k) {
+    data[i] = previous = (data[i] ^ imul(previous ^ previous >>> 30, 0x0019660d)) + (source[j] | 0) + (j | 0) | 0;
+    i = i + 1 | 0;
+    ++j;
+
+    if ((i | 0) > ARRAY_MAX) {
+      data[0] = data[ARRAY_MAX];
+      i = 1;
+    }
+
+    if (j >= sourceLength) {
+      j = 0;
+    }
+  }
+
+  for (k = ARRAY_MAX; (k | 0) > 0; --k) {
+    data[i] = previous = (data[i] ^ imul(previous ^ previous >>> 30, 0x5d588b65)) - i | 0;
+    i = i + 1 | 0;
+
+    if ((i | 0) > ARRAY_MAX) {
+      data[0] = data[ARRAY_MAX];
+      i = 1;
+    }
+  }
+
+  data[0] = INT32_SIZE;
+}
+/**
+ * Returns a Distribution to random value within the provided `source`
+ * within the sliced bounds of `begin` and `end`.
+ * @param source an array of items to pick from
+ * @param begin the beginning slice index (defaults to `0`)
+ * @param end the ending slice index (defaults to `source.length`)
+ */
+
+
+function picker(source, begin, end) {
+  const clone = sliceArray.call(source, begin, end);
+
+  if (clone.length === 0) {
+    throw new RangeError(`Cannot pick from a source with no items`);
+  }
+
+  const distribution = integer(0, clone.length - 1);
+  return engine => clone[distribution(engine)];
+}
+},{}],"../node_modules/weighted/lib/weighted.js":[function(require,module,exports) {
+function getTotal(weights) {
+  var total = weights.__weighted_total
+
+  if (total != null) {
+    return total
+  }
+
+  function wrap(arr, fn) {
+    return function () {
+      arr.__weighted_total = null
+      fn.apply(arr, arguments)
+    }
+  }
+
+  if (total === undefined) {
+    ;['pop', 'push', 'shift', 'unshift', 'splice'].forEach(function (key) {
+      weights[key] = wrap(weights, weights[key])
+    })
+  }
+
+  total = weights.__weighted_total = weights.reduce(function (prev, curr) {
+    return prev + curr
+  }, 0)
+
+  return total
+}
+
+function _selectArr(set, weights, options) {
+  if (typeof options.rand !== 'function') {
+    options.rand = Math.random
+  }
+
+  if (set.length !== weights.length) {
+    throw new TypeError('Different number of options & weights.')
+  }
+
+  var total = options.total || (options.normal ? 1 : getTotal(weights))
+    , key = options.rand() * total
+    , index = 0
+
+  for (;index < weights.length; index++) {
+    key -= weights[index]
+
+    if (key < 0) {
+      return set[index]
+    }
+  }
+
+  throw new RangeError('All weights do not add up to >= 1 as expected.')
+}
+
+function _selectObj(obj, options) {
+  var keys = Object.keys(obj)
+    , values = keys.map(function (key) {
+        return obj[key]
+      })
+
+  return _selectArr(keys, values, options)
+}
+
+function select(set, weights, options) {
+  if (typeof options === 'function') {
+    options = {
+      rand: options
+    }
+  }
+
+  if (options == null) {
+    options = {}
+  }
+
+  if (Array.isArray(set)) {
+    if (weights == null) {
+      weights = set.map(function () {
+        return 1
+      })
+    }
+
+    if (Array.isArray(weights)) {
+      if (set.length === weights.length) {
+        return _selectArr(set, weights, options)
+      }
+
+      throw new TypeError('Set and Weights are different sizes.')
+    }
+
+    throw new TypeError('Set is an Array, and Weights is not.')
+  }
+
+  if (typeof set === 'object') {
+    return _selectObj(set, weights || options)
+  }
+
+  throw new TypeError('Set is not an Object, nor is it an Array.')
+}
+
+module.exports = select
+module.exports.select = select
+
+},{}],"../node_modules/weighted/index.js":[function(require,module,exports) {
+module.exports = require('./lib/weighted')
+
+},{"./lib/weighted":"../node_modules/weighted/lib/weighted.js"}],"../node_modules/sat/SAT.js":[function(require,module,exports) {
 var define;
 // Version 0.9.0 - Copyright 2012 - 2021 -  Jim Riecken <jimr@jimr.ca>
 //
@@ -52035,17 +51877,15 @@ var useResizeObserver = _interopDefault(require('use-resize-observer'));
 
 var reactGameEngine = require('react-game-engine');
 
-var randomJsNoNode = require('random-js-no-node');
-
-var weighted = _interopDefault(require('weighted'));
-
 var PropTypes = _interopDefault(require('prop-types'));
 
 var jsxRuntime = require('react/jsx-runtime');
 
 var SVG = _interopDefault(require('react-inlinesvg'));
 
-var copy = _interopDefault(require('copy-to-clipboard'));
+var randomJsNoNode = require('random-js-no-node');
+
+var weighted = _interopDefault(require('weighted'));
 
 var detectCollisions = require('detect-collisions');
 
@@ -52619,13 +52459,340 @@ var WEIGHTS_OCCLUSION = {
   airplane: 1
 };
 var WEIGHTS_SPAWN = {
-  observable: WEIGHTS_DYNAMIC,
+  dynamic: WEIGHTS_DYNAMIC,
   occlusion: WEIGHTS_OCCLUSION
 };
 var WEIGHTS_STATIC = {
   star: 5,
   galaxy: 2
 };
+var StarConfig = {
+  brightness: {
+    min: 0.5,
+    max: 1
+  },
+  size: {
+    min: 0.75,
+    max: 2.5
+  }
+};
+var GalaxyConfig = {
+  brightness: {
+    bins: [[0, 0.1], [0.1, 0.2], [0.2, 0.3], [0.3, 0.4], [0.4, 0.5], [0.5, 0.6], [0.6, 0.7], [0.7, 0.8], [0.8, 0.9], [0.9, 1]],
+    weights: [0, 0.01, 0.03, 0.17, 0.4, 0.57, 0.42, 0.22, 0.04, 0.01]
+  },
+  size: {
+    bins: [[0.75, 0.925], [0.925, 1.1], [1.1, 1.275], [1.275, 1.45], [1.45, 1.625], [1.625, 1.8], [1.8, 1.975], [1.975, 2.15], [2.15, 2.325], [2.325, 2.5]],
+    weights: [0.05, 0.3, 0.5, 0.46, 0.25, 0.15, 0.08, 0.06, 0.03, 0.02]
+  }
+};
+var SupernovaConfig = {
+  brightness: {
+    min: 0.5,
+    max: 1
+  },
+  lifespan: {
+    min: 5000,
+    max: 10000
+  },
+  size: {
+    min: 1,
+    max: 3
+  }
+};
+var CloudConfig = {
+  brightness: {
+    min: 1,
+    max: 1
+  },
+  size: {
+    min: 20,
+    max: 40
+  },
+  spawnEdge: {
+    left: 1,
+    right: 1,
+    top: 3,
+    bottom: 3
+  },
+  baseRotation: 0,
+  onlyMovesHorizontal: true,
+  speed: {
+    min: 0.02,
+    target: 0.025,
+    max: 0.025
+  }
+};
+var AirplaneConfig = {
+  brightness: {
+    min: 1,
+    max: 1
+  },
+  size: {
+    min: 3,
+    max: 3
+  },
+  spawnEdge: {
+    left: 1,
+    right: 1,
+    top: 3,
+    bottom: 3
+  },
+  speed: {
+    min: 0.015,
+    target: 0.02,
+    max: 0.025
+  },
+  baseRotation: 90,
+  onlyMovesHorizontal: false
+};
+var AsteroidConfig = {
+  brightness: {
+    min: 1,
+    max: 1
+  },
+  size: {
+    min: 1.5,
+    max: 2.5
+  },
+  spawnEdge: {
+    left: 1,
+    right: 1,
+    top: 3,
+    bottom: 3
+  },
+  speed: {
+    min: 0.02,
+    target: 0.0225,
+    max: 0.03
+  },
+  baseRotation: 0,
+  onlyMovesHorizontal: false
+};
+var _AsteroidConfig$speed = AsteroidConfig.speed,
+    min = _AsteroidConfig$speed.min,
+    target = _AsteroidConfig$speed.target,
+    max = _AsteroidConfig$speed.max;
+var cometSpeedScalar = 1.5;
+var CometConfig = {
+  brightness: {
+    min: 1,
+    max: 1
+  },
+  size: {
+    min: 1.5,
+    max: 2.5
+  },
+  spawnEdge: {
+    left: 1,
+    right: 1,
+    top: 3,
+    bottom: 3
+  },
+  speed: {
+    min: min * cometSpeedScalar,
+    target: target * cometSpeedScalar,
+    max: max * cometSpeedScalar
+  },
+  baseRotation: 25,
+  onlyMovesHorizontal: false
+};
+var SkyObjectConfigs = {
+  star: StarConfig,
+  galaxy: GalaxyConfig,
+  supernova: SupernovaConfig,
+  cloud: CloudConfig,
+  airplane: AirplaneConfig,
+  asteroid: AsteroidConfig,
+  comet: CometConfig
+}; // Timeline
+// Durations
+
+var GAME_DURATION = 60000;
+var SUNRISE_DURATION = 10000;
+var DAY_TRANSITION_DURATION = 500;
+var FINISH_SCREEN_DURATION = 10000; // Starts
+
+var TIMER_START = 3500;
+var SUNRISE_START = TIMER_START + GAME_DURATION - SUNRISE_DURATION;
+var GAME_END = TIMER_START + GAME_DURATION;
+var FINISH_SCREEN_START = GAME_END + DAY_TRANSITION_DURATION;
+var QUIT_TIME = FINISH_SCREEN_START + FINISH_SCREEN_DURATION;
+var TIMED_EVENTS = [{
+  type: 'timeStart',
+  time: TIMER_START
+}, {
+  type: 'dawn',
+  time: SUNRISE_START
+}, {
+  type: 'timeEnd',
+  time: GAME_END
+}, {
+  type: 'showFinish',
+  time: FINISH_SCREEN_START
+}, {
+  type: 'quit',
+  time: QUIT_TIME
+}]; // SCREEN
+
+var ASPECT_RATIOS_FLOAT = [1.85, 1.7778, 1.6, 1.3333, 1, 0.75, 0.6667, 0.6];
+var GAME_FIELD_SIZE = 0.8;
+var MENU_SLIDE_TIME = 500;
+var MENU_SLIDE_DELAY = 200;
+var MENU_TRANSITION_TIME = MENU_SLIDE_TIME + MENU_SLIDE_DELAY; // Camera
+
+var MIN_CAMERA_MOVE = 0.16;
+var CAMERA_MOVE = MIN_CAMERA_MOVE * 1.5;
+var MAX_CAMERA_MOVE = MIN_CAMERA_MOVE * 2;
+var EXPOSURE_TIME = 3500; // Collision
+
+var MIN_OVERLAP = 0.5; // Spawn
+
+var FIRST_SPAWN = {
+  occlusion: 0,
+  dynamic: 1000
+};
+var SPAWN_INTERVAL = {
+  occlusion: {
+    min: 5000,
+    max: 10000
+  },
+  dynamic: {
+    min: 3000,
+    max: 5000
+  }
+}; // Sky Objects
+
+var MIN_OBJECT_X = 10;
+var MAX_OBJECT_X = 90;
+var MIN_OBJECT_Y = 15;
+var MAX_OBJECT_Y = 98;
+var X_RANGE = MAX_OBJECT_X - MIN_OBJECT_X;
+var Y_RANGE = MAX_OBJECT_Y - MIN_OBJECT_Y;
+var STATIC_ROWS = 2;
+var STATIC_COLUMNS = 4;
+var STATIC_OBJECTS_PER_CELL = 3;
+var FADE_TIME = 500;
+var SpaceSurveyorsContainer = /*#__PURE__*/styled__default.div.withConfig({
+  displayName: "SpaceSurveyorsContainer",
+  componentId: "space-surveyors__sc-1a2ov4u-0"
+})(["background:var(--neutral95);width:100%;height:100%;position:relative;overflow:hidden;font-family:var(--FONT_STACK_BASE);margin:0;padding:0;box-sizing:border-box;display:flex;justify-content:center;&:after{content:'';background:#313333;position:absolute;top:0;left:0;width:100%;height:19.2%;}"]);
+var BaseMenu = /*#__PURE__*/styled__default.div.attrs(function (_ref) {
+  var showMenu = _ref.showMenu;
+  return {
+    style: {
+      transform: "translateY(" + (showMenu ? '0' : '100') + "%)",
+      pointerEvents: showMenu ? 'auto' : 'none'
+    }
+  };
+}).withConfig({
+  displayName: "BaseMenu",
+  componentId: "space-surveyors__sc-13rig0w-0"
+})(["background-color:var(--neutral95);color:var(--turquoise50);display:flex;align-items:center;flex-direction:column;overflow-y:auto;padding:1rem;", " z-index:", ";transition:transform ", "ms ease-in;transition-delay:", "ms;"], fullScreenAbsolute, zStack.menu, MENU_SLIDE_TIME, MENU_SLIDE_DELAY);
+var Button = /*#__PURE__*/styled__default.button.withConfig({
+  displayName: "styles__Button",
+  componentId: "space-surveyors__sc-bch260-0"
+})(["", " ", " align-items:center;font-size:", ";text-align:center;", ""], function (_ref) {
+  var _ref$$styleAs = _ref.$styleAs,
+      $styleAs = _ref$$styleAs === void 0 ? 'primary' : _ref$$styleAs;
+  return aButtonTheme($styleAs);
+}, aButton, /*#__PURE__*/fluidScale('20px', '16px'), function (_ref2) {
+  var $isBlock = _ref2.$isBlock;
+  return $isBlock && styled.css(["display:flex;width:100%;"]);
+});
+var ButtonText = /*#__PURE__*/styled__default.span.withConfig({
+  displayName: "styles__ButtonText",
+  componentId: "space-surveyors__sc-bch260-1"
+})(["flex:1 1 auto;text-align:center;svg + &{padding-inline-start:10px;}"]);
+var _excluded = ["children", "icon", "iconSize", "isBlock", "styleAs", "isInactive", "className"];
+var Button$1 = /*#__PURE__*/React.forwardRef(function (_ref, ref) {
+  var children = _ref.children,
+      isBlock = _ref.isBlock,
+      styleAs = _ref.styleAs,
+      isInactive = _ref.isInactive,
+      className = _ref.className,
+      buttonProps = _objectWithoutPropertiesLoose(_ref, _excluded);
+
+  return /*#__PURE__*/jsxRuntime.jsx(Button, _extends({
+    ref: ref,
+    $isBlock: isBlock,
+    $styleAs: styleAs,
+    "aria-disabled": isInactive || undefined,
+    className: className
+  }, buttonProps, {
+    children: /*#__PURE__*/jsxRuntime.jsx(ButtonText, {
+      children: children
+    })
+  }));
+});
+Button$1.displayName = 'Atomic.Button';
+Button$1.prototypes = {
+  children: PropTypes.node,
+  isBlock: PropTypes.bool,
+  styleAs: /*#__PURE__*/PropTypes.oneOf(['primary', 'secondary', 'tertiary']),
+
+  /** This is a disabled style without disabling the button.
+   * Good for a11y - button is visible even if form isn't complete.
+   */
+  isInactive: PropTypes.bool
+};
+var img = "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='70 70 60 60'%3e%3cpath fill='currentColor' d='m121.6 87.3-.2-.8v-.3l-.2-.6-.1-.2-.2-.7-.1-.2a6.8 6.8 0 0 0-.7-1.5l-.2-.2-.2-.3-.1-.2-.2-.2V82l-.2-.2-.3-.2-.8-.7c-.3-.3-.7-.5-1.2-.5s-1 .1-1.4.3l-4.7 1.4-.3.1-.8.3-.3.1-.8.3-.3.2-.7.3-.3.2c-.3 0-.5.2-.7.3l-.3.2-.6.4-.3.2-.5.5-.3.3-.4.4-.2.4-.4.5-.2.4-.3.6-.2.5c0 .2 0 .4-.2.7v.5l-.2.7v1.5l-.1.5V92.8v-.1.6-.1.1l.1.2v.3l.2.4v.2l.4.5c.4.5 1 .8 1.5 1 3 1.1 6.3.6 9.5.1s7.5.3 8.2-1.2c.7-1.6-.2-5-.7-7.5ZM108 91c-.1.3-.1.6-.3.8-.2.2-.5.3-.7.2-.3 0-.6-.2-.7-.4l-.2-.1c-.4-.9.2-1.5 1-1.5h.2a13.9 13.9 0 0 0 .7.3l.2.2-.2.5Zm4 1.4c0 .2-.3.1-.5.1-.3 0-.5-.2-.6-.3l-.5-.4-.2-.3c-.2-.3-.2-1.2.7-1.3.4 0 .5 0 .9.2s0 1 .2 1.2c.2.2.1.6 0 .8Zm2.2-5.5c-.1 0-.2 0-.3-.2l.2-.8.2-.2.5-.4c.2-.1.4-.3.7-.3h.4l.2.3-.1.6-.2.6v.8h-.2c-.3-.2-.7-.5-1.1-.4h-.3Zm3.2 6.5-.3.3a1 1 0 0 1-.7 0 .7.7 0 0 1-.4-.2v-.2l-.1-.3-.2-.2-.1-.5-.1-.2V92c.2-.3.4-.3.7-.2l.7-.1h.3l.2.2v.7l.1.3v.4ZM115.8 109.8v-.5l-.1-.3-.1-.5-.1-.3-.1-.3-.1-.2-.2-.4-.3-.3-.2-.4-.3-.3-.4-.3-.3-.3-.6-.6c-1-.7-1.8-1.5-2.7-2.3-.4-.3-.9-.7-1.5-.8-1.3-.1-2 1.5-3 2.4-1.9 1.5-5 .8-6.4 2.7-.4.5-.6 1.1-.7 1.8v1l-.1.2v.9l.1 1v.2l.3.8v.1c.4 1.2 1 2.4 1.7 3.5l1.1 1.3h.1c.4.5.8.9 1.3 1.2 2.1 1.8 6.3 5 8.9 2.4.5-.5.8-1.3 1.1-2l.8-2a21.3 21.3 0 0 0 1.9-7.5v-.2Zm-10.5 2.2-.6.4c-.2.2-.5.2-.8.2a.9.9 0 0 1-.5-.4l-.1-.2-.1-.5-.2-.2-.1-.1-.1-.6s-.2-.1-.2-.3v-.1c.3-.3.6-.3 1-.3l1-.1h.4l.2.3v.9l.2.4-.1.6Zm3 2.2-.4 1c-.2.3-.6.3-.9.3a1.5 1.5 0 0 1-1-.7c-.6-1.1.1-1.8 1.2-1.9h.2l.5.3h.3l.3.4-.2.6Zm5.5-2.7c-.2.3-.3.5-.3.8l.1.4v.6H113.2c-.5-.2-1-.6-1.5-.5h-.3c-.3 0-.4-.1-.4-.2-.1-.3 0-.8.3-1l.2-.3.7-.5c.2-.2.5-.4.8-.4h.5l.2.3c.2.3 0 .6 0 .8ZM101.2 87.2a19.5 19.5 0 0 0-2.8-6.6l-.6-.9-.2-.2-.1-.1-.7-.6-.1-.1a5 5 0 0 0-.9-.6 7 7 0 0 0-4.6-.4c-3.7.9-6.6 3.5-9.3 6a15.5 15.5 0 0 0-3.6 4.4 7 7 0 0 0-.4 1v.2a9 9 0 0 0-.3 1v3.5l.1.2.3 1v.2l.4 1 .5 1v.1c.3.3.4.6.6 1l.2.1v.2a6.6 6.6 0 0 0 .3.3s0 .2.2.2a7.7 7.7 0 0 0 .7 1l.2.3.8.8h.1a21.9 21.9 0 0 0 1 1l.6.4.3.3.6.4.3.2.9.5c2 1 5 2 6.7 0 2.3-2.6.2-5.3 4-7 1.4-.5 2.3-1.7 3.2-3a10 10 0 0 0 1.6-2.9 8 8 0 0 0 0-3.9ZM84 91.4c-.2.4-.2.8-.4 1-.3.3-.6.4-1 .4a1.6 1.6 0 0 1-1.1-.8c-.6-1.1.2-1.9 1.3-2h.2l.6.3c.1 0 .2 0 .3.2l.3.3-.2.6Zm5.3 3.1-.2.4-.4.2c-.4.1-1 .2-1.3 0a1.2 1.2 0 0 1-.7-1c0-.3 0-.7.2-1 .2-.4.6-.7 1-.6.2 0 .4.3.6.2l.4-.2h.2l.1.2c.3.3.4.8.4 1.1 0 .3-.1.5-.3.7Zm3.7-12c.5-.1.5 0 1 .2.6.2.2 1.2.3 1.5.2.2.2.7 0 1 0 .2-.4 0-.6 0-.3 0-.6-.2-.8-.4l-.6-.5-.2-.3c-.2-.3-.2-1.5.9-1.6Zm2.5 11-.3.3-.4.3-.3.2-.3-.3-.1-.1-.2-.2c-.2-.2-.6-.2-.8-.3v-.2c-.1-.6.2-1.2.6-1.5.3-.3.9-.7 1.3-.4l.2.4.2.3.2 1v.4Z'/%3e%3c/svg%3e";
+var img$1 = "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='78 51 181 87'%3e%3cpath fill='%23f6ffff' d='M243.62 103.44c4.5 0 8.66 1.47 12.02 3.95-3.61-5.58-9.89-9.27-17.03-9.27h-4.97c.68 1.7 1.2 3.48 1.56 5.32h8.41ZM105.84 96.47c1.16-22.19 19.52-39.82 41.99-39.82 10.76 0 20.57 4.04 28.01 10.69-7.7-9.75-19.62-16-33.01-16-22.48 0-40.83 17.63-41.99 39.82-12.28.94-21.95 11.2-21.95 23.73 0 7.63 3.59 14.42 9.17 18.77a23.684 23.684 0 0 1-4.17-13.46c0-12.52 9.67-22.78 21.95-23.73ZM205.71 79.16c7.31 0 14.01 2.61 19.22 6.95-5.47-7.44-14.28-12.26-24.22-12.26-5.88 0-11.37 1.69-16 4.61 1.17 2.13 2.17 4.38 2.96 6.72a29.913 29.913 0 0 1 18.04-6.02Z'/%3e%3cpath d='M255.64 107.39a20.178 20.178 0 0 0-12.02-3.95h-8.41c-.36-1.84-.89-3.61-1.56-5.32-1.87-4.7-4.89-8.82-8.72-12.01a29.925 29.925 0 0 0-19.22-6.95 29.89 29.89 0 0 0-18.04 6.02c-.79-2.34-1.79-4.59-2.96-6.72-2.31-4.2-5.32-7.96-8.86-11.13-7.44-6.65-17.25-10.69-28.01-10.69-22.48 0-40.83 17.63-41.99 39.82-12.28.94-21.95 11.2-21.95 23.73 0 4.99 1.54 9.63 4.17 13.46 4.03 3.15 9.11 5.02 14.62 5.02h135.92c11.2 0 20.28-9.08 20.28-20.28 0-4.06-1.19-7.84-3.25-11.01Z' fill='%23ecf2f2'/%3e%3c/svg%3e";
+var img$2 = "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='70 70 65 65'%3e%3cpath d='M84.8 92.5a49 49 0 0 1 7.1 2s-18 12-26.3 20.7a1 1 0 0 0 .7 1.7c11.7-1 29.7-4.3 29.7-4.3s-1.3 4.4-3 7.6c-.2.5.2 1 .7.9a75 75 0 0 0 37.5-21.2s0-.1.1-.2a12 12 0 0 0 2.2-13.6 12 12 0 0 0-11.9-7.2 73 73 0 0 0-37 12.7c-.4.3-.2.9.2 1Zm45.3-4.9c2.3 4.8.2 9.7-5.1 12.2-1.8.8-3.7 1.3-5.5 1.5-4.6.6-2.3-1.8-3.7-5-1.1-2.3-4-4.6-2.2-7.3 1.6-2.2 1-3.8 4-5.2 1.5-.8 3.2 0 4.6 0 3.5 0 6.3.5 8 3.8Z' fill='currentColor'/%3e%3c/svg%3e";
+var img$3 = "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 610 610' style='enable-background:new 0 0 610 610' xml:space='preserve'%3e%3cpath shape-rendering='optimizeSpeed' style='opacity:.2%3bfill:white' d='M565 125V85h-40V45h-40V5H125v40H85v40H45v40H5v360h40v40h40v40h40v40h360v-40h40v-40h40v-40h40V125z'/%3e%3c/svg%3e";
+var img$4 = "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 610 610' style='enable-background:new 0 0 610 610' xml:space='preserve'%3e%3cstyle%3e.st1%7bfill:none%3bstroke:%23fdda78%3bstroke-width:1.7638%3bstroke-miterlimit:10%7d%3c/style%3e%3cg id='Field_of_view_itself'%3e%3cpath style='fill:none%3bstroke:%23fdda78%3bstroke-width:3.1749%3bstroke-miterlimit:10' d='M565 125V85h-40V45h-40V5H125v40H85v40H45v40H5v360h40v40h40v40h40v40h360v-40h40v-40h40v-40h40V125z'/%3e%3cpath class='st1' d='M125 5h40v40h-40z'/%3e%3cpath class='st1' d='M125 5h40v40h-40zM165 5h40v40h-40z'/%3e%3cpath class='st1' d='M165 5h40v40h-40zM205 5h40v40h-40z'/%3e%3cpath class='st1' d='M205 5h40v40h-40zM125 45h40v40h-40z'/%3e%3cpath class='st1' d='M125 45h40v40h-40zM165 45h40v40h-40z'/%3e%3cpath class='st1' d='M165 45h40v40h-40zM205 45h40v40h-40z'/%3e%3cpath class='st1' d='M205 45h40v40h-40zM125 85h40v40h-40z'/%3e%3cpath class='st1' d='M125 85h40v40h-40zM165 85h40v40h-40z'/%3e%3cpath class='st1' d='M165 85h40v40h-40zM205 85h40v40h-40z'/%3e%3cpath class='st1' d='M205 85h40v40h-40zM85 45h40v40H85z'/%3e%3cpath class='st1' d='M85 45h40v40H85zM85 85h40v40H85z'/%3e%3cpath class='st1' d='M85 85h40v40H85zM45 85h40v40H45z'/%3e%3cpath class='st1' d='M45 85h40v40H45zM245 5h40v40h-40z'/%3e%3cpath class='st1' d='M245 5h40v40h-40zM285 5h40v40h-40z'/%3e%3cpath class='st1' d='M285 5h40v40h-40zM325 5h40v40h-40z'/%3e%3cpath class='st1' d='M325 5h40v40h-40zM245 45h40v40h-40z'/%3e%3cpath class='st1' d='M245 45h40v40h-40zM285 45h40v40h-40z'/%3e%3cpath class='st1' d='M285 45h40v40h-40zM325 45h40v40h-40z'/%3e%3cpath class='st1' d='M325 45h40v40h-40zM245 85h40v40h-40z'/%3e%3cpath class='st1' d='M245 85h40v40h-40zM285 85h40v40h-40z'/%3e%3cpath class='st1' d='M285 85h40v40h-40zM325 85h40v40h-40z'/%3e%3cpath class='st1' d='M325 85h40v40h-40zM365 5h40v40h-40z'/%3e%3cpath class='st1' d='M365 5h40v40h-40zM405 5h40v40h-40z'/%3e%3cpath class='st1' d='M405 5h40v40h-40zM445 5h40v40h-40z'/%3e%3cpath class='st1' d='M445 5h40v40h-40zM365 45h40v40h-40z'/%3e%3cpath class='st1' d='M365 45h40v40h-40zM405 45h40v40h-40z'/%3e%3cpath class='st1' d='M405 45h40v40h-40zM445 45h40v40h-40z'/%3e%3cpath class='st1' d='M445 45h40v40h-40zM365 85h40v40h-40z'/%3e%3cpath class='st1' d='M365 85h40v40h-40zM405 85h40v40h-40z'/%3e%3cpath class='st1' d='M405 85h40v40h-40zM445 85h40v40h-40z'/%3e%3cpath class='st1' d='M445 85h40v40h-40zM205 125h40v40h-40z'/%3e%3cpath class='st1' d='M205 125h40v40h-40zM205 165h40v40h-40z'/%3e%3cpath class='st1' d='M205 165h40v40h-40zM205 205h40v40h-40z'/%3e%3cpath class='st1' d='M205 205h40v40h-40zM165 125h40v40h-40z'/%3e%3cpath class='st1' d='M165 125h40v40h-40zM165 165h40v40h-40z'/%3e%3cpath class='st1' d='M165 165h40v40h-40zM165 205h40v40h-40z'/%3e%3cpath class='st1' d='M165 205h40v40h-40zM125 125h40v40h-40z'/%3e%3cpath class='st1' d='M125 125h40v40h-40zM125 165h40v40h-40z'/%3e%3cpath class='st1' d='M125 165h40v40h-40zM125 205h40v40h-40z'/%3e%3cpath class='st1' d='M125 205h40v40h-40zM205 245h40v40h-40z'/%3e%3cpath class='st1' d='M205 245h40v40h-40zM205 285h40v40h-40z'/%3e%3cpath class='st1' d='M205 285h40v40h-40zM205 325h40v40h-40z'/%3e%3cpath class='st1' d='M205 325h40v40h-40zM165 245h40v40h-40z'/%3e%3cpath class='st1' d='M165 245h40v40h-40zM165 285h40v40h-40z'/%3e%3cpath class='st1' d='M165 285h40v40h-40zM165 325h40v40h-40z'/%3e%3cpath class='st1' d='M165 325h40v40h-40zM125 245h40v40h-40z'/%3e%3cpath class='st1' d='M125 245h40v40h-40zM125 285h40v40h-40z'/%3e%3cpath class='st1' d='M125 285h40v40h-40zM125 325h40v40h-40z'/%3e%3cpath class='st1' d='M125 325h40v40h-40zM205 365h40v40h-40z'/%3e%3cpath class='st1' d='M205 365h40v40h-40zM205 405h40v40h-40z'/%3e%3cpath class='st1' d='M205 405h40v40h-40zM205 445h40v40h-40z'/%3e%3cpath class='st1' d='M205 445h40v40h-40zM165 365h40v40h-40z'/%3e%3cpath class='st1' d='M165 365h40v40h-40zM165 405h40v40h-40z'/%3e%3cpath class='st1' d='M165 405h40v40h-40zM165 445h40v40h-40z'/%3e%3cpath class='st1' d='M165 445h40v40h-40zM125 365h40v40h-40z'/%3e%3cpath class='st1' d='M125 365h40v40h-40zM125 405h40v40h-40z'/%3e%3cpath class='st1' d='M125 405h40v40h-40zM125 445h40v40h-40z'/%3e%3cpath class='st1' d='M125 445h40v40h-40zM5 125h40v40H5z'/%3e%3cpath class='st1' d='M5 125h40v40H5zM5 165h40v40H5z'/%3e%3cpath class='st1' d='M5 165h40v40H5zM5 205h40v40H5z'/%3e%3cpath class='st1' d='M5 205h40v40H5zM45 125h40v40H45z'/%3e%3cpath class='st1' d='M45 125h40v40H45zM45 165h40v40H45z'/%3e%3cpath class='st1' d='M45 165h40v40H45zM45 205h40v40H45z'/%3e%3cpath class='st1' d='M45 205h40v40H45zM85 125h40v40H85z'/%3e%3cpath class='st1' d='M85 125h40v40H85zM85 165h40v40H85z'/%3e%3cpath class='st1' d='M85 165h40v40H85zM85 205h40v40H85z'/%3e%3cpath class='st1' d='M85 205h40v40H85zM5 245h40v40H5z'/%3e%3cpath class='st1' d='M5 245h40v40H5zM5 285h40v40H5z'/%3e%3cpath class='st1' d='M5 285h40v40H5zM5 325h40v40H5z'/%3e%3cpath class='st1' d='M5 325h40v40H5zM45 245h40v40H45z'/%3e%3cpath class='st1' d='M45 245h40v40H45zM45 285h40v40H45z'/%3e%3cpath class='st1' d='M45 285h40v40H45zM45 325h40v40H45z'/%3e%3cpath class='st1' d='M45 325h40v40H45zM85 245h40v40H85z'/%3e%3cpath class='st1' d='M85 245h40v40H85zM85 285h40v40H85z'/%3e%3cpath class='st1' d='M85 285h40v40H85zM85 325h40v40H85z'/%3e%3cpath class='st1' d='M85 325h40v40H85zM5 365h40v40H5z'/%3e%3cpath class='st1' d='M5 365h40v40H5zM5 405h40v40H5z'/%3e%3cpath class='st1' d='M5 405h40v40H5zM5 445h40v40H5z'/%3e%3cpath class='st1' d='M5 445h40v40H5zM45 365h40v40H45z'/%3e%3cpath class='st1' d='M45 365h40v40H45zM45 405h40v40H45z'/%3e%3cpath class='st1' d='M45 405h40v40H45zM45 445h40v40H45z'/%3e%3cpath class='st1' d='M45 445h40v40H45zM85 365h40v40H85z'/%3e%3cpath class='st1' d='M85 365h40v40H85zM85 405h40v40H85z'/%3e%3cpath class='st1' d='M85 405h40v40H85zM85 445h40v40H85z'/%3e%3cpath class='st1' d='M85 445h40v40H85zM245 125h40v40h-40z'/%3e%3cpath class='st1' d='M245 125h40v40h-40zM245 165h40v40h-40z'/%3e%3cpath class='st1' d='M245 165h40v40h-40zM245 205h40v40h-40z'/%3e%3cpath class='st1' d='M245 205h40v40h-40zM285 125h40v40h-40z'/%3e%3cpath class='st1' d='M285 125h40v40h-40zM285 165h40v40h-40z'/%3e%3cpath class='st1' d='M285 165h40v40h-40zM285 205h40v40h-40z'/%3e%3cpath class='st1' d='M285 205h40v40h-40zM325 125h40v40h-40z'/%3e%3cpath class='st1' d='M325 125h40v40h-40zM325 165h40v40h-40z'/%3e%3cpath class='st1' d='M325 165h40v40h-40zM325 205h40v40h-40z'/%3e%3cpath class='st1' d='M325 205h40v40h-40zM245 245h40v40h-40z'/%3e%3cpath class='st1' d='M245 245h40v40h-40zM245 285h40v40h-40z'/%3e%3cpath class='st1' d='M245 285h40v40h-40zM245 325h40v40h-40z'/%3e%3cpath class='st1' d='M245 325h40v40h-40zM285 245h40v40h-40z'/%3e%3cpath class='st1' d='M285 245h40v40h-40zM285 285h40v40h-40z'/%3e%3cpath class='st1' d='M285 285h40v40h-40zM285 325h40v40h-40z'/%3e%3cpath class='st1' d='M285 325h40v40h-40zM325 245h40v40h-40z'/%3e%3cpath class='st1' d='M325 245h40v40h-40zM325 285h40v40h-40z'/%3e%3cpath class='st1' d='M325 285h40v40h-40zM325 325h40v40h-40z'/%3e%3cpath class='st1' d='M325 325h40v40h-40zM245 365h40v40h-40z'/%3e%3cpath class='st1' d='M245 365h40v40h-40zM245 405h40v40h-40z'/%3e%3cpath class='st1' d='M245 405h40v40h-40zM245 445h40v40h-40z'/%3e%3cpath class='st1' d='M245 445h40v40h-40zM285 365h40v40h-40z'/%3e%3cpath class='st1' d='M285 365h40v40h-40zM285 405h40v40h-40z'/%3e%3cpath class='st1' d='M285 405h40v40h-40zM285 445h40v40h-40z'/%3e%3cpath class='st1' d='M285 445h40v40h-40zM325 365h40v40h-40z'/%3e%3cpath class='st1' d='M325 365h40v40h-40zM325 405h40v40h-40z'/%3e%3cpath class='st1' d='M325 405h40v40h-40zM325 445h40v40h-40z'/%3e%3cpath class='st1' d='M325 445h40v40h-40zM445 125h40v40h-40z'/%3e%3cpath class='st1' d='M445 125h40v40h-40zM445 165h40v40h-40z'/%3e%3cpath class='st1' d='M445 165h40v40h-40zM445 205h40v40h-40z'/%3e%3cpath class='st1' d='M445 205h40v40h-40zM405 125h40v40h-40z'/%3e%3cpath class='st1' d='M405 125h40v40h-40zM405 165h40v40h-40z'/%3e%3cpath class='st1' d='M405 165h40v40h-40zM405 205h40v40h-40z'/%3e%3cpath class='st1' d='M405 205h40v40h-40zM365 125h40v40h-40z'/%3e%3cpath class='st1' d='M365 125h40v40h-40zM365 165h40v40h-40z'/%3e%3cpath class='st1' d='M365 165h40v40h-40zM365 205h40v40h-40z'/%3e%3cpath class='st1' d='M365 205h40v40h-40zM445 245h40v40h-40z'/%3e%3cpath class='st1' d='M445 245h40v40h-40zM445 285h40v40h-40z'/%3e%3cpath class='st1' d='M445 285h40v40h-40zM445 325h40v40h-40z'/%3e%3cpath class='st1' d='M445 325h40v40h-40zM405 245h40v40h-40z'/%3e%3cpath class='st1' d='M405 245h40v40h-40zM405 285h40v40h-40z'/%3e%3cpath class='st1' d='M405 285h40v40h-40zM405 325h40v40h-40z'/%3e%3cpath class='st1' d='M405 325h40v40h-40zM365 245h40v40h-40z'/%3e%3cpath class='st1' d='M365 245h40v40h-40zM365 285h40v40h-40z'/%3e%3cpath class='st1' d='M365 285h40v40h-40zM365 325h40v40h-40z'/%3e%3cpath class='st1' d='M365 325h40v40h-40zM445 365h40v40h-40z'/%3e%3cpath class='st1' d='M445 365h40v40h-40zM445 405h40v40h-40z'/%3e%3cpath class='st1' d='M445 405h40v40h-40zM445 445h40v40h-40z'/%3e%3cpath class='st1' d='M445 445h40v40h-40zM405 365h40v40h-40z'/%3e%3cpath class='st1' d='M405 365h40v40h-40zM405 405h40v40h-40z'/%3e%3cpath class='st1' d='M405 405h40v40h-40zM405 445h40v40h-40z'/%3e%3cpath class='st1' d='M405 445h40v40h-40zM365 365h40v40h-40z'/%3e%3cpath class='st1' d='M365 365h40v40h-40zM365 405h40v40h-40z'/%3e%3cpath class='st1' d='M365 405h40v40h-40zM365 445h40v40h-40z'/%3e%3cpath class='st1' d='M365 445h40v40h-40zM205 565h40v40h-40z'/%3e%3cpath class='st1' d='M205 565h40v40h-40zM205 525h40v40h-40z'/%3e%3cpath class='st1' d='M205 525h40v40h-40zM205 485h40v40h-40z'/%3e%3cpath class='st1' d='M205 485h40v40h-40zM165 565h40v40h-40z'/%3e%3cpath class='st1' d='M165 565h40v40h-40zM165 525h40v40h-40z'/%3e%3cpath class='st1' d='M165 525h40v40h-40zM165 485h40v40h-40z'/%3e%3cpath class='st1' d='M165 485h40v40h-40zM125 565h40v40h-40z'/%3e%3cpath class='st1' d='M125 565h40v40h-40zM125 525h40v40h-40z'/%3e%3cpath class='st1' d='M125 525h40v40h-40zM125 485h40v40h-40z'/%3e%3cpath class='st1' d='M125 485h40v40h-40zM245 565h40v40h-40z'/%3e%3cpath class='st1' d='M245 565h40v40h-40zM245 525h40v40h-40z'/%3e%3cpath class='st1' d='M245 525h40v40h-40zM245 485h40v40h-40z'/%3e%3cpath class='st1' d='M245 485h40v40h-40zM285 565h40v40h-40z'/%3e%3cpath class='st1' d='M285 565h40v40h-40zM285 525h40v40h-40z'/%3e%3cpath class='st1' d='M285 525h40v40h-40zM285 485h40v40h-40z'/%3e%3cpath class='st1' d='M285 485h40v40h-40zM325 565h40v40h-40z'/%3e%3cpath class='st1' d='M325 565h40v40h-40zM325 525h40v40h-40z'/%3e%3cpath class='st1' d='M325 525h40v40h-40zM325 485h40v40h-40z'/%3e%3cpath class='st1' d='M325 485h40v40h-40zM445 565h40v40h-40z'/%3e%3cpath class='st1' d='M445 565h40v40h-40zM445 525h40v40h-40z'/%3e%3cpath class='st1' d='M445 525h40v40h-40zM445 485h40v40h-40z'/%3e%3cpath class='st1' d='M445 485h40v40h-40zM405 565h40v40h-40z'/%3e%3cpath class='st1' d='M405 565h40v40h-40zM405 525h40v40h-40z'/%3e%3cpath class='st1' d='M405 525h40v40h-40zM405 485h40v40h-40z'/%3e%3cpath class='st1' d='M405 485h40v40h-40zM365 565h40v40h-40z'/%3e%3cpath class='st1' d='M365 565h40v40h-40zM365 525h40v40h-40z'/%3e%3cpath class='st1' d='M365 525h40v40h-40zM365 485h40v40h-40z'/%3e%3cpath class='st1' d='M365 485h40v40h-40zM485 125h40v40h-40z'/%3e%3cpath class='st1' d='M485 125h40v40h-40zM485 165h40v40h-40z'/%3e%3cpath class='st1' d='M485 165h40v40h-40zM485 205h40v40h-40z'/%3e%3cpath class='st1' d='M485 205h40v40h-40zM525 125h40v40h-40z'/%3e%3cpath class='st1' d='M525 125h40v40h-40zM525 165h40v40h-40z'/%3e%3cpath class='st1' d='M525 165h40v40h-40zM525 205h40v40h-40z'/%3e%3cpath class='st1' d='M525 205h40v40h-40zM565 125h40v40h-40z'/%3e%3cpath class='st1' d='M565 125h40v40h-40zM565 165h40v40h-40z'/%3e%3cpath class='st1' d='M565 165h40v40h-40zM565 205h40v40h-40z'/%3e%3cpath class='st1' d='M565 205h40v40h-40zM485 245h40v40h-40z'/%3e%3cpath class='st1' d='M485 245h40v40h-40zM485 285h40v40h-40z'/%3e%3cpath class='st1' d='M485 285h40v40h-40zM485 325h40v40h-40z'/%3e%3cpath class='st1' d='M485 325h40v40h-40zM525 245h40v40h-40z'/%3e%3cpath class='st1' d='M525 245h40v40h-40zM525 285h40v40h-40z'/%3e%3cpath class='st1' d='M525 285h40v40h-40zM525 325h40v40h-40z'/%3e%3cpath class='st1' d='M525 325h40v40h-40zM565 245h40v40h-40z'/%3e%3cpath class='st1' d='M565 245h40v40h-40zM565 285h40v40h-40z'/%3e%3cpath class='st1' d='M565 285h40v40h-40zM565 325h40v40h-40z'/%3e%3cpath class='st1' d='M565 325h40v40h-40zM485 365h40v40h-40z'/%3e%3cpath class='st1' d='M485 365h40v40h-40zM485 405h40v40h-40z'/%3e%3cpath class='st1' d='M485 405h40v40h-40zM485 445h40v40h-40z'/%3e%3cpath class='st1' d='M485 445h40v40h-40zM525 365h40v40h-40z'/%3e%3cpath class='st1' d='M525 365h40v40h-40zM525 405h40v40h-40z'/%3e%3cpath class='st1' d='M525 405h40v40h-40zM525 445h40v40h-40z'/%3e%3cpath class='st1' d='M525 445h40v40h-40zM565 365h40v40h-40z'/%3e%3cpath class='st1' d='M565 365h40v40h-40zM565 405h40v40h-40z'/%3e%3cpath class='st1' d='M565 405h40v40h-40zM565 445h40v40h-40z'/%3e%3cpath class='st1' d='M565 445h40v40h-40zM85 45h40v40H85z'/%3e%3cpath class='st1' d='M85 45h40v40H85zM85 85h40v40H85z'/%3e%3cpath class='st1' d='M85 85h40v40H85zM45 85h40v40H45z'/%3e%3cpath class='st1' d='M45 85h40v40H45zM525 85h40v40h-40z'/%3e%3cpath class='st1' d='M525 85h40v40h-40zM485 85h40v40h-40z'/%3e%3cpath class='st1' d='M485 85h40v40h-40zM485 45h40v40h-40z'/%3e%3cpath class='st1' d='M485 45h40v40h-40zM485 525h40v40h-40z'/%3e%3cpath class='st1' d='M485 525h40v40h-40zM485 485h40v40h-40z'/%3e%3cpath class='st1' d='M485 485h40v40h-40zM525 485h40v40h-40z'/%3e%3cpath class='st1' d='M525 485h40v40h-40zM45 485h40v40H45z'/%3e%3cpath class='st1' d='M45 485h40v40H45zM85 485h40v40H85z'/%3e%3cpath class='st1' d='M85 485h40v40H85zM85 525h40v40H85z'/%3e%3cpath class='st1' d='M85 525h40v40H85z'/%3e%3c/g%3e%3c/svg%3e";
+var img$5 = "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='70 60 60 80'%3e%3cpath fill='currentColor' d='M119 71a3.6 3.6 0 1 1-7.3 0 3.6 3.6 0 0 1 7.2 0Z'/%3e%3cpath fill='currentColor' d='M96.5 79.6s.7-11.2 18.8-15.6c3.9-1 4-3.9.2-3.3-21.6 3.2-40 20-34.9 41.2.6 2.5-1.3 2-2.3 1-6.6-8-1.7-23.3.8-27.6.6-1-.9-2.5-2-1-19.3 28 4.3 56 26.3 42.8 1-.5 1.5-.5 1 1-4 11-16.3 17.8-29.9 18.2-2 0-2.4 2.5.8 2.8 34.8 3.6 60.1-33 37.4-51.6 21.6 7.2 10.4 37.6 10.4 37.6-.6 2 1.4 2.6 2 .7 14.6-38.3-6.1-53.1-28.6-46.2Zm6.6 21.1c-1.4 3-4.5 4.5-7 3.4-2.6-1.2-3.5-4.6-2-7.6 1.3-3 4.5-4.5 7-3.3 2.5 1.1 3.4 4.5 2 7.5Z'/%3e%3c/svg%3e";
+var img$6 = "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='70 70 60 60'%3e%3cpath fill='currentColor' d='m100 70 7 23h25l-20 14 8 23-20-14-20 14 8-23-20-14h25l7-23z'/%3e%3c/svg%3e";
+var img$7 = "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='70 60 60 70'%3e%3cpath d='m87.69 68.04 8.22 11.57 3.35-11.57 1.19 11.57 15.25-13.09-7.91 17.96L120.88 79l-9.74 11.57 18.87-2.74-15.83 8.96 15.83 4.43h-17.05l14 12.78-13.7-6.09s4.87 8.52 3.96 7.91-8.37-3.65-8.37-3.65l2.28 15.22-7.31-12.18-3.37 18.26-3.02-19.18s-12.18 16.74-11.87 15.83 5.48-19.18 5.48-19.18-14 12.78-13.09 10.96c.91-1.83 9.13-16.44 9.13-16.44s-17.96 7-17.05 6.39 14.61-11.87 14.61-11.87l-12.48-3.21 13.09-1.96-13.39-9.74 14.61 1.83-4.26-10.05 7.61 6.39-2.13-15.22Z' fill='currentColor'/%3e%3c/svg%3e";
+var icons = {
+  asteroid: img,
+  cloudDay: img$1,
+  comet: img$2,
+  exposure: img$3,
+  focalPlane: img$4,
+  galaxy: img$5,
+  star: img$6,
+  supernova: img$7
+};
+
+var IconComposer = function IconComposer(props) {
+  var children = props.children,
+      className = props.className,
+      size = props.size,
+      fill = props.fill,
+      stroke = props.stroke,
+      icon = props.icon,
+      color = props.color,
+      width = props.width,
+      height = props.height,
+      style = props.style;
+  var IconComponent = props.renderAsImg ? 'img' : SVG;
+  return /*#__PURE__*/jsxRuntime.jsx(IconComponent, {
+    src: icons[icon],
+    className: className,
+    size: size,
+    fill: fill,
+    stroke: stroke,
+    color: color,
+    width: width,
+    height: height,
+    style: style,
+    children: children
+  });
+};
+
+IconComposer.propTypes = {
+  renderAsImg: PropTypes.bool,
+  icon: PropTypes.string.isRequired,
+  color: PropTypes.string
+};
+IconComposer.defaultProps = {
+  renderAsImg: false
+};
+var IconContainer = /*#__PURE__*/styled__default.div.withConfig({
+  displayName: "IconContainer",
+  componentId: "space-surveyors__sc-yt7img-0"
+})(["", " flex:0 0 auto;height:1em;aspect-ratio:1/1;&:first-child{margin-right:0.5ch;}"], flexCentered);
 var engine = /*#__PURE__*/randomJsNoNode.MersenneTwister19937.autoSeed();
 var random = /*#__PURE__*/new randomJsNoNode.Random(engine);
 
@@ -52784,7 +52951,7 @@ var getScaledObjectSize = function getScaledObjectSize(sizeConfig, aspectRatio) 
 
     var _scaledSize = round(_size / aspectRatio);
 
-    return target ? Math.min(Math.max(_scaledSize, _min2), _max2) : Math.max(_scaledSize, _min2 * 0.75);
+    return target ? Math.min(Math.max(_scaledSize, _min2), _max2) : Math.max(_scaledSize, _min2);
   }
 };
 
@@ -52795,366 +52962,6 @@ var scaleByAspectRatio = function scaleByAspectRatio(aspectRatio, target, min, m
   return round(ceilingedTarget);
 };
 
-var starWeights = {
-  '11': 0,
-  '12': 0.15,
-  '13': 0.02,
-  '14': 0,
-  '15': 0,
-  '21': 0,
-  '22': 0.3,
-  '23': 0.08,
-  '24': 0.08,
-  '25': 0.01,
-  '31': 0.01,
-  '32': 0.16,
-  '33': 0.07,
-  '34': 0.07,
-  '35': 0.03
-};
-var brightnessBins = [[0.7, 1], [0.4, 0.7], [0.1, 0.4]];
-var sizeBins = [[2, 2.5], [1.5, 2], [1, 1.5]];
-var colorBins = ['#c4f3f8', '#cde7f3', '#fff', '#f9efc3', '#fae1bd'];
-
-var StarConfig = function StarConfig() {
-  var star = getRandomWeightedValue(starWeights);
-  var row = Number(star[0]) - 1;
-  var column = Number(star[1]) - 1;
-  var brightness = {
-    min: brightnessBins[row][0],
-    max: brightnessBins[row][1]
-  };
-  var size = {
-    min: sizeBins[row][0],
-    max: sizeBins[row][1]
-  };
-  var color = colorBins[column];
-  return {
-    brightness: brightness,
-    size: size,
-    color: color
-  };
-};
-
-var GalaxyConfig = {
-  brightness: {
-    bins: [[0, 0.1], [0.1, 0.2], [0.2, 0.3], [0.3, 0.4], [0.4, 0.5], [0.5, 0.6], [0.6, 0.7], [0.7, 0.8], [0.8, 0.9], [0.9, 1]],
-    weights: [0, 0.01, 0.03, 0.17, 0.4, 0.57, 0.42, 0.22, 0.04, 0.01]
-  },
-  size: {
-    bins: [[0.75, 0.925], [0.925, 1.1], [1.1, 1.275], [1.275, 1.45], [1.45, 1.625], [1.625, 1.8], [1.8, 1.975], [1.975, 2.15], [2.15, 2.325], [2.325, 2.5]],
-    weights: [0.05, 0.3, 0.5, 0.46, 0.25, 0.15, 0.08, 0.06, 0.03, 0.02]
-  }
-};
-var SupernovaConfig = {
-  brightness: {
-    min: 0.5,
-    max: 1
-  },
-  lifespan: {
-    min: 5000,
-    max: 10000
-  },
-  size: {
-    min: 1,
-    max: 3
-  }
-};
-var CloudConfig = {
-  brightness: {
-    min: 1,
-    max: 1
-  },
-  size: {
-    min: 20,
-    max: 40
-  },
-  spawnEdge: {
-    left: 1,
-    right: 1,
-    top: 3,
-    bottom: 3
-  },
-  baseRotation: 0,
-  onlyMovesHorizontal: true,
-  speed: {
-    min: 0.02,
-    target: 0.025,
-    max: 0.025
-  }
-};
-var AirplaneConfig = {
-  brightness: {
-    min: 1,
-    max: 1
-  },
-  size: {
-    min: 3.5,
-    max: 4.5
-  },
-  spawnEdge: {
-    left: 1,
-    right: 1,
-    top: 3,
-    bottom: 3
-  },
-  speed: {
-    min: 0.025,
-    target: 0.03,
-    max: 0.035
-  },
-  baseRotation: 90,
-  onlyMovesHorizontal: false
-};
-var AsteroidConfig = {
-  brightness: {
-    min: 1,
-    max: 1
-  },
-  size: {
-    min: 1.5,
-    max: 2.5
-  },
-  spawnEdge: {
-    left: 1,
-    right: 1,
-    top: 3,
-    bottom: 3
-  },
-  speed: {
-    min: 0.04,
-    target: 0.045,
-    max: 0.05
-  },
-  baseRotation: 0,
-  onlyMovesHorizontal: false
-};
-var _AsteroidConfig$speed = AsteroidConfig.speed,
-    min = _AsteroidConfig$speed.min,
-    target = _AsteroidConfig$speed.target,
-    max = _AsteroidConfig$speed.max;
-var cometSpeedScalar = 1.5;
-var CometConfig = {
-  brightness: {
-    min: 1,
-    max: 1
-  },
-  size: {
-    min: 1.5,
-    max: 2.5
-  },
-  spawnEdge: {
-    left: 1,
-    right: 1,
-    top: 3,
-    bottom: 3
-  },
-  speed: {
-    min: min * cometSpeedScalar,
-    target: target * cometSpeedScalar,
-    max: max * cometSpeedScalar
-  },
-  baseRotation: 25,
-  onlyMovesHorizontal: false
-};
-var SkyObjectConfigs = {
-  star: function star() {
-    return StarConfig();
-  },
-  galaxy: GalaxyConfig,
-  supernova: SupernovaConfig,
-  cloud: CloudConfig,
-  airplane: AirplaneConfig,
-  asteroid: AsteroidConfig,
-  comet: CometConfig
-}; // Timeline
-// Durations
-
-var GAME_DURATION = 60000;
-var SUNRISE_DURATION = 10000;
-var DAY_TRANSITION_DURATION = 500;
-var FINISH_SCREEN_DURATION = 10000; // Starts
-
-var TIMER_START = 3500;
-var SUNRISE_START = TIMER_START + GAME_DURATION - SUNRISE_DURATION;
-var GAME_END = TIMER_START + GAME_DURATION;
-var FINISH_SCREEN_START = GAME_END + DAY_TRANSITION_DURATION;
-var QUIT_TIME = FINISH_SCREEN_START + FINISH_SCREEN_DURATION;
-var TIMED_EVENTS = [{
-  type: 'timeStart',
-  time: TIMER_START
-}, {
-  type: 'dawn',
-  time: SUNRISE_START
-}, {
-  type: 'timeEnd',
-  time: GAME_END
-}, {
-  type: 'showFinish',
-  time: FINISH_SCREEN_START
-}, {
-  type: 'quit',
-  time: QUIT_TIME
-}]; // SCREEN
-
-var ASPECT_RATIOS_FLOAT = [1.85, 1.7778, 1.6, 1.3333, 1, 0.75, 0.6667, 0.6];
-var GAME_FIELD_SIZE = 0.8;
-var MENU_SLIDE_TIME = 500;
-var MENU_SLIDE_DELAY = 200;
-var MENU_TRANSITION_TIME = MENU_SLIDE_TIME + MENU_SLIDE_DELAY; // Camera
-
-var MIN_CAMERA_MOVE = 0.16;
-var CAMERA_MOVE = MIN_CAMERA_MOVE * 1.5;
-var MAX_CAMERA_MOVE = MIN_CAMERA_MOVE * 2;
-var EXPOSURE_TIME = 3500; // Collision
-
-var MIN_OVERLAP = 0.5; // Spawn
-
-var FIRST_SPAWN = {
-  occlusion: 0,
-  observable: 1000
-};
-var SPAWN_INTERVAL = {
-  occlusion: {
-    min: 5000,
-    max: 10000
-  },
-  observable: {
-    min: 3000,
-    max: 5000
-  }
-}; // Sky Objects
-
-var MIN_OBJECT_X = 10;
-var MAX_OBJECT_X = 90;
-var MIN_OBJECT_Y = 15;
-var MAX_OBJECT_Y = 98;
-var X_RANGE = MAX_OBJECT_X - MIN_OBJECT_X;
-var Y_RANGE = MAX_OBJECT_Y - MIN_OBJECT_Y;
-var STATIC_ROWS = 2;
-var STATIC_COLUMNS = 4;
-var STATIC_OBJECTS_PER_CELL = 4;
-var FADE_TIME = 500;
-var SpaceSurveyorsContainer = /*#__PURE__*/styled__default.div.withConfig({
-  displayName: "SpaceSurveyorsContainer",
-  componentId: "space-surveyors__sc-1a2ov4u-0"
-})(["background:var(--neutral95);width:100%;height:100%;position:relative;overflow:hidden;font-family:var(--FONT_STACK_BASE);margin:0;padding:0;box-sizing:border-box;display:flex;justify-content:center;&:after{content:'';background:#313333;position:absolute;top:0;left:0;width:100%;height:19.2%;}"]);
-var BaseMenu = /*#__PURE__*/styled__default.div.attrs(function (_ref) {
-  var showMenu = _ref.showMenu;
-  return {
-    style: {
-      transform: "translateY(" + (showMenu ? '0' : '100') + "%)",
-      pointerEvents: showMenu ? 'auto' : 'none'
-    }
-  };
-}).withConfig({
-  displayName: "BaseMenu",
-  componentId: "space-surveyors__sc-13rig0w-0"
-})(["background-color:var(--neutral95);color:var(--turquoise50);display:flex;align-items:center;flex-direction:column;overflow-y:auto;padding:1rem;", " z-index:", ";transition:transform ", "ms ease-in;transition-delay:", "ms;"], fullScreenAbsolute, zStack.menu, MENU_SLIDE_TIME, MENU_SLIDE_DELAY);
-var Button = /*#__PURE__*/styled__default.button.withConfig({
-  displayName: "styles__Button",
-  componentId: "space-surveyors__sc-bch260-0"
-})(["", " ", " align-items:center;font-size:", ";text-align:center;", ""], function (_ref) {
-  var _ref$$styleAs = _ref.$styleAs,
-      $styleAs = _ref$$styleAs === void 0 ? 'primary' : _ref$$styleAs;
-  return aButtonTheme($styleAs);
-}, aButton, /*#__PURE__*/fluidScale('20px', '16px'), function (_ref2) {
-  var $isBlock = _ref2.$isBlock;
-  return $isBlock && styled.css(["display:flex;width:100%;"]);
-});
-var ButtonText = /*#__PURE__*/styled__default.span.withConfig({
-  displayName: "styles__ButtonText",
-  componentId: "space-surveyors__sc-bch260-1"
-})(["flex:1 1 auto;text-align:center;svg + &{padding-inline-start:10px;}"]);
-var _excluded = ["children", "icon", "iconSize", "isBlock", "styleAs", "isInactive", "className"];
-var Button$1 = /*#__PURE__*/React.forwardRef(function (_ref, ref) {
-  var children = _ref.children,
-      isBlock = _ref.isBlock,
-      styleAs = _ref.styleAs,
-      isInactive = _ref.isInactive,
-      className = _ref.className,
-      buttonProps = _objectWithoutPropertiesLoose(_ref, _excluded);
-
-  return /*#__PURE__*/jsxRuntime.jsx(Button, _extends({
-    ref: ref,
-    $isBlock: isBlock,
-    $styleAs: styleAs,
-    "aria-disabled": isInactive || undefined,
-    className: className
-  }, buttonProps, {
-    children: /*#__PURE__*/jsxRuntime.jsx(ButtonText, {
-      children: children
-    })
-  }));
-});
-Button$1.displayName = 'Atomic.Button';
-Button$1.prototypes = {
-  children: PropTypes.node,
-  isBlock: PropTypes.bool,
-  styleAs: /*#__PURE__*/PropTypes.oneOf(['primary', 'secondary', 'tertiary']),
-
-  /** This is a disabled style without disabling the button.
-   * Good for a11y - button is visible even if form isn't complete.
-   */
-  isInactive: PropTypes.bool
-};
-var img = "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='70 70 60 60'%3e%3cpath fill='currentColor' d='m121.6 87.3-.2-.8v-.3l-.2-.6-.1-.2-.2-.7-.1-.2a6.8 6.8 0 0 0-.7-1.5l-.2-.2-.2-.3-.1-.2-.2-.2V82l-.2-.2-.3-.2-.8-.7c-.3-.3-.7-.5-1.2-.5s-1 .1-1.4.3l-4.7 1.4-.3.1-.8.3-.3.1-.8.3-.3.2-.7.3-.3.2c-.3 0-.5.2-.7.3l-.3.2-.6.4-.3.2-.5.5-.3.3-.4.4-.2.4-.4.5-.2.4-.3.6-.2.5c0 .2 0 .4-.2.7v.5l-.2.7v1.5l-.1.5V92.8v-.1.6-.1.1l.1.2v.3l.2.4v.2l.4.5c.4.5 1 .8 1.5 1 3 1.1 6.3.6 9.5.1s7.5.3 8.2-1.2c.7-1.6-.2-5-.7-7.5ZM108 91c-.1.3-.1.6-.3.8-.2.2-.5.3-.7.2-.3 0-.6-.2-.7-.4l-.2-.1c-.4-.9.2-1.5 1-1.5h.2a13.9 13.9 0 0 0 .7.3l.2.2-.2.5Zm4 1.4c0 .2-.3.1-.5.1-.3 0-.5-.2-.6-.3l-.5-.4-.2-.3c-.2-.3-.2-1.2.7-1.3.4 0 .5 0 .9.2s0 1 .2 1.2c.2.2.1.6 0 .8Zm2.2-5.5c-.1 0-.2 0-.3-.2l.2-.8.2-.2.5-.4c.2-.1.4-.3.7-.3h.4l.2.3-.1.6-.2.6v.8h-.2c-.3-.2-.7-.5-1.1-.4h-.3Zm3.2 6.5-.3.3a1 1 0 0 1-.7 0 .7.7 0 0 1-.4-.2v-.2l-.1-.3-.2-.2-.1-.5-.1-.2V92c.2-.3.4-.3.7-.2l.7-.1h.3l.2.2v.7l.1.3v.4ZM115.8 109.8v-.5l-.1-.3-.1-.5-.1-.3-.1-.3-.1-.2-.2-.4-.3-.3-.2-.4-.3-.3-.4-.3-.3-.3-.6-.6c-1-.7-1.8-1.5-2.7-2.3-.4-.3-.9-.7-1.5-.8-1.3-.1-2 1.5-3 2.4-1.9 1.5-5 .8-6.4 2.7-.4.5-.6 1.1-.7 1.8v1l-.1.2v.9l.1 1v.2l.3.8v.1c.4 1.2 1 2.4 1.7 3.5l1.1 1.3h.1c.4.5.8.9 1.3 1.2 2.1 1.8 6.3 5 8.9 2.4.5-.5.8-1.3 1.1-2l.8-2a21.3 21.3 0 0 0 1.9-7.5v-.2Zm-10.5 2.2-.6.4c-.2.2-.5.2-.8.2a.9.9 0 0 1-.5-.4l-.1-.2-.1-.5-.2-.2-.1-.1-.1-.6s-.2-.1-.2-.3v-.1c.3-.3.6-.3 1-.3l1-.1h.4l.2.3v.9l.2.4-.1.6Zm3 2.2-.4 1c-.2.3-.6.3-.9.3a1.5 1.5 0 0 1-1-.7c-.6-1.1.1-1.8 1.2-1.9h.2l.5.3h.3l.3.4-.2.6Zm5.5-2.7c-.2.3-.3.5-.3.8l.1.4v.6H113.2c-.5-.2-1-.6-1.5-.5h-.3c-.3 0-.4-.1-.4-.2-.1-.3 0-.8.3-1l.2-.3.7-.5c.2-.2.5-.4.8-.4h.5l.2.3c.2.3 0 .6 0 .8ZM101.2 87.2a19.5 19.5 0 0 0-2.8-6.6l-.6-.9-.2-.2-.1-.1-.7-.6-.1-.1a5 5 0 0 0-.9-.6 7 7 0 0 0-4.6-.4c-3.7.9-6.6 3.5-9.3 6a15.5 15.5 0 0 0-3.6 4.4 7 7 0 0 0-.4 1v.2a9 9 0 0 0-.3 1v3.5l.1.2.3 1v.2l.4 1 .5 1v.1c.3.3.4.6.6 1l.2.1v.2a6.6 6.6 0 0 0 .3.3s0 .2.2.2a7.7 7.7 0 0 0 .7 1l.2.3.8.8h.1a21.9 21.9 0 0 0 1 1l.6.4.3.3.6.4.3.2.9.5c2 1 5 2 6.7 0 2.3-2.6.2-5.3 4-7 1.4-.5 2.3-1.7 3.2-3a10 10 0 0 0 1.6-2.9 8 8 0 0 0 0-3.9ZM84 91.4c-.2.4-.2.8-.4 1-.3.3-.6.4-1 .4a1.6 1.6 0 0 1-1.1-.8c-.6-1.1.2-1.9 1.3-2h.2l.6.3c.1 0 .2 0 .3.2l.3.3-.2.6Zm5.3 3.1-.2.4-.4.2c-.4.1-1 .2-1.3 0a1.2 1.2 0 0 1-.7-1c0-.3 0-.7.2-1 .2-.4.6-.7 1-.6.2 0 .4.3.6.2l.4-.2h.2l.1.2c.3.3.4.8.4 1.1 0 .3-.1.5-.3.7Zm3.7-12c.5-.1.5 0 1 .2.6.2.2 1.2.3 1.5.2.2.2.7 0 1 0 .2-.4 0-.6 0-.3 0-.6-.2-.8-.4l-.6-.5-.2-.3c-.2-.3-.2-1.5.9-1.6Zm2.5 11-.3.3-.4.3-.3.2-.3-.3-.1-.1-.2-.2c-.2-.2-.6-.2-.8-.3v-.2c-.1-.6.2-1.2.6-1.5.3-.3.9-.7 1.3-.4l.2.4.2.3.2 1v.4Z'/%3e%3c/svg%3e";
-var img$1 = "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='78 51 181 87'%3e%3cpath fill='%23f6ffff' d='M243.62 103.44c4.5 0 8.66 1.47 12.02 3.95-3.61-5.58-9.89-9.27-17.03-9.27h-4.97c.68 1.7 1.2 3.48 1.56 5.32h8.41ZM105.84 96.47c1.16-22.19 19.52-39.82 41.99-39.82 10.76 0 20.57 4.04 28.01 10.69-7.7-9.75-19.62-16-33.01-16-22.48 0-40.83 17.63-41.99 39.82-12.28.94-21.95 11.2-21.95 23.73 0 7.63 3.59 14.42 9.17 18.77a23.684 23.684 0 0 1-4.17-13.46c0-12.52 9.67-22.78 21.95-23.73ZM205.71 79.16c7.31 0 14.01 2.61 19.22 6.95-5.47-7.44-14.28-12.26-24.22-12.26-5.88 0-11.37 1.69-16 4.61 1.17 2.13 2.17 4.38 2.96 6.72a29.913 29.913 0 0 1 18.04-6.02Z'/%3e%3cpath d='M255.64 107.39a20.178 20.178 0 0 0-12.02-3.95h-8.41c-.36-1.84-.89-3.61-1.56-5.32-1.87-4.7-4.89-8.82-8.72-12.01a29.925 29.925 0 0 0-19.22-6.95 29.89 29.89 0 0 0-18.04 6.02c-.79-2.34-1.79-4.59-2.96-6.72-2.31-4.2-5.32-7.96-8.86-11.13-7.44-6.65-17.25-10.69-28.01-10.69-22.48 0-40.83 17.63-41.99 39.82-12.28.94-21.95 11.2-21.95 23.73 0 4.99 1.54 9.63 4.17 13.46 4.03 3.15 9.11 5.02 14.62 5.02h135.92c11.2 0 20.28-9.08 20.28-20.28 0-4.06-1.19-7.84-3.25-11.01Z' fill='%23ecf2f2'/%3e%3c/svg%3e";
-var img$2 = "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='70 70 65 65'%3e%3cpath d='M84.8 92.5a49 49 0 0 1 7.1 2s-18 12-26.3 20.7a1 1 0 0 0 .7 1.7c11.7-1 29.7-4.3 29.7-4.3s-1.3 4.4-3 7.6c-.2.5.2 1 .7.9a75 75 0 0 0 37.5-21.2s0-.1.1-.2a12 12 0 0 0 2.2-13.6 12 12 0 0 0-11.9-7.2 73 73 0 0 0-37 12.7c-.4.3-.2.9.2 1Zm45.3-4.9c2.3 4.8.2 9.7-5.1 12.2-1.8.8-3.7 1.3-5.5 1.5-4.6.6-2.3-1.8-3.7-5-1.1-2.3-4-4.6-2.2-7.3 1.6-2.2 1-3.8 4-5.2 1.5-.8 3.2 0 4.6 0 3.5 0 6.3.5 8 3.8Z' fill='currentColor'/%3e%3c/svg%3e";
-var img$3 = "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 610 610' style='enable-background:new 0 0 610 610' xml:space='preserve'%3e%3cpath shape-rendering='optimizeSpeed' style='opacity:.2%3bfill:white' d='M565 125V85h-40V45h-40V5H125v40H85v40H45v40H5v360h40v40h40v40h40v40h360v-40h40v-40h40v-40h40V125z'/%3e%3c/svg%3e";
-var img$4 = "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 610 610' style='enable-background:new 0 0 610 610' xml:space='preserve'%3e%3cstyle%3e.st1%7bfill:none%3bstroke:%23fdda78%3bstroke-width:1.7638%3bstroke-miterlimit:10%7d%3c/style%3e%3cg id='Field_of_view_itself'%3e%3cpath style='fill:none%3bstroke:%23fdda78%3bstroke-width:3.1749%3bstroke-miterlimit:10' d='M565 125V85h-40V45h-40V5H125v40H85v40H45v40H5v360h40v40h40v40h40v40h360v-40h40v-40h40v-40h40V125z'/%3e%3cpath class='st1' d='M125 5h40v40h-40z'/%3e%3cpath class='st1' d='M125 5h40v40h-40zM165 5h40v40h-40z'/%3e%3cpath class='st1' d='M165 5h40v40h-40zM205 5h40v40h-40z'/%3e%3cpath class='st1' d='M205 5h40v40h-40zM125 45h40v40h-40z'/%3e%3cpath class='st1' d='M125 45h40v40h-40zM165 45h40v40h-40z'/%3e%3cpath class='st1' d='M165 45h40v40h-40zM205 45h40v40h-40z'/%3e%3cpath class='st1' d='M205 45h40v40h-40zM125 85h40v40h-40z'/%3e%3cpath class='st1' d='M125 85h40v40h-40zM165 85h40v40h-40z'/%3e%3cpath class='st1' d='M165 85h40v40h-40zM205 85h40v40h-40z'/%3e%3cpath class='st1' d='M205 85h40v40h-40zM85 45h40v40H85z'/%3e%3cpath class='st1' d='M85 45h40v40H85zM85 85h40v40H85z'/%3e%3cpath class='st1' d='M85 85h40v40H85zM45 85h40v40H45z'/%3e%3cpath class='st1' d='M45 85h40v40H45zM245 5h40v40h-40z'/%3e%3cpath class='st1' d='M245 5h40v40h-40zM285 5h40v40h-40z'/%3e%3cpath class='st1' d='M285 5h40v40h-40zM325 5h40v40h-40z'/%3e%3cpath class='st1' d='M325 5h40v40h-40zM245 45h40v40h-40z'/%3e%3cpath class='st1' d='M245 45h40v40h-40zM285 45h40v40h-40z'/%3e%3cpath class='st1' d='M285 45h40v40h-40zM325 45h40v40h-40z'/%3e%3cpath class='st1' d='M325 45h40v40h-40zM245 85h40v40h-40z'/%3e%3cpath class='st1' d='M245 85h40v40h-40zM285 85h40v40h-40z'/%3e%3cpath class='st1' d='M285 85h40v40h-40zM325 85h40v40h-40z'/%3e%3cpath class='st1' d='M325 85h40v40h-40zM365 5h40v40h-40z'/%3e%3cpath class='st1' d='M365 5h40v40h-40zM405 5h40v40h-40z'/%3e%3cpath class='st1' d='M405 5h40v40h-40zM445 5h40v40h-40z'/%3e%3cpath class='st1' d='M445 5h40v40h-40zM365 45h40v40h-40z'/%3e%3cpath class='st1' d='M365 45h40v40h-40zM405 45h40v40h-40z'/%3e%3cpath class='st1' d='M405 45h40v40h-40zM445 45h40v40h-40z'/%3e%3cpath class='st1' d='M445 45h40v40h-40zM365 85h40v40h-40z'/%3e%3cpath class='st1' d='M365 85h40v40h-40zM405 85h40v40h-40z'/%3e%3cpath class='st1' d='M405 85h40v40h-40zM445 85h40v40h-40z'/%3e%3cpath class='st1' d='M445 85h40v40h-40zM205 125h40v40h-40z'/%3e%3cpath class='st1' d='M205 125h40v40h-40zM205 165h40v40h-40z'/%3e%3cpath class='st1' d='M205 165h40v40h-40zM205 205h40v40h-40z'/%3e%3cpath class='st1' d='M205 205h40v40h-40zM165 125h40v40h-40z'/%3e%3cpath class='st1' d='M165 125h40v40h-40zM165 165h40v40h-40z'/%3e%3cpath class='st1' d='M165 165h40v40h-40zM165 205h40v40h-40z'/%3e%3cpath class='st1' d='M165 205h40v40h-40zM125 125h40v40h-40z'/%3e%3cpath class='st1' d='M125 125h40v40h-40zM125 165h40v40h-40z'/%3e%3cpath class='st1' d='M125 165h40v40h-40zM125 205h40v40h-40z'/%3e%3cpath class='st1' d='M125 205h40v40h-40zM205 245h40v40h-40z'/%3e%3cpath class='st1' d='M205 245h40v40h-40zM205 285h40v40h-40z'/%3e%3cpath class='st1' d='M205 285h40v40h-40zM205 325h40v40h-40z'/%3e%3cpath class='st1' d='M205 325h40v40h-40zM165 245h40v40h-40z'/%3e%3cpath class='st1' d='M165 245h40v40h-40zM165 285h40v40h-40z'/%3e%3cpath class='st1' d='M165 285h40v40h-40zM165 325h40v40h-40z'/%3e%3cpath class='st1' d='M165 325h40v40h-40zM125 245h40v40h-40z'/%3e%3cpath class='st1' d='M125 245h40v40h-40zM125 285h40v40h-40z'/%3e%3cpath class='st1' d='M125 285h40v40h-40zM125 325h40v40h-40z'/%3e%3cpath class='st1' d='M125 325h40v40h-40zM205 365h40v40h-40z'/%3e%3cpath class='st1' d='M205 365h40v40h-40zM205 405h40v40h-40z'/%3e%3cpath class='st1' d='M205 405h40v40h-40zM205 445h40v40h-40z'/%3e%3cpath class='st1' d='M205 445h40v40h-40zM165 365h40v40h-40z'/%3e%3cpath class='st1' d='M165 365h40v40h-40zM165 405h40v40h-40z'/%3e%3cpath class='st1' d='M165 405h40v40h-40zM165 445h40v40h-40z'/%3e%3cpath class='st1' d='M165 445h40v40h-40zM125 365h40v40h-40z'/%3e%3cpath class='st1' d='M125 365h40v40h-40zM125 405h40v40h-40z'/%3e%3cpath class='st1' d='M125 405h40v40h-40zM125 445h40v40h-40z'/%3e%3cpath class='st1' d='M125 445h40v40h-40zM5 125h40v40H5z'/%3e%3cpath class='st1' d='M5 125h40v40H5zM5 165h40v40H5z'/%3e%3cpath class='st1' d='M5 165h40v40H5zM5 205h40v40H5z'/%3e%3cpath class='st1' d='M5 205h40v40H5zM45 125h40v40H45z'/%3e%3cpath class='st1' d='M45 125h40v40H45zM45 165h40v40H45z'/%3e%3cpath class='st1' d='M45 165h40v40H45zM45 205h40v40H45z'/%3e%3cpath class='st1' d='M45 205h40v40H45zM85 125h40v40H85z'/%3e%3cpath class='st1' d='M85 125h40v40H85zM85 165h40v40H85z'/%3e%3cpath class='st1' d='M85 165h40v40H85zM85 205h40v40H85z'/%3e%3cpath class='st1' d='M85 205h40v40H85zM5 245h40v40H5z'/%3e%3cpath class='st1' d='M5 245h40v40H5zM5 285h40v40H5z'/%3e%3cpath class='st1' d='M5 285h40v40H5zM5 325h40v40H5z'/%3e%3cpath class='st1' d='M5 325h40v40H5zM45 245h40v40H45z'/%3e%3cpath class='st1' d='M45 245h40v40H45zM45 285h40v40H45z'/%3e%3cpath class='st1' d='M45 285h40v40H45zM45 325h40v40H45z'/%3e%3cpath class='st1' d='M45 325h40v40H45zM85 245h40v40H85z'/%3e%3cpath class='st1' d='M85 245h40v40H85zM85 285h40v40H85z'/%3e%3cpath class='st1' d='M85 285h40v40H85zM85 325h40v40H85z'/%3e%3cpath class='st1' d='M85 325h40v40H85zM5 365h40v40H5z'/%3e%3cpath class='st1' d='M5 365h40v40H5zM5 405h40v40H5z'/%3e%3cpath class='st1' d='M5 405h40v40H5zM5 445h40v40H5z'/%3e%3cpath class='st1' d='M5 445h40v40H5zM45 365h40v40H45z'/%3e%3cpath class='st1' d='M45 365h40v40H45zM45 405h40v40H45z'/%3e%3cpath class='st1' d='M45 405h40v40H45zM45 445h40v40H45z'/%3e%3cpath class='st1' d='M45 445h40v40H45zM85 365h40v40H85z'/%3e%3cpath class='st1' d='M85 365h40v40H85zM85 405h40v40H85z'/%3e%3cpath class='st1' d='M85 405h40v40H85zM85 445h40v40H85z'/%3e%3cpath class='st1' d='M85 445h40v40H85zM245 125h40v40h-40z'/%3e%3cpath class='st1' d='M245 125h40v40h-40zM245 165h40v40h-40z'/%3e%3cpath class='st1' d='M245 165h40v40h-40zM245 205h40v40h-40z'/%3e%3cpath class='st1' d='M245 205h40v40h-40zM285 125h40v40h-40z'/%3e%3cpath class='st1' d='M285 125h40v40h-40zM285 165h40v40h-40z'/%3e%3cpath class='st1' d='M285 165h40v40h-40zM285 205h40v40h-40z'/%3e%3cpath class='st1' d='M285 205h40v40h-40zM325 125h40v40h-40z'/%3e%3cpath class='st1' d='M325 125h40v40h-40zM325 165h40v40h-40z'/%3e%3cpath class='st1' d='M325 165h40v40h-40zM325 205h40v40h-40z'/%3e%3cpath class='st1' d='M325 205h40v40h-40zM245 245h40v40h-40z'/%3e%3cpath class='st1' d='M245 245h40v40h-40zM245 285h40v40h-40z'/%3e%3cpath class='st1' d='M245 285h40v40h-40zM245 325h40v40h-40z'/%3e%3cpath class='st1' d='M245 325h40v40h-40zM285 245h40v40h-40z'/%3e%3cpath class='st1' d='M285 245h40v40h-40zM285 285h40v40h-40z'/%3e%3cpath class='st1' d='M285 285h40v40h-40zM285 325h40v40h-40z'/%3e%3cpath class='st1' d='M285 325h40v40h-40zM325 245h40v40h-40z'/%3e%3cpath class='st1' d='M325 245h40v40h-40zM325 285h40v40h-40z'/%3e%3cpath class='st1' d='M325 285h40v40h-40zM325 325h40v40h-40z'/%3e%3cpath class='st1' d='M325 325h40v40h-40zM245 365h40v40h-40z'/%3e%3cpath class='st1' d='M245 365h40v40h-40zM245 405h40v40h-40z'/%3e%3cpath class='st1' d='M245 405h40v40h-40zM245 445h40v40h-40z'/%3e%3cpath class='st1' d='M245 445h40v40h-40zM285 365h40v40h-40z'/%3e%3cpath class='st1' d='M285 365h40v40h-40zM285 405h40v40h-40z'/%3e%3cpath class='st1' d='M285 405h40v40h-40zM285 445h40v40h-40z'/%3e%3cpath class='st1' d='M285 445h40v40h-40zM325 365h40v40h-40z'/%3e%3cpath class='st1' d='M325 365h40v40h-40zM325 405h40v40h-40z'/%3e%3cpath class='st1' d='M325 405h40v40h-40zM325 445h40v40h-40z'/%3e%3cpath class='st1' d='M325 445h40v40h-40zM445 125h40v40h-40z'/%3e%3cpath class='st1' d='M445 125h40v40h-40zM445 165h40v40h-40z'/%3e%3cpath class='st1' d='M445 165h40v40h-40zM445 205h40v40h-40z'/%3e%3cpath class='st1' d='M445 205h40v40h-40zM405 125h40v40h-40z'/%3e%3cpath class='st1' d='M405 125h40v40h-40zM405 165h40v40h-40z'/%3e%3cpath class='st1' d='M405 165h40v40h-40zM405 205h40v40h-40z'/%3e%3cpath class='st1' d='M405 205h40v40h-40zM365 125h40v40h-40z'/%3e%3cpath class='st1' d='M365 125h40v40h-40zM365 165h40v40h-40z'/%3e%3cpath class='st1' d='M365 165h40v40h-40zM365 205h40v40h-40z'/%3e%3cpath class='st1' d='M365 205h40v40h-40zM445 245h40v40h-40z'/%3e%3cpath class='st1' d='M445 245h40v40h-40zM445 285h40v40h-40z'/%3e%3cpath class='st1' d='M445 285h40v40h-40zM445 325h40v40h-40z'/%3e%3cpath class='st1' d='M445 325h40v40h-40zM405 245h40v40h-40z'/%3e%3cpath class='st1' d='M405 245h40v40h-40zM405 285h40v40h-40z'/%3e%3cpath class='st1' d='M405 285h40v40h-40zM405 325h40v40h-40z'/%3e%3cpath class='st1' d='M405 325h40v40h-40zM365 245h40v40h-40z'/%3e%3cpath class='st1' d='M365 245h40v40h-40zM365 285h40v40h-40z'/%3e%3cpath class='st1' d='M365 285h40v40h-40zM365 325h40v40h-40z'/%3e%3cpath class='st1' d='M365 325h40v40h-40zM445 365h40v40h-40z'/%3e%3cpath class='st1' d='M445 365h40v40h-40zM445 405h40v40h-40z'/%3e%3cpath class='st1' d='M445 405h40v40h-40zM445 445h40v40h-40z'/%3e%3cpath class='st1' d='M445 445h40v40h-40zM405 365h40v40h-40z'/%3e%3cpath class='st1' d='M405 365h40v40h-40zM405 405h40v40h-40z'/%3e%3cpath class='st1' d='M405 405h40v40h-40zM405 445h40v40h-40z'/%3e%3cpath class='st1' d='M405 445h40v40h-40zM365 365h40v40h-40z'/%3e%3cpath class='st1' d='M365 365h40v40h-40zM365 405h40v40h-40z'/%3e%3cpath class='st1' d='M365 405h40v40h-40zM365 445h40v40h-40z'/%3e%3cpath class='st1' d='M365 445h40v40h-40zM205 565h40v40h-40z'/%3e%3cpath class='st1' d='M205 565h40v40h-40zM205 525h40v40h-40z'/%3e%3cpath class='st1' d='M205 525h40v40h-40zM205 485h40v40h-40z'/%3e%3cpath class='st1' d='M205 485h40v40h-40zM165 565h40v40h-40z'/%3e%3cpath class='st1' d='M165 565h40v40h-40zM165 525h40v40h-40z'/%3e%3cpath class='st1' d='M165 525h40v40h-40zM165 485h40v40h-40z'/%3e%3cpath class='st1' d='M165 485h40v40h-40zM125 565h40v40h-40z'/%3e%3cpath class='st1' d='M125 565h40v40h-40zM125 525h40v40h-40z'/%3e%3cpath class='st1' d='M125 525h40v40h-40zM125 485h40v40h-40z'/%3e%3cpath class='st1' d='M125 485h40v40h-40zM245 565h40v40h-40z'/%3e%3cpath class='st1' d='M245 565h40v40h-40zM245 525h40v40h-40z'/%3e%3cpath class='st1' d='M245 525h40v40h-40zM245 485h40v40h-40z'/%3e%3cpath class='st1' d='M245 485h40v40h-40zM285 565h40v40h-40z'/%3e%3cpath class='st1' d='M285 565h40v40h-40zM285 525h40v40h-40z'/%3e%3cpath class='st1' d='M285 525h40v40h-40zM285 485h40v40h-40z'/%3e%3cpath class='st1' d='M285 485h40v40h-40zM325 565h40v40h-40z'/%3e%3cpath class='st1' d='M325 565h40v40h-40zM325 525h40v40h-40z'/%3e%3cpath class='st1' d='M325 525h40v40h-40zM325 485h40v40h-40z'/%3e%3cpath class='st1' d='M325 485h40v40h-40zM445 565h40v40h-40z'/%3e%3cpath class='st1' d='M445 565h40v40h-40zM445 525h40v40h-40z'/%3e%3cpath class='st1' d='M445 525h40v40h-40zM445 485h40v40h-40z'/%3e%3cpath class='st1' d='M445 485h40v40h-40zM405 565h40v40h-40z'/%3e%3cpath class='st1' d='M405 565h40v40h-40zM405 525h40v40h-40z'/%3e%3cpath class='st1' d='M405 525h40v40h-40zM405 485h40v40h-40z'/%3e%3cpath class='st1' d='M405 485h40v40h-40zM365 565h40v40h-40z'/%3e%3cpath class='st1' d='M365 565h40v40h-40zM365 525h40v40h-40z'/%3e%3cpath class='st1' d='M365 525h40v40h-40zM365 485h40v40h-40z'/%3e%3cpath class='st1' d='M365 485h40v40h-40zM485 125h40v40h-40z'/%3e%3cpath class='st1' d='M485 125h40v40h-40zM485 165h40v40h-40z'/%3e%3cpath class='st1' d='M485 165h40v40h-40zM485 205h40v40h-40z'/%3e%3cpath class='st1' d='M485 205h40v40h-40zM525 125h40v40h-40z'/%3e%3cpath class='st1' d='M525 125h40v40h-40zM525 165h40v40h-40z'/%3e%3cpath class='st1' d='M525 165h40v40h-40zM525 205h40v40h-40z'/%3e%3cpath class='st1' d='M525 205h40v40h-40zM565 125h40v40h-40z'/%3e%3cpath class='st1' d='M565 125h40v40h-40zM565 165h40v40h-40z'/%3e%3cpath class='st1' d='M565 165h40v40h-40zM565 205h40v40h-40z'/%3e%3cpath class='st1' d='M565 205h40v40h-40zM485 245h40v40h-40z'/%3e%3cpath class='st1' d='M485 245h40v40h-40zM485 285h40v40h-40z'/%3e%3cpath class='st1' d='M485 285h40v40h-40zM485 325h40v40h-40z'/%3e%3cpath class='st1' d='M485 325h40v40h-40zM525 245h40v40h-40z'/%3e%3cpath class='st1' d='M525 245h40v40h-40zM525 285h40v40h-40z'/%3e%3cpath class='st1' d='M525 285h40v40h-40zM525 325h40v40h-40z'/%3e%3cpath class='st1' d='M525 325h40v40h-40zM565 245h40v40h-40z'/%3e%3cpath class='st1' d='M565 245h40v40h-40zM565 285h40v40h-40z'/%3e%3cpath class='st1' d='M565 285h40v40h-40zM565 325h40v40h-40z'/%3e%3cpath class='st1' d='M565 325h40v40h-40zM485 365h40v40h-40z'/%3e%3cpath class='st1' d='M485 365h40v40h-40zM485 405h40v40h-40z'/%3e%3cpath class='st1' d='M485 405h40v40h-40zM485 445h40v40h-40z'/%3e%3cpath class='st1' d='M485 445h40v40h-40zM525 365h40v40h-40z'/%3e%3cpath class='st1' d='M525 365h40v40h-40zM525 405h40v40h-40z'/%3e%3cpath class='st1' d='M525 405h40v40h-40zM525 445h40v40h-40z'/%3e%3cpath class='st1' d='M525 445h40v40h-40zM565 365h40v40h-40z'/%3e%3cpath class='st1' d='M565 365h40v40h-40zM565 405h40v40h-40z'/%3e%3cpath class='st1' d='M565 405h40v40h-40zM565 445h40v40h-40z'/%3e%3cpath class='st1' d='M565 445h40v40h-40zM85 45h40v40H85z'/%3e%3cpath class='st1' d='M85 45h40v40H85zM85 85h40v40H85z'/%3e%3cpath class='st1' d='M85 85h40v40H85zM45 85h40v40H45z'/%3e%3cpath class='st1' d='M45 85h40v40H45zM525 85h40v40h-40z'/%3e%3cpath class='st1' d='M525 85h40v40h-40zM485 85h40v40h-40z'/%3e%3cpath class='st1' d='M485 85h40v40h-40zM485 45h40v40h-40z'/%3e%3cpath class='st1' d='M485 45h40v40h-40zM485 525h40v40h-40z'/%3e%3cpath class='st1' d='M485 525h40v40h-40zM485 485h40v40h-40z'/%3e%3cpath class='st1' d='M485 485h40v40h-40zM525 485h40v40h-40z'/%3e%3cpath class='st1' d='M525 485h40v40h-40zM45 485h40v40H45z'/%3e%3cpath class='st1' d='M45 485h40v40H45zM85 485h40v40H85z'/%3e%3cpath class='st1' d='M85 485h40v40H85zM85 525h40v40H85z'/%3e%3cpath class='st1' d='M85 525h40v40H85z'/%3e%3c/g%3e%3c/svg%3e";
-var img$5 = "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='70 60 60 80'%3e%3cpath fill='currentColor' d='M119 71a3.6 3.6 0 1 1-7.3 0 3.6 3.6 0 0 1 7.2 0Z'/%3e%3cpath fill='currentColor' d='M96.5 79.6s.7-11.2 18.8-15.6c3.9-1 4-3.9.2-3.3-21.6 3.2-40 20-34.9 41.2.6 2.5-1.3 2-2.3 1-6.6-8-1.7-23.3.8-27.6.6-1-.9-2.5-2-1-19.3 28 4.3 56 26.3 42.8 1-.5 1.5-.5 1 1-4 11-16.3 17.8-29.9 18.2-2 0-2.4 2.5.8 2.8 34.8 3.6 60.1-33 37.4-51.6 21.6 7.2 10.4 37.6 10.4 37.6-.6 2 1.4 2.6 2 .7 14.6-38.3-6.1-53.1-28.6-46.2Zm6.6 21.1c-1.4 3-4.5 4.5-7 3.4-2.6-1.2-3.5-4.6-2-7.6 1.3-3 4.5-4.5 7-3.3 2.5 1.1 3.4 4.5 2 7.5Z'/%3e%3c/svg%3e";
-var img$6 = "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='70 70 60 60'%3e%3cpath fill='currentColor' d='m100 70 7 23h25l-20 14 8 23-20-14-20 14 8-23-20-14h25l7-23z'/%3e%3c/svg%3e";
-var img$7 = "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='70 60 60 70'%3e%3cpath d='m87.69 68.04 8.22 11.57 3.35-11.57 1.19 11.57 15.25-13.09-7.91 17.96L120.88 79l-9.74 11.57 18.87-2.74-15.83 8.96 15.83 4.43h-17.05l14 12.78-13.7-6.09s4.87 8.52 3.96 7.91-8.37-3.65-8.37-3.65l2.28 15.22-7.31-12.18-3.37 18.26-3.02-19.18s-12.18 16.74-11.87 15.83 5.48-19.18 5.48-19.18-14 12.78-13.09 10.96c.91-1.83 9.13-16.44 9.13-16.44s-17.96 7-17.05 6.39 14.61-11.87 14.61-11.87l-12.48-3.21 13.09-1.96-13.39-9.74 14.61 1.83-4.26-10.05 7.61 6.39-2.13-15.22Z' fill='currentColor'/%3e%3c/svg%3e";
-var icons = {
-  asteroid: img,
-  cloudDay: img$1,
-  comet: img$2,
-  exposure: img$3,
-  focalPlane: img$4,
-  galaxy: img$5,
-  star: img$6,
-  supernova: img$7
-};
-
-var IconComposer = function IconComposer(props) {
-  var children = props.children,
-      className = props.className,
-      size = props.size,
-      fill = props.fill,
-      stroke = props.stroke,
-      icon = props.icon,
-      color = props.color,
-      width = props.width,
-      height = props.height,
-      style = props.style;
-  var IconComponent = props.renderAsImg ? 'img' : SVG;
-  return /*#__PURE__*/jsxRuntime.jsx(IconComponent, {
-    src: icons[icon],
-    className: className,
-    size: size,
-    fill: fill,
-    stroke: stroke,
-    color: color,
-    width: width,
-    height: height,
-    style: style,
-    children: children
-  });
-};
-
-IconComposer.propTypes = {
-  renderAsImg: PropTypes.bool,
-  icon: PropTypes.string.isRequired,
-  color: PropTypes.string
-};
-IconComposer.defaultProps = {
-  renderAsImg: false
-};
-var IconContainer = /*#__PURE__*/styled__default.div.withConfig({
-  displayName: "IconContainer",
-  componentId: "space-surveyors__sc-yt7img-0"
-})(["", " flex:0 0 auto;height:1em;aspect-ratio:1/1;&:first-child{margin-right:0.5ch;}"], flexCentered);
 var img$8 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAB9AAAAE+CAMAAADieHuDAAAB6VBMVEVMaXH///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////+DhIf////////////////////////////////////////////////////////////////////////////////////////M79vDAAAAonRSTlMAcCBgoPAQwECA4DDQsJBQ7x/+PNz7V/acr+eHz2TouMSI+PLzSpSSfJ394jqs9Wl+9Nmouqb37NTrvvmR2NNx6ozf+vzlWMjdyeahs0yBysFSlcLNo+6Y0re8rdbH8S7O11TDhYO75L3auVuydHm/YsyXpNXetI6PtqrRy5Z/e5k9ZuHtaumGk3eCiRBsijttR6XbesZ9datIp66bLZpTnp8BHVf4AAAACXBIWXMAABhIAAAYSAF3ynvJAAAAJXRFWHRTb2Z0d2FyZQBXZWJkYW0gaHR0cDovL3d3dy53ZWJkYW0uY29tFioTSwAAANx6VFh0UmF3IHByb2ZpbGUgdHlwZSBpcHRjAAB4nD1QMW5FMQjbc4p/BELA5M2dunXoBX7TIH3pS616/6EmlUokcAxYTtrr2/vL7fvnKx/P3W4V3aWNaWqXfYrx/Me89yXqLuJpCMeG4WIOFSwkAhmDuIcxD2QLDYVjFBGDVOegs8k1MtVbNc57HsaQ7DrnBiZRkplwCukqZY6zRpC82PKDC81apmDHjhHlocT3caJH7gMR2qh4jNdTsEX63ZWM/jmyhNKn0zeOryS6NG37MLB2d1frfTXR8ymVrf0CtlhJbiB50QwAAAPsaVRYdFhNTDpjb20uYWRvYmUueG1wAAAAAAA8P3hwYWNrZXQgYmVnaW49J++7vycgaWQ9J1c1TTBNcENlaGlIenJlU3pOVGN6a2M5ZCc/Pgo8eDp4bXBtZXRhIHhtbG5zOng9J2Fkb2JlOm5zOm1ldGEvJyB4OnhtcHRrPSdJbWFnZTo6RXhpZlRvb2wgMTIuMzgnPgo8cmRmOlJERiB4bWxuczpyZGY9J2h0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMnPgoKIDxyZGY6RGVzY3JpcHRpb24gcmRmOmFib3V0PScnCiAgeG1sbnM6V2ViZGFtPSdodHRwOi8vd3d3LndlYmRhbS5jb20vV2ViZGFtTmFtZXNwYWNlLyc+CiAgPFdlYmRhbTpDdXN0b21GaWVsZDE+MjAwOCBNYXkgMTQ8L1dlYmRhbTpDdXN0b21GaWVsZDE+CiAgPFdlYmRhbTpDdXN0b21GaWVsZDI+QVZNIDEuMiBSQzE8L1dlYmRhbTpDdXN0b21GaWVsZDI+CiAgPFdlYmRhbTpDdXN0b21GaWVsZDM+VmVyYSBDLiBSdWJpbiBPYnNlcnZhdG9yeTwvV2ViZGFtOkN1c3RvbUZpZWxkMz4KICA8V2ViZGFtOkN1c3RvbUZpZWxkND5SdWJpbk9iczwvV2ViZGFtOkN1c3RvbUZpZWxkND4KICA8V2ViZGFtOkN1c3RvbUZpZWxkNz5BcyBzdGF0ZWQgYXQgaHR0cDovL2xzLnN0L3liYjwvV2ViZGFtOkN1c3RvbUZpZWxkNz4KIDwvcmRmOkRlc2NyaXB0aW9uPgoKIDxyZGY6RGVzY3JpcHRpb24gcmRmOmFib3V0PScnCiAgeG1sbnM6cGhvdG9zaG9wPSdodHRwOi8vbnMuYWRvYmUuY29tL3Bob3Rvc2hvcC8xLjAvJz4KICA8cGhvdG9zaG9wOkF1dGhvcnNQb3NpdGlvbj5GdW5kaW5nIGxvZ29zIGF0IGNvcnJlY3Qgc2NhbGUgaW4gcmVsYXRpb24gdG8gZWFjaCBvdGhlciwgYWxsIHdoaXRlIHdpdGggdHJhbnNwYXJlbnQgYmFja2dyb3VuZDwvcGhvdG9zaG9wOkF1dGhvcnNQb3NpdGlvbj4KICA8cGhvdG9zaG9wOkNyZWRpdD5SdWJpbiBPYnNlcnZhdG9yeS9OU0YvQVVSQTwvcGhvdG9zaG9wOkNyZWRpdD4KIDwvcmRmOkRlc2NyaXB0aW9uPgo8L3JkZjpSREY+CjwveDp4bXBtZXRhPgo8P3hwYWNrZXQgZW5kPSdyJz8+ICJ0+AAAIABJREFUeJztvQWb7Li1/iszVlVX42bee5gnM5PJTDJhpnOSnBzGe+jPzHSZmfnqk97HMklaS7arytVdvfv9PU8yvV0G2Zb1ai0tLQkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMCVkkpFgrcAAAAAXGMg6AAAAMBLAAQdAAAAeAmAoAMAAAAvAVkt6CXeJQAAAHCNaQRd4h0CAAAA15hFI+gxXiIAAABwfckbQU/xDgEAAIBri9/oucw2uYPYJ5sAAAAAMCOxt5E0B62gbxQVt5TJimwEAAAAwEyk4YbD4e0QupQbGN1xJKXMPQy7AwAAAPsgKDf1nnce942Oas36gvwCAAAAgJ2p9VxG003nrBf0DY5qAuly8gMAAAAAdifY1NhWvvONTXSvOcAjvwAAAABgBqINje1Q6kz0oHe9AIS6AwAAAHuhFejFtJOvDD2X5bR+QBtHh/TvAAAAwH7oFHrSpLIiMgV9Wj+gdbjD4w4AAADsiy7CbYL73M+lTThuoxfdIYhxBwAAAPZE0qptPirNxD5XXvexcXHtKPIbAAAAAOZhOVmaPU7PpYyCwZ5A2h+FIXQAAABgX3iaNA8tt1IkRMq745buroB2+qmBdwAAAADYmFSX5sxlbK8WRMYNFnxMnW/0AjZKGQ8AAACADTAEXUZcuvUi5J3tlplOQt4Kc9I6BB0AAADYG6ktzGHQOdDjNE2zJQ1td5AvgzT120OXpb0XBB0AAADYF7ag7xGMoQMAAAD7YnV5go4odwAAAGBfZER39wdeIgAAALAnRsLXK6IkzCrcuyYJGTDn4EPhAQAAALAzwwHsZeilfdy7R36XMve62etp6mXu2epVnli8LgAAAGAvDA2h556dMIb652nk+so9yW3yIq0AAAAA2IiQqG5LwuWNs7WajXOLA9dMNyr/AAAAANgdn2huQ8nJOR1xD8geNdSUh4kOAAAA7A1XnJtrtNsWapIdrsURJIep6AAAAMD8uEbQXXpOBJ3s0LLxmQEAAACwJb4rfM3pGbcF3bmj05cPRQcAAADmJXb4xflQN8XS2pMfaa8WZiEnhaIDAAAA+8Cp57J0Xs2eZu4U9ICcFIoOAAAA7AHfqecDnnRb0J3z0FzRdpMUPUZKOQAAAKDCNZ2sp3CNn8uB2WjC3tEVte4cQq+PcnYYFHHpLgAAAABwgwhHreDVkJ7LnOxfQ9Zade3ozlejKIcUXQ0FQNEBAACASk7DIc3ss7JH4YrL1erQU5ovxk4OW8MY6Em2TPrrlM4J7KLIh0oAAAAA3BjCMSu4S82aB2qnggyn58zBcZqeEp2+m3KSTkfQa33u+w6Ra5g8iIwjAAAAgJtK6+6OHCHonZxHXruJDqgv9SOKVbYYWEYtT5b6mmxciHt3pThrLxVyPYG47wpE5EcAAADgBqGNc2fUztYWTllqv1JfetMb8IOlJuUXR0f3kiR5mGWLJEmSO0dH3+xlfdEupErz1egT2+NuLjuR9F7tpYzcTnkAAADgJqDZx7nlt/aXnWKaq6/ERNDzWMRB2Kh/lCyz1KGwcRpki9Znn3gFl8fdLEba9SkWeiG0wkHPAQAAAMPjnS97ZVxpQ9v2BHI66v3VstHybMU5x21Sr1H/iOq57T3XHeuhl1YES3PJVdcQOwAAAHBzMB3o+SKrWGiKSYfX6bC3sqC9jQzleBWyK6HT2eoB8cqbeOQIAAAA4OZB7W0DZtIY9bmffXcrK9n/0hE5FSPPNLBex51MHgAAALhBxIMGMDuhzYxiP7t3TvaYzPrWl80LEn9AVcSBsPloio8fAAAAePlxLUfu1HNjHbXTu+TnDTm5/ZF2Pv5YdzY5xqIHAAAAbiRu+5fLGaPnjnv7S2vy4zaknWC7Fm9zKbornywAAABw42CSrzbQ8XNFM3396D75ZWv+MDlW56QxcTWu9VthoAMAAAAtrrg414Kn/1H14+kJ2b4T61tnlYXuGhLnQ+vdi7cCAAAANw7HKLojoarK9TK3nCuUpC95jSaLtw0a9AAAAMBNhA90X3JPwq9G3H+6Dzmv+NIzPW28Di/o7K4AAADADYUPOWM87nGVhybhppbNhErRzsx9dxRxjyUBAAAArh0eUUren1152+2c73PjLzi/uyNwD1UNAAAA6OH92XaQu1r7jFmVbW5Ut8G0vV1B7niHAAAAQI/D/jXTylQ6yznD90BmGekuPYegAwAAADpEKamiL/lR9f1QpW/vOw/uZO54iQAAAIAGUcpW0VtR9ctLM89rsj7cPeWD8CWmoQMAAAAGDpe77ER1FTlmse2PSsbDuBm5d4EodwAAAKDHERSnSPzaXN5qgdRdqNZYK/3h1dAvbQwAAAAAuAbw09ZaI/1vLwZSsu6TTMozUhwDrM0CAAAA9LiSuXeEVzNY/TeOSUksLt1vAAAAABwug25tKeWXrqrk5xekLCY0+Q0AAABwU3GsZNZyfOvqnst6TNGvYigAAAAAOEjyVh0TbsL38fmVlvmUFCjPVn1m90uOvQcAAAAOljbGvZqh5pNFUK5Yz6miq4l0fjvsH2EqOgAAAKBIamlsFl2x/O8Xf3jlD+meUaB2bRhP13cAAADgxpOaQmkqerQ+gMcTMHouRDNDHTPXAAAAANEZ6NqiqNqs9PcPw6H9t7oChdpWuycCAAAA3GA8IpSiG0c/mAHqh208nFGgACY6AAAAULNSoliaT6MJez8+BH97TRMZZ+Vu9zCKDgAAAFQUaiA6smZzp4cR365zys5RWyDQHQAAAGj1nNq44aHpuRB3pPyYKLcfMf4FAAAA4IYR14lkaP7U+JtSXmF+OI71hXybLsjORAAAAAAAN4xGzxmXdSblbbLxill/hStpAkUHAABww2n0nFlUfCXlI7LxyikimZAyFEgvAwAA4GbT6jk1e/1IlmTjARAwYXFiidnoAAAAbjKtnjMGeknC3g+EkFkAPW7WfqVSDwAAALz8+N3CakS7l4xsHggl40/ImvsoacicEDG5OwAAAOCasgyJ1MVZ1Oo5CXFPD9ja9Zlh9LjPC2urdxHS3QEAAIDrSeWTLj1d6/xezungcxwd8rzugIl/01Z8XQSdAR+vlirhHenMAAAAANeSZq2yPMzSimBZSh3bql3I6JA1cEHH91fG/eTJMsvCJOeWcwEAAACuL6Z+E6g6EhP4kIgZpzu5Jx066A4AAABcQ1IicSbmHcU51cvDgvY4CnJPBpjQBgAA4GUgJAo3JOjLwx90XthGd0buyQCZ3gEAALwM5EThTAxzt+CmpR8YfmSOixcRuSdDz2GhAwAAeCkohm30SF9jPJH54d+yZ6yLvhrU8yQlhwMAAADXFH9Y0pdd2HhwuClldLRx/lVCbke3ziHnAAAAXirS4VD3RVBr+sFHxNWkdaRbvAoHrXOs2AIAAODlY0nkziRKstVv0Vnph8kj+atlMhYckCOlDAAAvBT4aZpl2TKhhFmWZas0vVkTlINha7bmmkSEn5CCUw5yvTgAALjxxLYqD1iSxSoLkynqVWUVC7PVuCFXdQ24nsF+2JdhORINrjghRx0mp6TkpGsCPQcAgEMksJWYL2PqhYNBUg7yxCnrabYYc+3Ozd6UaCzFjJSn5JgDZdREz6HnAABwkNgxXcxk6dVyOPBrlCT0zKBo39umd7ArZPWz+bC7RYTrYqCPm+iO/hkA4OXj8vynN5O5c3n4dnvNrJM5D3mSBUoMfG/H/sG27HPe2GK4TNfGQB810ZkOHwDgJeUqLK+bxNztqWc9Oyt2K535fUZJNiJ9+yMiNz8j8fAw+vUx0EdMdCzIMohadS8dCEMB4FoBQd8vcwu6PYxteAD8aeJbu0quyOyezn5X+xxMe36NDHQh7pPia8BAd1FkWrxoslxdZs8nTrVlbctk6SHtD5gHCPp+mblBJctpac1QPDDBOkrCzONMkbSKWw9HZzJfBfsd/B000a9XHpYvk/L30DcOqq7vktb4xSWlBlyFuZTlovoeFVlWfX5JhmAHsDsQ9P0ys6Dbmq3FjaUuhUqy1YRm3U+z8KCMdkf4/mwMxBq8v+dLz8wr5AY6sL4aR+HwZOX7X70mDSOZZJVBfrJev7J45/bt2++oVH/LXOZLdL/AjlSCfi2SXF4/1NyomQXdFu3eqOBdyPlyM7Oj8EJqulwN+7aSV+67um6rkp2RO2iBx50SD3Tl9pzyPshlEsTi/MWj57fffv/kG58+PZPH8jMhPG8t/CzHCjq7UlQ5tJJkkWVZcKn5slKDLa5cBNkiqXw1eZXwa4oNxgJB3xt7EHRbhPq4MbaR2s6J6AcjicEvh31/jbHzLl4n+x44bjfboemD3ziZOWoX9N4b4eE16eRyfwUIoij0hbh7IW+99YG4Ix953mdCnn76mfjG+97p19braoEdSPrWFGRybVQ7QwjW3K4l2WFjrJZ5w/gfP1iQWpmHwTZVEYK+N/Yg6LZsh64f1I87OPAKZozxctnjJPSGboAhX2bG93TJIXE+F9uwEfrMtTLLlv3NsM3Z5RKnqZc1xsdE8qqRVTmJ5y/pQKBJ8wD35Pde5VEWi1c+PhEfyBdvCJG/Kx+EQsjvCvFY3hdhef7ew5NqmspQ7kfgIg5cA4YL6nCzhH8GAbTOuNHkksDZId/CIoOg7435BZ0EcrUNnj2ZrWoUd20M06u10/cfodR8RlH9vQe93pyTXecgzRZtWHWy0A2HcvdactQWve7EFd29XKGgq2iviYmHB4iSpJL2mUQudoye60T7iE6LF3Lhr9fiiTwR5/KJXJ+U64cyFO/I20KE7wnx8MF9+bOPP1XLAWKgZGOyoYoW2bbN7IJO0oNMHjCMB0u+eVgHBH1vzC/orrSvPq0TyQyew9hzGlVlwvhMB6m9XHZBI1e2of0b6K2t1n0xraSfCVGQ8riT5rP72jvR3lG0aDxqvlZLAnKiCSyFuNW89LaIXbL6qxD0DVYQ2AS12sCO9xO7rDjz1cyv6KsoT8WLZ++vf+/ZQyHee8v74l89+7745APxFXkkxItSiPcePZSvLD4XSpzcXgK/GZRI08LazDwa3xjEKNpB3qL9R3+KotutPiY1/lHvWjTn8puZ+91vvnLD+M0B6h8temmK1L7IbAMsqbOhajFHMmYXdOIhnRjSOyLncnNJh6DvjfkF3TYv2rEf6nAffqVpGmjaa7UNBqyDMsqc7c0Y9od3lfPDMvLl1VtuO3K9OxY5Yfe1duF9alG4ioVfarWEj2wcIRFirU6nPczWZcO08nvEX2WLfc+UqCZgDlTYYSYWbnZFX8owvv/gnz97+v6XH8oT8UB++fvveOp1vXP7thDrN159+Owd+bm8L4T4/IUoysjloMqad2p84vUEl4h8TE11iurq1VXCpP9H3lwn6upgWwXV2fr6mNSHeE0rlKkiNGTqI1Be5qyq+toXoZWx/vTDWL/ITPVz0mejW+lzCzpxnU68s9WkYahyk+oIQd8bsws68ev4ju0DC3IUGTuWqZpJ5iBOrXZo7sjpmEteGnU3yGgFVatzwpRTwUe6sPvqO/T5ARZeWog09Yjfd1dBF3ekNfTavORLE/QiWPK9lj1RLpyrCLmhHV8H8+bXi5MoED+SP3rt8YdP5bn8+JXXqkGddNV0qCu3g+f9b0/keeWWWr8v8xMRuhoOTtC75BR2L6CrTmr2IifojYMq6ANs+yqYMYK+aIScEXT1m1PQO+di5M8u6FNfa/9I5xZ0ZshzgotxyviPXfJRIOh7Y3ZBd6V9pdXJ4aWJM07MtROSfFmcWhFDYDp2Db4Ex7qb+qs2bzj+nrxQf7BrpjvuvFgZDvVFYChN0ZqFi15x48B8EX0tiVMSqtvgTO9Xfb63bKdA04BehqDHq8xR5L1DVhEahH4nTuacvx+XUSE+/0Q+EuIvnj/960/ut8snNaMp6sNLxclbqnq9Je8/fq96f3z3kRP0ZfXBV91GuyFXO6toMa+u7/1P1T/idNl8gqpaBfoFvO4ZdIepl6w1a/r11MZVI+h6ORuqQUEvFn5SH5TNWTOnV77O1J1b0LlmddSLWXBHOXCPwdhA0PfG7IJut+atvpAa7ciCPqkGJZ5edziX+/bWC5kp5nIsXgrqsdldilz+rCkrp53u8nY2hz3U3g1nB44DaC1hUgRpKUf81MoVUH2+a1K2epd9C7ofXH3egnLBz00iZaWP1c18321cVq3xp6+G8l3x4quvngg/jGSp+8P8St+j+hXflU/k4tviQxFErKJzgp5JmcUizjK7H9/s7NctAhH02squTfykFfD+ApGxZ/VHVNWypYwcgp7HTkFfNk80zpXSzSnomyxG1QTAzi3obEqLsblwows+miWf6o6CoO+NuQWdpH1tG3nSUPGG7+QGrewtUe4QcuLJ2CaSo+NxSaiv2jK6/T7jLKfoA59V833a31Lc6h1xmhTa+a1aQvwipG0vNJ+AumRi71N3GPYp6Icg5h1l6LnfTQ3p9w4y1zB6XJbxm08vPhKifLZ4rOal5R61t6qsMqEv7soH51+sxXP5QhSsonOCrkZwkyUtcbtzotqKRMrax+93Mh3UMh5KmS6afTMpq4QAy67SaYKeRHIpShm2gp7X56trbFRpmEvQk7a1ytSXkEkZqvAdUuSN2cDtIrvXOrOgszVrZNhmw3IzDQgPBH1vzC3ozrSv5N3zF+WsbQftIURZ5KCZOoYtkVyLdXmoz9BqWj2tk8EpuiMwTnSWgt1Etd8601/Xzm+/MPvKzCPv850ldcGtuFrfdeA87Lzm/j5IsoElVjaziOZqFJWefyW6uBDCe/putXySFm8dGxkIgkSG8fM33vpw/fxjGZ6IlPs+OEFvxYFUTk3QU0120npTPRMhUx2CvLIyQ6F7jqKmaLqghzL3pQysMfS6oagyV6QuQc+17drYPN9QbcJGbpfugvMKOo1hUgwq8BaLXA+erwOCvjfmFnTnQmvk1fMXZfuRPG0zw3cjHUPJo5CKT22Ky0QyPoKF3ogysasO54fo7s7a2KkItcl0RbdfmB0cx1oybcoz9fkW5BIld+JZiJm8VgdDHgbcs6afzxjsM9+YJPLFnePjY/n6UXQivKhPDxGvgnIZhPp8qiCPgvVb3//J6SvSe/RQBMyXxgq68D2lzuwYum6h14P2hdXR9NQnXTvDu6rXDfLogl5JuZR+K+hRN0czlTJLqxRNkwW9rI7cPcfyZos7t6ER8wq6w1Iamrm2VfTrpKcFQd8bMws6sZa7/jh587zqOOodR/stOqyaBd9kjmEXYKjGXwLck4qMr6ZgdIsxtRty+il1Dnf+E+t+tmuJPSjHi0tTvIQpedsZm1/Qfe/g192V+YL63x1V2Q3/yjZkqTqt7x4ff/707N040d5HEckHZb4sCn2GWryUi/hr8vGr8tUHH/yJyOiL95p2XStfnGarJvLCMtFbVa3l1B5D7+aBd12drD3G00aXdEGvRuNlLtgx9Kz6viOHoCdt7z1sY+fInW0FaRSH2UtQHNfvV7hvcePKqICgXy0zC7oz7Ssd6ObHpjfwTrVtjLOulsww4CiHNAm9EU2rCLady3konJ8V8yl1H66jGhSOn+12ytE01Kevr7mwHbQFd+Id4dS8rNaSqLIZsLlN2hwmnloz4xKj4SPLUqcFH2OG5HSrpra8e/z6HVHkudbNyNqQjJXxjtKo9L92EspP1uKL+2JBBmLTuhOa6oLeuMdL4vJqdLM5hguKE0Zli7pjwn7qqy7o6hNeugS97p8al27xekdS1euYTdA381x3T3pWQXeqM29XMZ/3NJgBGAamFQLzMLOguxdao24nXio5g5OnK7WzslbutQ2/SVKNrzZntWoLrFuwR6JJkYcC45hPyelT7y/I/jxR0Os3n7BFrz0Qs06/MnJOb5uRVaV2v6QF+LX1LchwzzhuX8zke40W4h+dVe/l9CtvFpExxp2GWVJfwmz3/WqS2/ffX5+cyo/WcW6LQtXFDoMqv1hQZxasK17uBWHt8lpqaQrr2LOwMU27oLjMFPRF05Ys2ni1tK65zaUNQV+qhscKigsaQa+rbXfp1Cp2GaTLqH6scwk6mTaj1pdM/aqS0cWg+wczq6C7q7Lj63CaSZHqGmch2+91dg9MmFYIzMO8gm5Lq2aFUzvSIToTEg3W9Dow2AWOrCnXw9inuuJqpx6F1azYZi4n6M6sPRm5p15FnNWgZH+eKuh+/xzpIDoX9Lc9afP6ohkysNZlT73955Wrp3iz38gou48ILfJY/EGVTPjpnTeLKLRSHgiRqY63PUxTRsXzn7zyVL7mlSIlYY3tjahPtI5BazvqalKWbod3I7X1dbobNnbz2ztdqZM2WltErclgCPpKWdhWUFzSCrrS++7SZt7XtuUJuV+3hcwXM/KkWv6kqP8W5hR0to2ocXQJWb2WpT5MlJLFsUjEowMI+t6YV9BtM1wP3qK1I3I4huOAmvMcfd0fG3l3rVBIsTsTjiJeEnVbYF0rt3wb/MfqMHupoPcq4qwGKfvzVEFXnaTmmiSkXb053lezKXVW/yqNy+yp/fw0o7bUvESLwN/mErvGbCo1/vnxt6WU/4SdhJaq925XwriM/Hfl6SN5770TEVKne6I+OrW5ttCFX80fjBaqvLqFXi8NsGgyNfdrhhq7rZKkqSSLar2CoA6aq/67EMYJl8lSxGrpgDqaTV99tKg3xYt25/Y0/V1lZVXGFf/rltiNE1E9X7MitE9hTkEfaFD5oU+2bxmS52HmiybVwAUEfW/MKuhEtPUKwImuO3BtNSFJp9b6TMk3XC7H50cRF8NVpn1tv0NzW2xLJy/ojtEsKuiLkSNE27ZsLehpf83EPouyzxydj43wQ1kuN/HFbE4RZHtYz0V/ZVso+q6doXwhvvbegz+Wt37/j+OIexG1oJNfqqluDxevvRCvvjiJI4eZB6gwR0yb10m67rKeUdAHx3I4m4VzuPPdG23JGYfLlWFY0Nee563J1k1Ye9601ShPvBOyzSqK60Qn3vixewjAGivxrILuWmhNwS8iFTplQIjUG5l5pB07ljC2rZQjcXIDLoYroPkOrafCbGDhPlRG0PvXwvfVhauWTBb0agCvNaDs77g+yfBLmYI3R/6PKfh7zAcfC3+ic6pnxxoaSH8dfVV6rz/5X0XCjtNkqpmmCyP60WL9/heeePzsofCuONTkoJn0wnz13g37YUZB54ypDtJXY0YeuVV1GvpVIKZ/gUOCfutCnexUeNUaf0Ktu1xf+67m6JPy6PS8/lP026rNQqzVQs3HvRLfkvKW+sOT8m5bAk+c10dc3NXKddSdzRNifdqfqDtHzbm6xtm6KcCRPG5+OKsWwqyE9446Nlm3F77dXCERSbtLdZHuLlufiGfe91Gzs7pOW2K9JBZsU70ttmSb/faCVXSZM9mjtIOYkOW+khnNyIqs/snCpcBqIT3ZK0372r5je6P1BapXSL9A3htLBV07wPXN1l/gZoJeaKuN9Rm8A3vQl/fmHzqjXc2taB7NxHrc4GoXJ5KH4q0Hz5+s8+M3M7bCFPW7IRlbq1fnPf8X/98D+cnpSXUa4GBik1KZusZv8wk6Z287P1zBtYOD1nezpAStIU4GBP1Uyot7yb2Le1TQT2UvbkdHx7U4a4J+VHFPrC/kWZLcOe7PeUfKO+oPT8rjWmETpaXHd5J7R1XnocES9PpEcm2cQ7E+Vj+dtQW40LoMqkDnaofqZtbthU9EI+jr43rn0+rCmqAfqxs4twW9eVLVeVWJE73EhDkFnVQDSzljTnVUbWGm5GqndRvfuXVYOm0FDmeuCHvk6IonoTf3bW5c2qGk6hWmTBYIzrk3KOjurzZgasmwoOfaZVbdNYl7IT6E57wVxeyirk2wIuFGbna6CWWgvyffOPk//03B9ucKtTEWMdP+LiM/lA8+ev7Iq85DfgY1g5+JRrw0P+z5BH1gGpBkfQakoSbj/gYqmHCTURe3oN+Tx63BTAT9+OxC1ma3qvWeWqJKE/Tmj1vKcBa9034tz85ko6vHjSwnvXF8ftGVxRT0u9qJ1vLiWPanvF3vuG6v2533VB7LWvCV5p43/62E5Y5oBF3cVh2Tc6XxmqDbf7SCLk9EJ+jqp5MLeY88uYY5Bd3WFOrL8UlN0SrsMnDW9ZVLpxlH0KQ1Mh0L8g+7GC6bNjzWvCwZhq4FnX6E7Gc4KOhuRY+ZWjIo6LGRx7v/B2nQmGOvDwVdZHYHjIa1mKrpOz2ssrrmOpTyU5HQz1WI+MP/UoiTdBWIFW324zxcf/sV+e2qwYmum5Pl0rA/E9piOZhP0Mdqkt0ZI5YZOxajUURMr2AAp6B72vOxBf2uvHe7EbK61h9JVtAT+9S35L17tcfbk6fH9V+aoIuT48ZstwQ90QzhW/L2qeZz165RC/pRLffr47Ojen5G40u4W8uxV/UH7nYHnlWnOlJ/Uh23Bf2o/rcm6FV/wTWSPqegT8nJ4g/7E8tFxst66vK8J+zuRTCWxjtnXF/OlWWuhlYszItHttOuEXQuRoF+ZcOCLiPmqSgWtJYMCnpqXKbs/kFyxTXvnVzw2pDOljDefsDTNH2X51TIVBy/LsTXL05WXKcqLn93lXn/tAzDJGM6eyuZrt/+XFRty/I6OlkuBTtSmBUyjtkE3RVk46x49pA78+otVpt9wE5BP9U01Bb0U+mdNDo5KOi3a8O65448v1svOO3Jo7u171sXdNFJtSnot7QTXciTu5rPPWlc6b2g1+e4Je8dVVp71on/mepAePIoUWdLmoWkz4RXn53quC3od+s+iC7o4p50DaPPKOhEDvluXT27aJB8ka2IlnqunoDTgT7igA9J+cgEE3LKy6TrJ5ufEzHtRcNvAAAgAElEQVRnG0Fnk+yRPtWIoDsnHqR01alBQc+MywTdECzxL7gKep3w5zHUmc9wgqaTYzYgzMUPP3r/9J3j3+ZHwZdZlof/9DVfpH7BTQZMkvWz//uRfO8t4TvHhm889gub+qBmE3TGd2diR8O604PNhFPQLzSh8uSFp7hQrcP6+Lj6vY+Eu+twuVfj27rcratewHFjKB+JO0oUDUG/1U/C0QVdO9FJdS3N537Sx9JV1z2RR7fUoXfkeSXDa9lZ0PdUN6C61FnlXmhM+yN566iOz6M6bgu6d1sN/BuCfpd/fPMKunOhNcKkVbCihRW95giqUxk0nV3IIVEnHunDSvvaiYTRYSlIR6kVdNqjYr7FUUGXUca03ByDgp44vtjQ8hq0ZZ4+5eUwiYNh19MU+M9wTNPJARsQeeLjZx/L8viz1PJGfecXt//Jo7/3pX/v0W/ebv/3Pz76zdukL1l87cvP3vI+eK123jf46TCqghXdLsar145trjGMOjhmduE7pvqVVtmimaPuGQnjjNPYB210CQX5wCbq41yCThzoFNMksjPhuBvybXEKut7magFNnlLd08r6vlfvdnQm2aC46q/zsyq8vDvPreqY09ZQrmT6tiXoHi/ozYnWormu7nO/eywbtW+EVml45UE4UmfuPsv6lNWlPCnPW0GvBvOPmmubQXGMoIuLqlNgCLqnR+gZzCjoG+VkiSetU20a35xTuSV3TzKPA1cX1apTJKXTlU5C7yNZjA+KhJX1gs4Fv9hCSQWdPtSJkj4k6DG5THd9c3P3akjv6vqxWXg6xfkZDp6Y7D2dVPpvHkv5rfxMLMzXshJ/9rv3/7783fuP5T8+/6/lPz7/M/nn538mvxtb1SkPxa/WJ+L8U+FpZh4ToElrSq9XxmQt7dh6AznaRJXb5VQuF5mjoxjbs2cWXfsRGw2TpejGb45zW9B2zuEFs5hL0Ccsmma6Iq3mcg+5OCYK+lnd3zpTG+9U+t343FW5zu4KOm1N/bm+fSZ7n/hRZdXX5rwSRK9yuk8S9P5EF/05GtbJWR3n1grtHXlb3JaJW9DFHXnRDb7fkU18nz1tjRN0FVlgCborKm4+QbflcLweTAkpMqLXhhS9stOdC03HAX+kaS3auj9/z3QDdHNbbzg8+b51kl7QyR1QoaSCzhwzTdKHBD0gl2l4zZxxoXVBXgJFH5HeMdgH1uCen052nU6Wizc/u/XHr8vT2Op+F/Ff/b307//p76xe+/Cnq9c+vBf8xl/+fvD13/59O8DFi0T+SiR+9LnwtVq6oaAbsaezCrp0BMuw6aW7RWONlszUOmMazMSQWc5FuGAKNXLcUO0YhLlVgvFarQOIOhRBlu2Wwskp6MeynxRuCtu6mqHteWdKB6UUzVg443JX3DpuL3Aij6sDlRO8PuU9eWQKeuIS9NoUPzXO0XNbzVWrhTYRlc/9Qp6o4e0T2Xnn76kGT12q8g20l6IOdu2PM+2+1f/dk2emoN/mH9+sgu5eaG2Iwhuz1HOtso2u3LJwrDNtJyls0Z3qZLbmoIthzxh32uXILYLwQVfnujuT/RfJ3KTZLaGCzpj10yR9SNBLcpkGr07ZV++7MlSqdL26a8XUvMUM7APrIDZl89TIjtNJluL5AykffuUdzxhGjdP0/iv/2X/+41de+Y3vvPLD3/jOT5r/ZT/8+o9NP3MsV69I+ep56Im8b0U2FXTd3T+7oEu5IIlpHU1OG1VjfEWGRWF8lRN7oPzTGDA/BFOK7QWd/77tO9cOsEfurGIGzcNzTBSahFPQ7ziD4m61xbnXiLcW/C0EEfR2YpmS3Zrb7SnXZzIxBP1On26GCLoSav0cGlXPQF1XzS6X8rwy4ZVkH9OgOFWU47vjgn7e3slZJ+hVV8AQ9Dtax8dkNkEnaV+nR1LEI2PqmuqyKYZNSs/xobCfsbYvSftKznB5BFbnIkqyMGke0pCgcz4Mw5Cggk76Me0lxyR9QNCVjcN+sUMvcOrg4qHjkN5xxu6rWNJ3tYsbSa7Eh696P3r6WCyM7vegPpqNRRKKV169/64MRdiXhJcwq6YYq+IJ7timkMNMEHTOS8XT7GiMOuu6bRw5VdCKxMXwF7Y0j9p2Cu3ScXET7YCV+Yv5vvVAJpo9cCpOQb/VeqKJoN+RSWUk11O460C0LvhbYX0+3dEX8rS6jdNKbJuNnpR3NEH3ujRvnKB7yvLuz6FxVxf0KtquknH19ymZtnZU38nRuKCL5hnUZn4d4n9XHl9ogn7e5sehzCboO8phPOSs1FobTpQJjnyyMWM7aV+lbd1eXfIrrqDad2TtrQs668PQWx4q6MS10jEi6W5Br/sI7Bd7Qq5i3NrLkp6kGKjNbia4MVd21dghcLMKhHu2FuL5QpjqlLZrjhLI7EUvF4+81+QbH1R/tbgVU6spxue24o6tN5CjrSojmKpoY/R6nPW9V3TjBvobNoSerd4vO2bzsvXoulPQxYU81pVU0cSN1xKmnPLtWnznnKCfNJndalu/9X6roLX2lInUsq56vTltRbmrA0/lnZNG8U86n3t9jaPKXdAJeuVDaCemnfSJZe5p93KuLSTtFvQ6Dl/cUUP0zZy9I3143Tu2XAUaswm63dBs0aFcOT81NvRxCH52OvMt9586CQa9qrhrdoBvoCUxBJ2EMliBcYygu0z0MUl3CnrjJuC/WHIN6328NLOfAmb4Y4RJ4ux7WwRmsQSyamFOP/3+B1aMe+p4d6o9NxuLVFZrxP3q5FWR9t6uzQWd7QzUG8jRJpMEXe+v0DZAp+7Fm3FxPnvoNZ+WsRW2A3Db8R63oFeB5RdJktipX2+1xrGaqa7qxvqs2tZkfD3q/zg9Pq3Soza53G+38eBV0JpmtitBr6LuLrSiJE361VtK0O81eVbPb7cDARetkN6prnGmhvGrspyqT7fOFleno7kl29Svan+tJzEu6OfH1SNo7qAR9JPjWtCbErtC4uYT9Hnk0HeZpt03RTz7LpasFBFfaO9IOJC0r0OeipphQSf3YSZ6YgSdO6J/Pm5Jdwl665Xjv1hyBXLFcLeAm/RqQh+Y+jaSRIky1X2e9sqyy7hQlohXP3jt0QN5bg6hN4J+ct6YI90MdDUQZOcRSD9YrM9/KkXc18HNBb0/634Evf+Yx4aU6w6l0S1uX4txlRuZGY+82C2fglvQxfr0WJ3ZWpzlTiuldytrua4barGWrrJ0fyTqBGeN676b2V4nc+nHqb223bvT96PbOpnUmeLqE3n9OW733YqKo/NuPN9TG+/2wuzVK8Q0d9mleDubIOiqV9PeQZv3NqkF3S4xYS5Bn0sOHd9b7/6ebPewUdN0qnb3k+3Mv9wvtprWGkxbdHtE0DkTpO9Jc4JOvCsGTknnBb3oLk8uoyDnZ4mqIavtlHlxJT0xn60vcTA9J7uk8UduuuxMu4wLLRql+mkl7Tq1oH/vSfSaEOIn3/vvbjcLhKsrWvdZ1v/+2onYSdC7dQf2I+idic5lXzJoao9ROibidCwZ6ksJ9eVt2Z8cEPRKS3ZdPtVzL3pqcDK248Dv3tjqqersZONEzh0XHi3xbIJuK9HWp3Q0Bv7I7wysvUP6A+0PROovdziXFt+JfV+2oHOBcV27zwo6d4SGI1iNJKlOg2yhCRi5zKY3ulUd8l3RSk0iE64hTs2fis0ShyiWri5sOthbsh8hOdxNbabv4sxQ8U7qHq2IKyXot55I+dG5ED+7c3z2i3Wj52Vpv5X+JCVnZbMwgt7V0D0JevvRkO+fUNceZrjcuAj/SbjwSTACizlOGJi78LV6DO4yPG1lj81f9W+Asbb4oc0xhgUd7MBMgj6fHDp86l1Tx4wRu+DKQNqa9gc7z90l1zfHLXDYrb4t6ExHuhc5VtDHFJ3JkjuhFaWX2fBGt6qWoevCTVPOtUDS/Mlo9KMkDLi7N6keuavFHVqRyMLRKXAQe/lOyYkrLS6iZavKPUrQH0opv3ki/tvHf/HkwX/ztxs9j0nq3mVCT0I+MgtO0NunvydBb0xJe8dykYVWQUpSjubV6s4Wvoq5mVgFjIwzc0xbYyTYRdujsh6R/r0wy6pvJx0Q9L0xk6DPmAWd1BlFZ2KOf7tsXWwhNbz94YonoZPCu/mOdSgRdNq96k05XtBHFZ0bvzhIQffJw2jZUtAVC+4onWxQjcfCHHs2rHXxU3fS43EqBY7LwCHo5/+hfPK9tYh/tvj6twNfSVIZ01z8lbfet06iiWFJUrK2rhD7KVMhrTdou3jkTE3qV70qdr8ETGSb2VdrBpNiswNS72nExVUO9oDuswETFT1yz7rhP6cRaFV2E7cv30Cv+czZtptMB0HfGzMJ+nxZ0DkxMl4/+ckJI0LEeGjPSwx/7uA94roHBnaRFMtbR49qBikdgu5eq76BUfSDFHT1focGWzhpluZPTLtFk5OYqPo/4IadsCKRwt0pYKn60eXWXc9GgdceK+ji5K76ir/upXmgBKny07CCXu18nxd0vhII7ikH9rH1ftoe3LtrCmwfRS6hjjUc6VoiI+N7adouo0XITLfXFjVz6lBhr5AzCLqjMeXJ6LMcF3T2UxsFgr435hF00rYPN39DMJVG0R0yOXKY7TzaroT21rfLczcfpPRu7nMP32rrGOdYLckuQae5bCzoQXQMPfX0DEH0CLF3QW+aXc6A2k3QZTlkCgcDN9ztM0nSN7rnpr2OMu5+x0kysX4Rht/4Z7ygd7z2X9V6LrjV8ipBP3n81rNwZ0GPYjGzoAf2sfpnYYS16TG97aevFzDyM9ehUynIDfN0Lc8Mgj7SSzfJ6bO0njlzOrjcD4x5BH22LOhuQ7HfxZGX3YaXZLtVbZpCMnI/YG3tBVJ8N69a1+cEnQtcVw/ELejCH25xSCXho9z9WaLc+SuO42m3arGjoA+24rn73BpTJD3aRJv7D8GRSmmYJKvO8MWDcETQRa/nnKCffCzlF9/eXdDrHvicgp7ax+bOk2m/tMOFZlyc3t3dsnGYOOWhNURmEHRy7kFqF4ll1euPiZnfup17CIK+N+YR9LkGoFO3Vuu7+cFi2Jzkl2RgfNGJY/ulT32qpmlN9D2MTVtTcIPi3rCgjxnptonKC3o1osqXs4aclhIly2y1WZB5S9tkMuK7q6A77kd/Elw/wmBCk75B9Inhxd1ikl+SiV+thVjfdwi63zzFui45BH2ZiNMH54k42V3QVe96TkH3rGN1ibZsjsZ2j5JsNTqhxn1PLzkk2QjvCxsHgr43ZhF0stAa2WMKwws/2ydIvYVz99xlsJD473Y/W/5Yd/3+8Uey2rPtCSvobA7Y1YigD0dvsddlnuVOmeJk7g35tkfo+mVMjd5Y0MNq3pDey3JKZqdN483buKRPHuyxv7rctYiBiyQTn1dj6B9aqdxbQf+H/0z9q36djYOCCHol4/c/f7A411Zn0ZSQySEbWA+tJxkR9JCcqxls4AXd6NTGVrfd6vCnppbXxzve1cuSn3hzyDvbcmQSgr43ZhF0278bJQnz7bF0awA4Pp6uYSAXFSorWL9mSU2SZM4F16jZ2uo26XpeYV5Hn1mBw4AVVqpTJK5B5YAdFvRhSSdtoImWy129TP4y5KzmvdH72ISuEjFZpjcW9Oar6FdE4eug/iCmtG8DD7hmYkAp02PbcDA9TMS795Lv5Z/wiWXEwxfqX3Fl6EZ/K/9UcIKeZ+flLfH/vudNTizTLVVJWQ0LOkPaFLinC3I3HnRul8t+GNyTI5GyihuZI67GDrLbaIBIA4K+N+YQdDIAvQcip3lUUyUDIRstfFvPO/em3QLtNL13Z4ZElfkSHILOjXiV8ZigD13dOs4t6PVP/GXIWTUcGWwmo5WIquK2gq7VG0fxtLgP2o+guB9ww0hVr2H0vCLcoIltZfxfioBL/Sq++jP1r6obHBV/8Pq33vqdP6GCLtMP3xLi8ffX/gyCns8g6DyhdUm+ctqwZbyJOeJarKHJbYdWXYIek1mJwAV5eDVzCDozSWoP7LL+rsKzm8B+KtZ8s+7mYTA+zU7M7xJ0EqpYjRyOC/rAHCtTLAYE3fnFivv1viq1q92/2n45Ru2qDdSa3l7QO88Ob4Dr7p1pX9JYqpkJZ3HoubEQzxgrKd58R7zz3dc/K9jFWf6Df6H+FaqzHr3+rf/47CdE0FMZ/7RKI/dEpL3Ru7Wgy2xfgl5Yl+wS0zHwr7bF0avbBt/RVtfRI4W5bWOn4RbqqK7rM9s6jLZ++wmTjubhD0MwFfLwauYQdPbT3APRcofRKzp42es5ma559aNkRpsYZXX6jDRLRtZDN2HG4yPHp2RBn5Yk/ZwhQV+5LuNJ2Y9Vmv0WVxWdjPEaSWOzg6C3t0p7CcLqNzGufpaROUxsZj4dZx96E7kpZPGZ/ObH1VqMpgPMU+8u/tPfEfWlql7CL9/+R+v1WiytxiLLRfiD8O6jsvqr20iKpTMk6Mb0sHo/so/BREGvr6lV6vYuyJ6mN57eCVurt8W1EpPtT9jqwiO9Ro6ceZhWpe/jlpPtxyVdgg52ZgZB57qx+6L0ttJaP6MCpcW9zTbrbka0JttI6vJbRFbcgu6I6pn0KXGSbj6XIUGv5j2wl/mxGTGZuE6+DcZrJKMmuwh6KwXkSBJoSfoRLlbM89VKP9hYutfL38y1JANx/Oav5emb3TotNamqY3/3p99veklVYYJyIZgx9HJ56ytvSfnec/0UVAZ1hgRdhnsR9GasV9syUdDpFzR3X58scC9bEd1R0LcaCF0xB5JEVsvKvbYcrKEjQND3xgyCzozV7pMy49rkAYqMsVSNaW1XnPaVp2vZTC/qagNBdzhmjU8py1yrqVFJN688KOgLxxebmZv7sCMmFd2G+APF2VXQm1aXa8RM9eKNeJbhoXRmOdYW9+zCDZ0cSVjd2cfvSBEYo/+pErX013+nVbQqWC3N6mdj+AB8uYrk8R989403RdR3JnYQdKltrvcjexhME/SAnGqioJO4uD1ExHEDMDF9QOznNMDwS3CQMG9mD8oLQd8bMwg6I5d7JkoydtUsgr/K2Nnd5pKg88y6m522625PKbLtxAFB512zxqfkPpZpE+h1NYzTeI4v1hL0vi/FaeVmNO1iHjJ3uaugZ86DWwO9fVYbdAadq/8zdbQndSghc8tjeLl451geP3n9dmyU21eG6D9448//E5Eum4DUrA7DiazXHIkn71XLRlf+e/tpOaCC7ngOxstxMEXQu/EEbdtUQbdm8OwnIi4lbVS6u66S7vgkfMZCm9++uSxBV2EEasJipuZ0FqusX2mpWQYgyFZt3EBR7bjqF10UKqKg+j9f7djPn1rVf8dBFhQiTpsTCFFU5yzi7qdms0gH5l7Ny+6CTgagL4kq/Ygr1i9OUy9buFo+u6m025PLTvvqoJMK42efeP2GBJ1tW21Bd7/+wmoVrNApk9T6kf1iF9YU//Yd7f7M28cVtOWyughzWOjMR9l0maI2xyFx9Q+RDra6EV15xXfFK8ptnByFLN759WdCvPlRNYXNeCArIf7kn/+rH1cZV5SHqAgfPipU7TPOkC+rLO4//8o3xVLzTXCVjlQ/7et0DNq1ZRligqD3Y73as2trIdnbFnRzAfU9JZAkbejugs5PuRslpK6uyYEh07ksQU9lkiSFiMsoyatqnORJ3tbTovamyTyJFiJIElkmSxFGSdf9y5tER5V7KhNClknZVptllORe5QCNknKhwkGzKsxXiKQa3Knm3gZRnuTLdvNSVv+4FHYXdCZt+IzkXuoH4UArJvMkSRZtqCoXPG2xsDucZLCJa/OvgkYr7HlCdvkGBZ30VhhBH9Aga+a+rdnuH2PHF2uPwba1h0jXxjQqEvWJYewr01L2z0AOC3rzGMiRnUgsu2aQu4CbYe2TeRh0TyZOubGjnk0C3NvCq1bmu2fys9SapNA2P6mMiv/5tf+hbdIDs7IE0v9Angrxf/zvQm+whm+KCrrjgHo/stlgVNBzfv2ytnKS/clb1svGVuk5sBvR3QXdZc2MEDHO/gmXjoeDPrjCbf8sU2OUsDG+Gzxj3fhm5kWYxyIuc5UFKW7nxi5z1ejITKRKudUz13pshSxVas0oj2tBr2S68VY0/8nrJZuUoNe3U3UOKkH3o7r1aTZHRqM3UOLY23RAmTwcSSVjM4bEdle6jG+FN5rsdRILZm1r28N06WlfndSP1no7pR35NCzoJJkOFXTO8OwONx77dEEXEf/F2rtlTJG2o/dntOMM5m3tIuiNWDM9H+1ayVa3MjhDsamQKvMS2WyzRZ9omYvf/9br8vUH/1Akerm99iOIo6hY/0/vv/1Z92gMQyMPT769fuML+YXhcdc1MEoIy/ZUHUzsmeQEvSTnaqzvAUHXHcZa57b9yMnuRNAn5Z4dJRjubnHf0k6C7nB6jONxA3Wj/rNks+7kToKeGkMfnnGqpRnt3Ai6qgMrWai0hnnTfOae+ktmwq+VXQl6f6fLcll979kyyjpBF4tGoJWSr6TfXaUV9EymlaB7jVej2ZzrizWaM4dDo6Upd/YC7SzoQ9/STkShJb7FQLLXKSRL/lHZinc4maA8rjwktcewoFs+Q9I0yJFBMvcy0Fwj1LNMOB9TbOtO0/YPlWAauop3VrPOLoK+4E6o77vQnJwD3SMWd4zbRmzzCH25Escf/VA8kCeGie63zcoiKn78zdT71S9+Z9Fs119fIP2H8htPfhR+TYR6N3jTXO6MhEhO0Ll3p9CrIkk62X/1urHtk7Nb1+2YUoAxipEZCFxk+U6CzgTaTUO9R9LOjrSJ4YYOop0EPTPeRGK8MWmGQCmXu2iqdiW1SZY0A1OF9JVgyyTLF6IV9KD36OSeys6QhZn0O0FvBDqQlc2ddevT1S73ZSXoi7wS9HYEq3G5B5Fmow+UuNj8RdvsLOhb15wB8iQL+OoRp1nIhrkNk4Se81skfdnDSdVcf+bWfC47rGxM0OkAHRF0xvLs0T9uel2NgSLox9h3I+cJQ2yK2S0pR8b+dhD0ULqOTfVf9CJsgnsW2gYwnY0JJIn49TtV0T8RC12Sk7pOrKJCxH/96X//5Pf+TvMg9LoTR8ufl688kF9EIo50udpc0ImXV24t6MTn1ucn1ceVaeC7dd2OKQUYoe5UD6ypb3+juwo6WbRiOivORB+s1E393UDR9ybokelhTWWVJ6gW9FgJetgOkXtRFlZNvUwWdYvfrJgfNt99Uc2g9JSE52En6Mum1H4ml6aglyqmLsl8GeiCXtZBcWp/Z4m79ldVg93m7+4s6AviBXOypEmZsiw0986yYMJXk66m6XqeLDJvZNWuwCruUNW9bBbMlxzY8jcm6OTzJII+2IfRhvc2mLbmILM7D3Xbv3vASHuPqlFhwwm3FvQurJwZi2l+Ko0yDD1NntXORvqWrUDd1t0/lRf3fX2gL1UGZZwXQvzdr9/+L/7T3/qbzVbdybWI4mP52+LVH4QiMzpPWwg66XXutNqaebauyvl0Y/vVl9YZNKYUYJh22Mudv9r+RIsdBX2HqcSqJhETfaA3UrTPbrqi7yToVe+or+7VDIG++QhMV1Xrcs8aB3mSiaCpqWWSZVUvVGZCWerdUgSNFmd5liWlEvRULlpBzzt1WEa8y11kUUlc7uqbaP9aSbvE/UcVbhUKozPP8qlXQ1ytwKCt71Kjug3eNrkSDw/1nVs6UtgZw0cF3faiUEEf6sRobQ2ZQGcwWISuJNal6rZ/d6eIOYDd3DCXw4YrpTR/6gQ9TVNPC8ikh7YKUbchbT9ii+7Jrkb61rP480S89g35g8dhKTz9BpNKVFSUfey9mqbp1+qWVK86gVwdfesPviq+9+pJbEb9bCHoJCxst+VTzSi7rnC6bK+Gz9AzpQDD9C/XtfiQ7aBgtrmfJAMV5On4fIy8a6EFLaP2ZC3aLSguNiY3+UZD7xvmWxsUVzma8qQOiqtfvBo3D0s7KC4VIqk7C+Wy7gNUkryQtaDHYePtSWOxKIXIS79a1ccU9DiXVVBclcfabzdX++daGd0lLqbNx3ZznQX95aeWCOs27XZlXNCttoEK+pCiak1d4PphcmtX2nVNSe+gy38SbVmaRsdnCrzzeuhMr6ed+t78s11Ue5tvcicjffuJRalM1z/4cC0e/9uHYqEtnuVHMvLN9jkujdW1imj5Qr7+RB7Jr1sG+laCzjiJ6/20Ddy7a+7CPsp4h12x9V6DWWR6ho4pBRjE6Kuwks4uDrWDoNt6PLj2pd2XXDIXdxY9NSKQpir65U1bU/+JE5moPm8VFFeq+/OixmhXWh00gu5Lmdf3UAfKRZ6SZOW8klEp8/oJxJHMq6amyGUpm2lrdfWoLrCqzrSKZNmuTJCKan+nd2buW4agHzAh04zQ9THoPhZmFDEj6IxYGaevYTwDm7V2MdlLNRxD4ULTaBqlrhecWP+eQdAZI7jtN2SOf29EzF92Crt46ZJS3D8RYn0q341L7R5X9h1XfmPNSIujUkRnUj75Tfmmbyd4d9Q188L9Turf1Etc7zelhlE5NkNB21IY8TKl1jsx5hpYJ59SgCFsd3ppz7SJSRzSrrncrUOH+3vstHMaSqvKYKpSTJJJTqyJl5dYpvmjqI36orKoa8Gus8rEorKPq82iNo3TxkKO2/3VjtUOhs+3XbNGbesSy8TmmfxusyhGxn3nA4J+0KjGwOrbLa1vYYKgmzlgGUEfmPPUt0eW6m8h6CQmrm56dq7sbZvU9Qwsi13sLujcUnCtcHU/WRb7hpDlAKeyS+e/UA/t+bOnr7xx3480DQ9Myav0XJ8wW5bxw1D88ljKvxSJdcNbCTqZbbKToFtGb1sPTMO9vZ/CVFTr5FMKMAAXHZBoMbr9evtWcdlqOEh7UluiR8aAbBNdPRbG6a5YZE2GtVXGFXCaoiP1696AoB80KfM92lFxUwTd+D45QXd7vXuHIZfQRmNCa7CN+30AABk7SURBVEdi4saD7CfRjpn3cpSTW91J0CPuE2m9xH1Hp30kWypsQTRtErs5OJaRLyL5A/lHj/7464Wh6JHWPBdUz8/l0+dCHL9tDr4LIqYMghN0MgG23kyPptWOEXSzf9DOW7auEVW+6KVtZloPyLrWhvCmbjdDn33j9ffNVMMR2uLZFv9Ih9l+8Dl7kolMUnQI+t6AoB806vVYVd+aDDzxFbqspnajsxffNXd2IPUWgp7Yl/FnqX4xvYeAFGoHQXes29s+Uu1HxtW/EUxo2CgDwyVTiMtS3Jfrb7x49a/kL4tIS/lVRJ0Ru4qMlroS/hORP3j6XPzLN/3IrjvbCTqxFI2X48Ql6KZl3NYx8m4Z+NohHZVnGCav0zjLyUU1aYpnhyOMSqfdo6nPs+UaHVO+Zgj63oCgHzS1VFne3ty0yZR2jU9b6nvcrKC7rMqurYxsUbMHPSe0diQN0mqW6scoa5s4rn8u2wu6q3zUC8D0IzZk89i4nf0bhVyKLz1YCHEm5S/jUotmrob11dLsS9P97kVJ/FA+/NKH7z/7I2GMvNdsKei2MVtvJQdbuATd6hy1S/CT4ynW3Wi/b/5at5q9UJd1a0G3B+0dX7b2Pq0D6o9mq77ItPmTEPS9AUE/bLgv0kzv0Sg1M8Rr0n+fvKA7vvvE+bPtkxuvRStSzHCO6kdd35zIbz5trbXxSFemhhVvRuQ3vJkN23GipptTZah+60cn35QPxHEVoaVNOfYimaeVu10zwv1qgZ3zUj6TF3efPldzgiy2FHT7OOPlOHEKuhkJ2goNjb0jWHej/cxVnmG2SQPYfA9bC7plcI9nbSKrWdQVfhtFn1YdIeh7YydBL8gUiJeWHVPmb436Sqxer6mLjV0z7njtPHEOQaeSrbd/xCVP5hmNLy25JOZku9r2Tgy20d1z2WIeeiswfNszONeXu8xENlrImqrpFlSa/NXX5RPx4lg5CbQEKHX4d67dThbl6fNHa/HuJy8efHBer0Zlsa2gW4/UeDlOnIJujQm5BpgJ9mfAnGMDio0Vvf2OthV0eyhsQutuP5PmY99c0Sd2LyHoe2MnQd9H2tcDhRO7y6B+GqaJGEv57/f/aD+6cPRbai1Ol6DLJTlF570j/QUmFQrZx+Yju6bVJdq1szSorF3fp2kfqfy4Bb0bRuQ+EBLDtdmzGGATt/s8Hc1FVPz8m8fineOn4uTu3Xipr1EWRFq9iL28Wnw4lD94Lv70wZdOuvWnDLYW9BXZaxdBN/3dXVzDcKtFs7nt+LQ3dbl0XbRtBd3+MHn/koFdl9vo0k0VfWqth6DvjV0EndhoLy/DMzn3SP1ELfP4UbVkpSLV5rzkyzFrrZFnp6Aba01WL7gbhrTtc35d7nx4Ff/nUv6WuaU+/46iRBNPG1jhUExdb8dVC7JnN6rLPNmR9nbwSYzgT25HifpsR1xGhTg7lt/6yxO5+KOvVhmto642xd2tpGEULf3HXxPeox/I1968eC4C7nluL+jmQ603kYMtBgTdbKC6kg5FHib0TWu/bldTN5uO2L3SkQrGUGcjt7ZPGtS2v+a2EHSK/BBcXWCBoO+NXQR9pCV9mbiyBO/1MzT7E6uP5LHKMU7b/WQxKCR1U+YWdCnzrGvR/KxtiMysj6vBpTyrbPiOdu+2lc2jbUccu0+FPgWDyPRgMm+ylYP235r0t958OpwwbKCz15nO1HZ0tmqpFP0dIdbrZ2+8+ouzj/917OXVYuz9q0mrBYxLL3787fKNc3F0+kfy+OfCIz09xfaC7tt7kQpKGBB0s4XSFmlxKWzOdZC037esqROWyO3oS7CloNvdFc4lRSDJb/pH6HpWhGj604Gg741dBJ06XV9adh3m3ZrmgWrtZu3rvutqNoe/KtVIEEGPjJVuoiTMsqW2CKXlzOevq+OoTxfScmkGU4o8xuj6vc2UgKahY4LC28XZjIfU3EVbx4mdMya5O/p0JnWWSaG2J14oKXn8o3flyY++8RX55LNqueKo7qGpHly08PxXX/y5/Mb9D4V4Y33yyZsidHgIthd0Q47qLeRgiyFBN0Wxf1wxa6Szcj7P8qkrzqHFoIvidoJuu02nzaAkzta+HFN7I+7VWygQ9L2xg6BvvYb+9WPrecU7Qz6wxro4dTWbw22OGhSzBV2Zn1zCKkVo2/z8dXX4+nTS7NGnhM6nFHmM0fameXnutdAaE797LLqgdy2d1diPV37+IUxmQjDVDAHuGmHVa/zgI/HgsVgfHz09ffG5OBFxulJhrqv0/1qL9Ruvfip/W0Zvr8Wji5PKqucVcBdB15Wl3kIOthgUdHMmnFbR4syOBXf5lWYRdCFIllSORK+c2wm63ROcWA3t/qnu+5lipOcbPRoI+t7YQdD74OIySw3qGhCFQb9x1axa5Vl71otzrMytXpufY6n9ECh7QeYBv6+s/bmts3KR2lS2Vla33YleimabDD3zC1pqrlzWsXgptCVoQmW6pTyPt7x4pRO2oLez2oul7b2OFnbe6R34bnfaRDk8ivZedhL0NtKvpIv2tncTGDuSyk4ysBuj7W2clhVO3jaA5KJJ69rYNexiNCDJMZtua4Ko9MXjNx6eiF/If/v//PaX5bl88sb3//rtpxdPf3ny7IsX4kUpxIPywe+dr8Vf/C9iFeV0vLl5ouTjsxB1eu0Wx7H1BnKwRVyvv8WezLhKauXT9r2wfldREnquWzELsNMrXY0ptOUh2E7Q7X7DxEpCEtTqx8XZiKQ7fBtOIOh7YwdB76oOHclb0BawbqCowzNlc1eq9tJOn62MFqqtnfusHuism1r6gRZVHVLNs1371BGeFb1S6t1+erbLoitC5KWpp7Xxt7YsQJokxiNMEt0siFOvXY42zIJ5b/tMawGiZNG3VzvZsq2ycg1X3r5K/V9EaNszdHdrhs+1PxtVtzUkOad32wXYNWBtZCB9lglrBkUZqS/xX79+Jtaf35X37z88ffjWt+QPjs/eeHz/NRHKtXhL/q789Vq56MenVQAT33YL6BBR3ErQ7QEo2jY7sLuP5kdJl2HRSDau6RD0vbG9oHd9ukSIwJx+rlqiQvj6tqJuBBfWRHVfreluLe/nqVQHuRCpvtFXhaX7dj2LolrSsbFs8ubntDtHXpU0VXcbe9oJgrp+KUGI9XRq/bdBuyGXBvl6Wu4cXl0a5j65hRZOFafSmtdsw9W6flPjX1aXsH3N/bCKKehdfpKl88wWuX3CbRl0Xe9jImUmy1SIvzr++OSN735ZClE+EudP5Xtv/5u35XsP1/flY/H49LXTf1B1ffMrCyu51hQeq9PcDBV2x0FSGtfEVlAO21VP0tEUJOe9ovS4rvQIEPS9sb2gd4ZxSgIrpWphrVHAFds+ZexWv3rlgZUxJPLZOp62Wz3VZQjM62ZmEvNUWWhmb3SpHoIQi6ox69b31QWdehAui4Gh2pMDrE1D/E1yB92LHThqjLbqsa1Ka0fXbUf3LA0pLOgguTXBrasHmoQZJ7YJyBm3ZSA0bj/ZHf2kCnFY/zC/EJ5ci6qf9FTKp2L9opSviIfPXjl9vlbjwRnM860pgkybKFIm2fBsz8PBD0Kj6UyWW5Ycgr43thf0bk4TrzqBHWfRKGRpGtix2i0yDfdAWei+sEZuGnE29/XakizqehIVRjNIBT0hzWQslKBHdTx3M16kC/rVfW8DLfo1+yBIekmN7Y29eFBZLbnvKqSWQKcL+NHsaXvGeluDemd9+1ocBR8u1CY4Q+NYj8QcpIlyoZ6I7733wWP5gRBvy5+//fa33zrJ10Kce2sVTkYCJcGNIZ4hoACCvje2FvQuqVNCxm0UqW1O18JPjN0VG96zUBJLGjGPGzoM29a2bnjLWO9KUEGnPgFV1GYCl6dyVZu3NePsoE0ZmBn4+tWVahs450r/Yrdl0PVtO+T7COpoqZqjVEuPQ1dO77+K3mvTMOJUHynVJjhWVN3nIFC6qJ6PEOL8lfCr4pZ6Xo8/zZVHKA4WrrXnAJgKBH1vbC3ondQ4LXRLjJRClu14exONGqidPHO4PatjR3gLfdmMgHv1Ovsi6+Y+tQIc6gHCVNAXxOxtLPSmqSzqWaOaoF9V2tdBj/v2YXFXwxkpv8bWCtHUEKe+mSFzK3LhDr1PQQS9CxdpNo351Ef8BhvBBrvTPDez4ntlNe3cjmpNs0TKheumAZhKokU5gVnZdrkrzYPKD22HtuGuxtA1mVQTP+usBSlriQaWKV2PoWtD8XllKqR509RWregiXklzGJ0Kem5nUUhUg62tDB5X8zT68pOw6MuDiy/o+Mp1aj9ukeKbr2A7Rker2x5RE9DmfJ7GlG4i6H0wR6Hv4B77Hwq93xQm2J16qWbHV1llymTZNDZqhlcZrjB0DnaHEwwwH1sIumblhiL2FnQCsC9Wy35TuFI6avrnqwlTGeeeV+RCeGF/hmWhjk2NVjmL68xpSV1JMtXR0IfRqaDLQPhZf9qFVx+qzxALhIh7e+7K0r4OG+jM8MUBM2igOwejxxhxfWva2wiRQ9HNFC1U0Lv6qUzjtgq7P5vB2PuNIYp+SUv/+WnWfcGLzNttFjYAHVxzD+bD3TI50R2B1D4KSSPZJSkz3Z6ZClziBZ00h8ruXpntW5VmvKwsJ9VUR8ukaZ/7dbIMQV9x9o3aI9ZH7NXU7PY6Vzc/h30qPUfkgINlcIVT7p1MYsKMb1t82axXVkVjBL3LOBb2o01Dnps5TXTSDRm4XQCuASMNG9iRzQXdtB1DK3tbnbk4X+rb6rHuKLDeZVllLEgcwdylntFtVecmLe21i8Lq4KXZ5iXdTrmeEaG9eqhnpmsmhi7NuXfZqm2TB8y/PTOmgtfIRD8iZbdf9YA6OrHMb5bSeos+Gd0hWSsZQe/7ocEk83vciN8I4/sYui4A1wAI+n7ZvNnhZp6/pNDUdJeEo5ejcW1M9NGuyVaK7jfu4MF+zarZSVttItS7hEyQV+NnDriNySL2mr8Gre9mrGiuCRJaXUB0MABgXtikQS8nV5X2dcp6W4NSdkA8ICWnODOD74HUW9bZba9NkFe34ue8K7IAAAA78/zlxDkjas+MG7Xll68yJ+0mBFL+OM0WI71A19pdQPQpZmjKBgAA2AkSd/vycjVGcExGek3tC6uFU9LrEh+VN37iOBi+rWEv9g2nVvSrWyYIAPCSwoUKv6RcicbYgX8mYRt3n+w7w8g8ZNpTpDFpBkgR7qaIEOAOAADXi6GlCg0z1t/XGh2zEkdGYLZjKnhLCBvURRFdg7cNAACgIfYG5dyctLS8yoVjprKw5pWNzVm5TvlyLheMSAAAwDViJDzB9LHH0eHPYkptiR7IqK6AiQ4AAOAlYCTdqzUrfnWViewmEed2LP7IFAnMswYAAPBSMOyRtuU7Gc6TdvUsick9MiEPcV8AAABeCrSEMnmSJFa8u523zo+ucrn2cVIat2dkGcyXq1StA+KFdeyAewkzAAAA4FoRNULXhkClmbYSDsks7x20TVs53G0Pghb0Z4a0+1U8IAK5AQAAvCQsZbS0vNRFHypHls5MDjl7WEgc7lqQwIKWOw3pNgAAAOBa4gfMqHjRWukkZsyPDjcD7IqxuDuPOwbLAQAA3ESWLhN9RUfWDwSfmVUXR9BzAAAAN5rAYaJXUn+Qc9fikhkNCKDnAAAAbjiBSwpLGR1iNpaQcSe0IXH0JgAAAICbQq3odOK5H8mvrg/uGXyJGUBvM7lDzwEAANxkQnYuuprtfUQ2XjF3JTNDvhlBh54DAAC42YR8XJx4V8pTsvFKOT+W8jEpQObokQAAAAA3iljNXqOroFebHx7Sgzg5lsxi8kWdTobsDQAAANwwfOWztn3ZteF763AexfqCi8ivuyM0TB8AAAC4cWSMkVs0U8EORtEbPbcHy0M+pg8AAAC4eXBhZV2u9wNR9PgbbYGM6XR1kD6NfAcAAABuIHTiV5/o/TDCx+Pf6wuk2eOFY9IdAAAAcBNpFzfpQsW19ValfPfqn8jaWPG1W2ytiGCgAwAAAD2tQZ7UMeSeNLhyr3s3ft4qel3MRs9hoAMAAAA13fqjUeaLVSLlQSn6yYVdoKqYwossvwIAAABw0yEabnLvKh/P+TEpjwFZrAUAAAC4qayITJqcXl1e97sjeo6cMgAAAEBHToTS5OKqFP0FKYrFQS7zCgAAAFwNGRFKi2dXsppqHEr5LVIWA3IMAAAAcHPxiVDqRF+KpPQu/+H4pZSL9YKURwNZXwEAAACNobC4RSyKXP3ncllF9STzVUSK1IEYdwAAAEBjSaSyJVJLq8YLKfNLdbvHSymjeoQ8dhvpyCoDAAAAaDgH0ct2Wph3ufJZlNq1zdx1EHQAAADAgUvQNT975XYvL8tIzyyxdik6BB0AAADQcAi6sUx65QS/HAVNSynz1NjkUHQIOgAAAKDBC3puxcGlORHaPVBNVpNLOwSPH0dHXhkAAABAIyRSWUG0Wxnpi/1mW62StJfkyiIlpasoyX4AAADADaYkUlkZ6MzzKKoJbtn+ZrB9J68WXyGbhRCkeAqstQYAAAB0xEQopTNrSxBJ+STZTy5Y76hyo7MeAN5ClwHZEQAAALix8CFnnIVeqX8WSXm8B0lXcp5Qb7uCHxRwdDoAAACAG4kjUZxrklr8FTm/pN89Grqmw0DH8qkAAABAh0stS8cIdZv6/fTfkZ+2JA7ebs7JL58WO9eDQ5w7AAAA0OAw0J2K3q+fXj6ew0w/P33SnZENiHOX0GnSAwAAADcNl4HuVHR91vrx6Y7rsJ3cvtCvuCA7uAfQ6yKSvQEAAICbiNudXa3NwhnAlr18du8+2WUiJ7fuWBdkIvHiIT132fQAAADADYPPwdbBGOB0PdPXwxVryw9SZNz0d9KDiLm9dBxx8QAAAMBNwjPVsVxkWZYtNKudLIReEEmtj1xuIOqFt1DdgmNyGnuJ80IrSp4FaZqmXmg4FVgvAgAAAHCjMKagL4JOkv2gM4wjywSmi6d/6DVmfh5m6ZiqF8Gy8dnnyxUdv7d87l7vDgi1chRLzU3Aj/QDAAAANwddz+0UbWk3Vh7qihkTj7taxCXN2t2jJMy89L4d/37u/Y1smbS2dR4G6nK0d6B3H/yuCFFmlU7lt4GiAwAAAMYENJkwKVr8NhwtWva/UgnuXN6pF5oD3s+Ojr78ySdfPjrTN0ZJtupOR0Py+rD1uAunz7kUr73a87HxAAAAwE2haK3ciFNMQzTDJuULTRNrhZkXqyxM2EC2KFlknu2Sp073sJXztnCJo3Dd/DlY6AAAAG44jaKX7riyfs5YtMhWKxoTb6+a3kBD5xx51+mktGqBVr8bJM/55HGKVQQ9BwAAAFpFH1REapKbuMxnMtTumDDukzNKmfcWfjJUNlX8wdIDAAAAN4MiGlPEYUVnMsHUkHStrvni1ETXGMvVXkQjpQcAAABuBgWZaE5Fk+hsD5N4piaz9yR7tKcn5+xxWPUaPvQcAAAAmMaQojPB8TW2Ye8YQuec8x0udz4AAAAAtsCt6E6POwlfdws6cc5DzwEAAIC94FR0t0wLa0/3XHEyFR16DgAAAOwHl6JH7qtZezqHw+lM9JqxeDgAAAAAbIwrdM1tRk8UdGdXAdFuAAAAwPyQqPUaR14Z2gNwGNyeQ88HegoAAAAA2Bqadb2xpDNe0u0o95LsYSwAQzoKZF8AAAAAzIBHRLczvpnsrFT/yQS3OGBTvtc457cDAAAAYBfouqmamb7wzHTwPtVqM6VbHNC08IPyDwAAAIBZGMzRWk1hy7JVWhEsqZxXit6IdJx6S6ervd0XrwwAAADYD8NJ3aeQJ0lCXPEsS7xDAAAAYD+4Zq7tAwyhAwAAAPviEgXdtTQbAAAAAHaFyG60yNKaIOPHzV1ESbLIWphDIegAAADAvrAi2RJrtprvUWFmyZeFVUI/s4bWIegAAADAvjBEN+E0t1gOzG1rrHpu1noVcmccyZ0cAAAAAHOgK64zai0YnJGWB3xeuWo2mz4xnRd9AAAAAOxMrJnZts9cxw9dZnrk7AYotHTxrqVcAAAAALAj/Tqng3puG9s95Vj6t36mu3v1dAAAAADshDdVzx1JaBZOb3tHZ6NjbRYAAABgT3Rm95SINarok4zu7hrI5Q4AAADsh83Gt8nyqeP2ub4CzPBoOwAAAAC2ZNUq88TDl2Y83LibXrHpVQAAAACwEa03fPIUcSPNzOSw9XbWG3zuAAAAwB7wG6FNJp861fR8epBbe1RIfgEAAADAzrQx7hvkcNNSzGwwJJ7A5w4AAADsjTjINzPQ+/FwKaNJEXE1ykRfIPcrAAAAsCfSUMpgk1N3GeM28p/neYYBdAAAAGCP+JvNJgtbQd+oGwA1BwAAAA6Kbi76Bh53AAAAABwYxcYx7gAAAAA4PDae6gYAAACAw6PcMKsMAAAAAA6QBIIOAAAAXH8g6AAAAMBLQLJxdjkAAAAAHBzJFtPQAQAAAHBgLBMFBB0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbIkQ4v8Hr13ul/urTWAAAAAASUVORK5CYII=";
 var img$9 = "data:image/png;base64,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";
 
@@ -53304,15 +53111,14 @@ var SkyObjectAttrs = function SkyObjectAttrs(_ref3) {
   var x = _ref3.x,
       y = _ref3.y,
       $captured = _ref3.$captured,
-      brightness = _ref3.brightness,
-      color = _ref3.color;
+      brightness = _ref3.brightness;
   return {
     style: _extends({
       left: x + "%",
       top: y + "%",
       opacity: $captured && brightness > 0 ? 0.85 : brightness
-    }, ($captured || color) && {
-      color: $captured ? 'var(--yellow)' : color
+    }, $captured && {
+      color: 'var(--yellow)'
     })
   };
 };
@@ -53487,11 +53293,9 @@ var LandingMenu = function LandingMenu(_ref) {
       })]
     }), /*#__PURE__*/jsxRuntime.jsxs(Instructions, {
       children: [/*#__PURE__*/jsxRuntime.jsxs("li", {
-        children: [/*#__PURE__*/jsxRuntime.jsxs("p", {
-          children: ["In Space Surveyors you will have", ' ', /*#__PURE__*/jsxRuntime.jsx("strong", {
-            children: convertMsToTime(GAME_DURATION)
-          }), " before the night ends to survey as many objects as possible. Look for these objects:"]
-        }), /*#__PURE__*/jsxRuntime.jsx(IconLegend, {
+        children: ["In Space Surveyors you will have", ' ', /*#__PURE__*/jsxRuntime.jsx("strong", {
+          children: convertMsToTime(GAME_DURATION)
+        }), " before the night ends to survey as many objects as possible. Look for these objects:", /*#__PURE__*/jsxRuntime.jsx(IconLegend, {
           children: Object.keys(icons$1).map(function (i) {
             return /*#__PURE__*/jsxRuntime.jsxs(IconItem, {
               children: [/*#__PURE__*/jsxRuntime.jsx(IconContainer, {
@@ -53501,10 +53305,6 @@ var LandingMenu = function LandingMenu(_ref) {
                 })
               }), icons$1[i]]
             }, i);
-          })
-        }), /*#__PURE__*/jsxRuntime.jsx("p", {
-          children: /*#__PURE__*/jsxRuntime.jsx("strong", {
-            children: "Objects may be very small or faint in the night sky, how can you optimize finding these difficult to see objects?"
           })
         })]
       }), /*#__PURE__*/jsxRuntime.jsxs("li", {
@@ -53555,37 +53355,6 @@ var ScoreList = function ScoreList(_ref) {
         })]
       }, s);
     })
-  });
-};
-
-var ShareScoreButton = function ShareScoreButton(_ref) {
-  var score = _ref.score,
-      total = _ref.total;
-
-  var _useState = React.useState('Share score'),
-      buttonText = _useState[0],
-      setButtonText = _useState[1];
-
-  var copyScore = function copyScore() {
-    var asteroid = score.asteroid,
-        comet = score.comet,
-        galaxy = score.galaxy,
-        supernova = score.supernova,
-        star = score.star;
-    var toCopy = "I discovered " + total + " objects in Rubin #SpaceSurveyors\r\n\r\n\uD83E\uDEA8 - " + asteroid + " \u2604\uFE0F - " + comet + " \uD83C\uDF0C - " + galaxy + " \u2B50 - " + star + " \uD83D\uDCA5 - " + supernova + "\r\n\r\nhttps://spacesurveyors.app/";
-    var didCopy = copy(toCopy);
-
-    if (didCopy) {
-      setButtonText('Copied!');
-      setTimeout(function () {
-        setButtonText('Share score');
-      }, 3000);
-    }
-  };
-
-  return /*#__PURE__*/jsxRuntime.jsx(Button$1, {
-    onClick: copyScore,
-    children: buttonText
   });
 };
 
@@ -53661,14 +53430,11 @@ var SummaryMenu = function SummaryMenu(_ref3) {
       }), /*#__PURE__*/jsxRuntime.jsx(ScaledScoreList, {
         $width: width,
         score: score
-      }), /*#__PURE__*/jsxRuntime.jsxs(ButtonContainer, {
-        children: [/*#__PURE__*/jsxRuntime.jsx(Button$1, {
+      }), /*#__PURE__*/jsxRuntime.jsx(ButtonContainer, {
+        children: /*#__PURE__*/jsxRuntime.jsx(Button$1, {
           onClick: handleGameRestart,
           children: "Play again!"
-        }), /*#__PURE__*/jsxRuntime.jsx(ShareScoreButton, {
-          score: score,
-          total: scoreSum
-        })]
+        })
       })]
     })
   });
@@ -53760,7 +53526,7 @@ var StyledCloudDay = /*#__PURE__*/styled__default(CloudDay).attrs(function (_ref
   displayName: "cloud__StyledCloudDay",
   componentId: "space-surveyors__sc-9q4eqw-0"
 })(["width:20%;position:absolute;bottom:0;right:0;transition:", "ms transform;transition-delay:100ms;"], DAY_TRANSITION_DURATION);
-var img$d = "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1920 1080'%3e%3cdefs%3e%3cstyle%3e.cls-2%7bfill:white%7d%3c/style%3e%3c/defs%3e%3cpath style='fill:%23003c5c' d='M0 0h1920v1080H0z'/%3e%3ccircle class='cls-2' cx='628.2' cy='513.3' r='1.4'/%3e%3ccircle class='cls-2' cx='623.1' cy='509.4' r='.8'/%3e%3ccircle class='cls-2' cx='616.6' cy='517.6' r='.7'/%3e%3ccircle class='cls-2' cx='612.3' cy='512.1' r='1.3'/%3e%3ccircle class='cls-2' cx='595.1' cy='514.7' r='.5'/%3e%3ccircle class='cls-2' cx='38.7' cy='140' r='.7'/%3e%3ccircle class='cls-2' cx='39.9' cy='113.2' r='1.1'/%3e%3ccircle class='cls-2' cx='42' cy='80.7' r='.8'/%3e%3ccircle class='cls-2' cx='38.9' cy='48.8' r='1.3'/%3e%3ccircle class='cls-2' cx='381.6' cy='229.3' r='.6'/%3e%3ccircle class='cls-2' cx='359.8' cy='213.7' r='.6'/%3e%3ccircle class='cls-2' cx='337' cy='209.4' r='1.4'/%3e%3ccircle class='cls-2' cx='328.6' cy='215.1' r='1.3'/%3e%3ccircle class='cls-2' cx='323' cy='210.8' r='.6'/%3e%3ccircle class='cls-2' cx='311.2' cy='205.9' r='.7'/%3e%3ccircle class='cls-2' cx='289.9' cy='193.3' r='1.1'/%3e%3ccircle class='cls-2' cx='274.9' cy='166.8' r='1.4'/%3e%3ccircle class='cls-2' cx='251.9' cy='154.1' r='1.4'/%3e%3ccircle class='cls-2' cx='249.9' cy='146.9' r='.8'/%3e%3ccircle class='cls-2' cx='246.8' cy='138.1' r='1.3'/%3e%3ccircle class='cls-2' cx='214.8' cy='130.3' r='1.4'/%3e%3ccircle class='cls-2' cx='187.1' cy='133' r='.6'/%3e%3ccircle class='cls-2' cx='683.8' cy='508.3' r='1.1'/%3e%3ccircle class='cls-2' cx='671.1' cy='538.2' r='1.4'/%3e%3ccircle class='cls-2' cx='271.7' cy='379' r='.7'/%3e%3ccircle class='cls-2' cx='236.6' cy='376.1' r='.8'/%3e%3ccircle class='cls-2' cx='231.6' cy='369.6' r='.9'/%3e%3ccircle class='cls-2' cx='214' cy='365.6' r='1.4'/%3e%3ccircle class='cls-2' cx='209' cy='361.3' r='1'/%3e%3ccircle class='cls-2' cx='176.2' cy='371.2' r='1.4'/%3e%3ccircle class='cls-2' cx='148.7' cy='375.6' r='.9'/%3e%3ccircle class='cls-2' cx='133.7' cy='365.9' r='1'/%3e%3ccircle class='cls-2' cx='127.3' cy='367.1' r='.6'/%3e%3ccircle class='cls-2' cx='93.2' cy='388' r='.5'/%3e%3ccircle class='cls-2' cx='62.2' cy='391.8' r='1.3'/%3e%3ccircle class='cls-2' cx='46.3' cy='406.4' r='.8'/%3e%3ccircle class='cls-2' cx='828.5' cy='432.2' r='1.1'/%3e%3ccircle class='cls-2' cx='788.1' cy='444.2' r='.8'/%3e%3ccircle class='cls-2' cx='758.9' cy='446.4' r='1'/%3e%3ccircle class='cls-2' cx='746.2' cy='95.8' r='1.4'/%3e%3ccircle class='cls-2' cx='734' cy='98.5' r='1.1'/%3e%3ccircle class='cls-2' cx='669.4' cy='157' r='.5'/%3e%3ccircle class='cls-2' cx='649.8' cy='146.6' r='.5'/%3e%3ccircle class='cls-2' cx='625' cy='136.9' r='.7'/%3e%3ccircle class='cls-2' cx='591.5' cy='129.8' r='.7'/%3e%3ccircle class='cls-2' cx='574.9' cy='115.4' r='1.2'/%3e%3ccircle class='cls-2' cx='534.6' cy='111' r='1.2'/%3e%3ccircle class='cls-2' cx='1236.7' cy='94.9' r='1.4'/%3e%3ccircle class='cls-2' cx='1213.9' cy='92.1' r='1.2'/%3e%3ccircle class='cls-2' cx='1181.1' cy='155.7' r='.6'/%3e%3ccircle class='cls-2' cx='1156.1' cy='150.5' r='.5'/%3e%3ccircle class='cls-2' cx='1130.3' cy='126.3' r='1.4'/%3e%3ccircle class='cls-2' cx='1103.3' cy='101.1' r='1.2'/%3e%3ccircle class='cls-2' cx='1098.6' cy='90.5' r='.7'/%3e%3ccircle class='cls-2' cx='1069.7' cy='83.7' r='.5'/%3e%3ccircle class='cls-2' cx='1068.2' cy='74' r='.9'/%3e%3ccircle class='cls-2' cx='1059.3' cy='72.3' r='1.2'/%3e%3ccircle class='cls-2' cx='1032.7' cy='47.6' r='1.5'/%3e%3ccircle class='cls-2' cx='1010.8' cy='33.5' r='1.3'/%3e%3ccircle class='cls-2' cx='1010.8' cy='20.2' r='1.1'/%3e%3ccircle class='cls-2' cx='988.1' cy='15.2' r='.8'/%3e%3ccircle class='cls-2' cx='970.6' cy='1.6' r='1.5'/%3e%3ccircle class='cls-2' cx='932.7' cy='11.8' r='1.3'/%3e%3ccircle class='cls-2' cx='1759.2' cy='300.6' r='1.3'/%3e%3ccircle class='cls-2' cx='1740.6' cy='324' r='.7'/%3e%3ccircle class='cls-2' cx='1716' cy='349.6' r='1.4'/%3e%3ccircle class='cls-2' cx='1680.4' cy='359' r='.9'/%3e%3ccircle class='cls-2' cx='1661' cy='373' r='1.5'/%3e%3ccircle class='cls-2' cx='1642.6' cy='373.3' r='1.4'/%3e%3ccircle class='cls-2' cx='1601.5' cy='363.6' r='1.4'/%3e%3ccircle class='cls-2' cx='1584.6' cy='352.2' r='1'/%3e%3ccircle class='cls-2' cx='1578.2' cy='346.4' r='.8'/%3e%3ccircle class='cls-2' cx='1555.7' cy='322.8' r='1.4'/%3e%3ccircle class='cls-2' cx='1421.1' cy='310.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1446.5' cy='292.1' r='1.4'/%3e%3ccircle class='cls-2' cx='1464.4' cy='269.3' r='.9'/%3e%3ccircle class='cls-2' cx='1480.4' cy='258.5' r='.7'/%3e%3ccircle class='cls-2' cx='1493' cy='244.1' r='.7'/%3e%3ccircle class='cls-2' cx='1496' cy='222.8' r='.9'/%3e%3ccircle class='cls-2' cx='1525.7' cy='206.6' r='.9'/%3e%3ccircle class='cls-2' cx='1559.6' cy='182.8' r='.8'/%3e%3ccircle class='cls-2' cx='1583.5' cy='154.2' r='.5'/%3e%3ccircle class='cls-2' cx='1608.7' cy='131' r='1'/%3e%3ccircle class='cls-2' cx='1646.2' cy='111.7' r='1.4'/%3e%3ccircle class='cls-2' cx='1648.2' cy='105.2' r='.8'/%3e%3ccircle class='cls-2' cx='1683.6' cy='85.5' r='1.3'/%3e%3ccircle class='cls-2' cx='1717.1' cy='77.3' r='1.5'/%3e%3ccircle class='cls-2' cx='1719.6' cy='64.7' r='.9'/%3e%3ccircle class='cls-2' cx='1739.7' cy='67.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1291.6' cy='158.7' r='.9'/%3e%3ccircle class='cls-2' cx='1303.5' cy='143' r='1.5'/%3e%3ccircle class='cls-2' cx='1326.8' cy='119' r='1.3'/%3e%3ccircle class='cls-2' cx='1354' cy='84.4' r='1.5'/%3e%3ccircle class='cls-2' cx='1385.3' cy='75.9' r='.8'/%3e%3ccircle class='cls-2' cx='1421.3' cy='50.6' r='.9'/%3e%3ccircle class='cls-2' cx='789.6' cy='230.2' r='.7'/%3e%3ccircle class='cls-2' cx='806.9' cy='215.2' r='.6'/%3e%3ccircle class='cls-2' cx='828.4' cy='191.3' r='.8'/%3e%3ccircle class='cls-2' cx='851.3' cy='185' r='1.2'/%3e%3ccircle class='cls-2' cx='878' cy='159.7' r='1.4'/%3e%3ccircle class='cls-2' cx='887.6' cy='162.6' r='.9'/%3e%3ccircle class='cls-2' cx='912.5' cy='150.4' r='.6'/%3e%3ccircle class='cls-2' cx='925.8' cy='161.7' r='.8'/%3e%3ccircle class='cls-2' cx='940.1' cy='152.4' r='1.4'/%3e%3ccircle class='cls-2' cx='952.3' cy='151.7' r='1'/%3e%3ccircle class='cls-2' cx='987.6' cy='165.5' r='.6'/%3e%3ccircle class='cls-2' cx='1019.6' cy='163' r='1.1'/%3e%3ccircle class='cls-2' cx='1045.3' cy='166.8' r='1.2'/%3e%3ccircle class='cls-2' cx='1072.3' cy='184.7' r='.5'/%3e%3ccircle class='cls-2' cx='543.9' cy='503.6' r='1.3'/%3e%3ccircle class='cls-2' cx='531' cy='509.9' r='1.4'/%3e%3ccircle class='cls-2' cx='491.8' cy='486.2' r='1.2'/%3e%3ccircle class='cls-2' cx='464.1' cy='482.5' r='1'/%3e%3ccircle class='cls-2' cx='452.5' cy='492.2' r='.6'/%3e%3ccircle class='cls-2' cx='446.8' cy='485.7' r='1'/%3e%3ccircle class='cls-2' cx='407.9' cy='486.5' r='1.5'/%3e%3ccircle class='cls-2' cx='392.9' cy='492.7' r='1'/%3e%3ccircle class='cls-2' cx='1491.8' cy='867.3' r='1.2'/%3e%3ccircle class='cls-2' cx='1461.8' cy='883.7' r='1.3'/%3e%3ccircle class='cls-2' cx='1436.4' cy='884.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1420.7' cy='894.1' r='.6'/%3e%3ccircle class='cls-2' cx='1391.9' cy='900' r='1'/%3e%3ccircle class='cls-2' cx='1385.6' cy='896.3' r='.9'/%3e%3ccircle class='cls-2' cx='1367.4' cy='898.9' r='.6'/%3e%3ccircle class='cls-2' cx='1347.2' cy='897' r='.6'/%3e%3ccircle class='cls-2' cx='1329.6' cy='895' r='.7'/%3e%3ccircle class='cls-2' cx='1323.5' cy='891.7' r='.8'/%3e%3ccircle class='cls-2' cx='1316' cy='889.1' r='1'/%3e%3ccircle class='cls-2' cx='1289.1' cy='878.5' r='1.1'/%3e%3ccircle class='cls-2' cx='1275.5' cy='880.1' r='.7'/%3e%3ccircle class='cls-2' cx='1269.6' cy='880.4' r='1.4'/%3e%3ccircle class='cls-2' cx='1242.9' cy='867.5' r='1.4'/%3e%3ccircle class='cls-2' cx='1209.3' cy='871.3' r='.7'/%3e%3ccircle class='cls-2' cx='1195.2' cy='867.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1171.5' cy='851.4' r='.8'/%3e%3ccircle class='cls-2' cx='1140.6' cy='851.9' r='.8'/%3e%3ccircle class='cls-2' cx='1133.9' cy='851.9' r='.9'/%3e%3ccircle class='cls-2' cx='1109.2' cy='845.6' r='1.1'/%3e%3ccircle class='cls-2' cx='1080.5' cy='848.3' r='.6'/%3e%3ccircle class='cls-2' cx='1069.3' cy='852.5' r='.8'/%3e%3ccircle class='cls-2' cx='1038.8' cy='838.4' r='1.2'/%3e%3ccircle class='cls-2' cx='1012.7' cy='844.1' r='1.4'/%3e%3ccircle class='cls-2' cx='993.2' cy='842' r='.6'/%3e%3ccircle class='cls-2' cx='955.4' cy='821.9' r='1.4'/%3e%3ccircle class='cls-2' cx='945.7' cy='827.2' r='1.4'/%3e%3ccircle class='cls-2' cx='925.5' cy='823.9' r='1.2'/%3e%3ccircle class='cls-2' cx='904.3' cy='819.1' r='1.1'/%3e%3ccircle class='cls-2' cx='882' cy='793.5' r='1.3'/%3e%3ccircle class='cls-2' cx='871.7' cy='786.6' r='1.3'/%3e%3ccircle class='cls-2' cx='858.9' cy='794' r='1.1'/%3e%3ccircle class='cls-2' cx='856.4' cy='777.4' r='1'/%3e%3ccircle class='cls-2' cx='846.3' cy='770.7' r='.8'/%3e%3ccircle class='cls-2' cx='1671.1' cy='231.4' r='1.3'/%3e%3ccircle class='cls-2' cx='1689.2' cy='213.8' r='1'/%3e%3ccircle class='cls-2' cx='1707' cy='201.9' r='.6'/%3e%3ccircle class='cls-2' cx='1720.6' cy='191.4' r='1.1'/%3e%3ccircle class='cls-2' cx='679.1' cy='572.4' r='1.1'/%3e%3ccircle class='cls-2' cx='710.6' cy='550.9' r='1.3'/%3e%3ccircle class='cls-2' cx='740.6' cy='540.8' r='1.1'/%3e%3ccircle class='cls-2' cx='765.9' cy='527' r='1.4'/%3e%3ccircle class='cls-2' cx='797.6' cy='525.3' r='1.2'/%3e%3ccircle class='cls-2' cx='801.7' cy='513.8' r='.8'/%3e%3ccircle class='cls-2' cx='842.6' cy='498.1' r='.9'/%3e%3ccircle class='cls-2' cx='863.8' cy='485.2' r='1.2'/%3e%3ccircle class='cls-2' cx='900.2' cy='468.9' r='1.5'/%3e%3ccircle class='cls-2' cx='909.3' cy='457.4' r='1'/%3e%3ccircle class='cls-2' cx='933.1' cy='446.8' r='1.4'/%3e%3ccircle class='cls-2' cx='952.1' cy='441.7' r='1.1'/%3e%3ccircle class='cls-2' cx='961.5' cy='444.9' r='1.2'/%3e%3ccircle class='cls-2' cx='978.7' cy='430.5' r='1.4'/%3e%3ccircle class='cls-2' cx='1002.8' cy='431.1' r='1.2'/%3e%3ccircle class='cls-2' cx='1021.6' cy='431' r='.9'/%3e%3ccircle class='cls-2' cx='1034' cy='425.9' r='.7'/%3e%3ccircle class='cls-2' cx='1070.7' cy='422.9' r='1.3'/%3e%3ccircle class='cls-2' cx='1078' cy='427.3' r='1'/%3e%3ccircle class='cls-2' cx='1103.1' cy='426.2' r='1.4'/%3e%3ccircle class='cls-2' cx='1138' cy='438.7' r='.6'/%3e%3ccircle class='cls-2' cx='1157.2' cy='456.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1167' cy='449.6' r='.9'/%3e%3ccircle class='cls-2' cx='1178.9' cy='460.3' r='.7'/%3e%3ccircle class='cls-2' cx='1199' cy='478.4' r='1.3'/%3e%3ccircle class='cls-2' cx='1229.6' cy='482.6' r='1.3'/%3e%3ccircle class='cls-2' cx='1256' cy='517.6' r='.6'/%3e%3ccircle class='cls-2' cx='1292.1' cy='531.7' r='1.2'/%3e%3ccircle class='cls-2' cx='148.8' cy='918.3' r='1.1'/%3e%3ccircle class='cls-2' cx='137.2' cy='917.7' r='1.3'/%3e%3ccircle class='cls-2' cx='139' cy='933.3' r='1.4'/%3e%3ccircle class='cls-2' cx='127.2' cy='946.1' r='.9'/%3e%3ccircle class='cls-2' cx='104.7' cy='978.9' r='.7'/%3e%3ccircle class='cls-2' cx='82.8' cy='1005.5' r='1.2'/%3e%3ccircle class='cls-2' cx='80.2' cy='1017' r='.6'/%3e%3ccircle class='cls-2' cx='268.6' cy='611.8' r='.5'/%3e%3ccircle class='cls-2' cx='233.4' cy='609.5' r='1.4'/%3e%3ccircle class='cls-2' cx='211.5' cy='612.4' r='1.1'/%3e%3ccircle class='cls-2' cx='179.3' cy='618.8' r='.8'/%3e%3ccircle class='cls-2' cx='267.1' cy='672.8' r='1.2'/%3e%3ccircle class='cls-2' cx='261.4' cy='688.7' r='.5'/%3e%3ccircle class='cls-2' cx='349.6' cy='559.6' r='.8'/%3e%3ccircle class='cls-2' cx='375.9' cy='570.4' r='.9'/%3e%3ccircle class='cls-2' cx='172.1' cy='491.9' r='.8'/%3e%3ccircle class='cls-2' cx='214.2' cy='853' r='1.1'/%3e%3ccircle class='cls-2' cx='220.8' cy='839.4' r='1'/%3e%3ccircle class='cls-2' cx='200.6' cy='822.8' r='.8'/%3e%3ccircle class='cls-2' cx='188.5' cy='811.4' r='1.3'/%3e%3ccircle class='cls-2' cx='439' cy='1061.2' r='.6'/%3e%3ccircle class='cls-2' cx='435.4' cy='1022.5' r='.9'/%3e%3ccircle class='cls-2' cx='433.7' cy='983.3' r='1.1'/%3e%3ccircle class='cls-2' cx='826.1' cy='1074.4' r='1'/%3e%3ccircle class='cls-2' cx='795.8' cy='1066.7' r='.8'/%3e%3ccircle class='cls-2' cx='753.6' cy='1053.4' r='.8'/%3e%3ccircle class='cls-2' cx='716.5' cy='1037.7' r='1.3'/%3e%3ccircle class='cls-2' cx='711.1' cy='1036.9' r='1.5'/%3e%3ccircle class='cls-2' cx='692.9' cy='1040' r='1'/%3e%3ccircle class='cls-2' cx='684' cy='1036.7' r='1.2'/%3e%3ccircle class='cls-2' cx='663' cy='1029.5' r='1.3'/%3e%3ccircle class='cls-2' cx='625.2' cy='1034.1' r='1.4'/%3e%3ccircle class='cls-2' cx='617' cy='1033.1' r='1.1'/%3e%3ccircle class='cls-2' cx='1157.8' cy='1067.7' r='.8'/%3e%3ccircle class='cls-2' cx='1182.2' cy='1067.3' r='1.2'/%3e%3ccircle class='cls-2' cx='1221.3' cy='1065.4' r='.7'/%3e%3ccircle class='cls-2' cx='1249.6' cy='1068.1' r='.7'/%3e%3ccircle class='cls-2' cx='1275.7' cy='1071.3' r='1.5'/%3e%3ccircle class='cls-2' cx='678.5' cy='906.6' r='.7'/%3e%3ccircle class='cls-2' cx='708.8' cy='916.2' r='1.1'/%3e%3ccircle class='cls-2' cx='736' cy='928.5' r='.6'/%3e%3ccircle class='cls-2' cx='748.1' cy='922.8' r='.7'/%3e%3ccircle class='cls-2' cx='783.6' cy='948.3' r='.5'/%3e%3ccircle class='cls-2' cx='806.8' cy='946.1' r='.7'/%3e%3ccircle class='cls-2' cx='829.8' cy='952.3' r='.6'/%3e%3ccircle class='cls-2' cx='868.7' cy='969.5' r='1.3'/%3e%3ccircle class='cls-2' cx='895.5' cy='978.6' r='1'/%3e%3ccircle class='cls-2' cx='1063.4' cy='748.7' r='.9'/%3e%3ccircle class='cls-2' cx='1020.2' cy='751.7' r='1.3'/%3e%3ccircle class='cls-2' cx='1010.3' cy='751.5' r='.7'/%3e%3ccircle class='cls-2' cx='978.9' cy='749.4' r='1.1'/%3e%3ccircle class='cls-2' cx='969.6' cy='754.1' r='1.4'/%3e%3ccircle class='cls-2' cx='944' cy='749' r='.9'/%3e%3ccircle class='cls-2' cx='926.9' cy='743.1' r='1.4'/%3e%3ccircle class='cls-2' cx='920.7' cy='732.7' r='1.5'/%3e%3ccircle class='cls-2' cx='1295.5' cy='678.5' r='.8'/%3e%3ccircle class='cls-2' cx='1272.1' cy='653.7' r='1.1'/%3e%3ccircle class='cls-2' cx='1244.4' cy='634.9' r='.9'/%3e%3ccircle class='cls-2' cx='1205' cy='648.9' r='.9'/%3e%3ccircle class='cls-2' cx='1203.9' cy='661.9' r='1'/%3e%3ccircle class='cls-2' cx='1186.8' cy='657.6' r='.9'/%3e%3ccircle class='cls-2' cx='1173.8' cy='675.4' r='1.3'/%3e%3ccircle class='cls-2' cx='1135.3' cy='690.2' r='1.1'/%3e%3ccircle class='cls-2' cx='1116.9' cy='657.5' r='.8'/%3e%3ccircle class='cls-2' cx='1100.7' cy='631.3' r='1.4'/%3e%3ccircle class='cls-2' cx='1061.7' cy='618.5' r='1'/%3e%3ccircle class='cls-2' cx='1040' cy='619.3' r='.7'/%3e%3ccircle class='cls-2' cx='1028.1' cy='631.3' r='.8'/%3e%3ccircle class='cls-2' cx='1021.8' cy='638.1' r='.6'/%3e%3ccircle class='cls-2' cx='989.3' cy='667.2' r='.8'/%3e%3ccircle class='cls-2' cx='1136.7' cy='739.2' r='.5'/%3e%3ccircle class='cls-2' cx='1157.8' cy='729.7' r='1.4'/%3e%3ccircle class='cls-2' cx='1186.9' cy='732.5' r='1.3'/%3e%3ccircle class='cls-2' cx='1207.6' cy='724.3' r='.6'/%3e%3ccircle class='cls-2' cx='1214.3' cy='722' r='.6'/%3e%3ccircle class='cls-2' cx='1224.5' cy='719.8' r='1.4'/%3e%3ccircle class='cls-2' cx='1242.3' cy='720.1' r='1.4'/%3e%3ccircle class='cls-2' cx='1270.1' cy='724.3' r='.8'/%3e%3ccircle class='cls-2' cx='1253.6' cy='722' r='.8'/%3e%3ccircle class='cls-2' cx='1225.9' cy='708.9' r='1.4'/%3e%3ccircle class='cls-2' cx='1213.7' cy='697.5' r='1.1'/%3e%3ccircle class='cls-2' cx='1192.5' cy='693.5' r='1.1'/%3e%3ccircle class='cls-2' cx='1173.7' cy='723.1' r='1.5'/%3e%3ccircle class='cls-2' cx='1144.2' cy='711.8' r='.5'/%3e%3ccircle class='cls-2' cx='1131.9' cy='701.6' r='1.3'/%3e%3ccircle class='cls-2' cx='1094.9' cy='694.6' r='1.3'/%3e%3ccircle class='cls-2' cx='1060' cy='672.3' r='1'/%3e%3ccircle class='cls-2' cx='869.5' cy='686.8' r='.7'/%3e%3ccircle class='cls-2' cx='881.5' cy='652.7' r='1.4'/%3e%3ccircle class='cls-2' cx='891.1' cy='644.8' r='.6'/%3e%3ccircle class='cls-2' cx='902.4' cy='628.5' r='.5'/%3e%3ccircle class='cls-2' cx='912' cy='620.2' r='1'/%3e%3ccircle class='cls-2' cx='936.3' cy='587.8' r='1.2'/%3e%3ccircle class='cls-2' cx='954' cy='579.5' r='1.2'/%3e%3ccircle class='cls-2' cx='979.8' cy='552.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1015.9' cy='534' r='1.1'/%3e%3ccircle class='cls-2' cx='1053.6' cy='514.3' r='.8'/%3e%3ccircle class='cls-2' cx='1095.1' cy='526.5' r='1.1'/%3e%3ccircle class='cls-2' cx='1105.4' cy='533.8' r='.5'/%3e%3ccircle class='cls-2' cx='681.6' cy='634.2' r='.9'/%3e%3ccircle class='cls-2' cx='701.4' cy='625.6' r='.6'/%3e%3ccircle class='cls-2' cx='739.9' cy='612.6' r='1.4'/%3e%3ccircle class='cls-2' cx='765.3' cy='624.8' r='1.3'/%3e%3ccircle class='cls-2' cx='769.7' cy='633.2' r='1.4'/%3e%3ccircle class='cls-2' cx='754.1' cy='659.2' r='1.3'/%3e%3ccircle class='cls-2' cx='714.7' cy='670.8' r='.6'/%3e%3ccircle class='cls-2' cx='676.7' cy='661.8' r='.7'/%3e%3ccircle class='cls-2' cx='662.9' cy='662.4' r='1.2'/%3e%3ccircle class='cls-2' cx='653.5' cy='664.9' r='1.4'/%3e%3ccircle class='cls-2' cx='649.6' cy='682.7' r='1.3'/%3e%3ccircle class='cls-2' cx='630.5' cy='694.3' r='.7'/%3e%3ccircle class='cls-2' cx='624' cy='718.9' r='.6'/%3e%3ccircle class='cls-2' cx='589.2' cy='644.9' r='1.1'/%3e%3ccircle class='cls-2' cx='563.8' cy='636.9' r='1.3'/%3e%3ccircle class='cls-2' cx='543.1' cy='625.5' r='1.4'/%3e%3ccircle class='cls-2' cx='517.4' cy='617.6' r='1.4'/%3e%3ccircle class='cls-2' cx='497' cy='623.7' r='.7'/%3e%3ccircle class='cls-2' cx='483' cy='628.2' r='1.2'/%3e%3ccircle class='cls-2' cx='471' cy='649.4' r='.6'/%3e%3ccircle class='cls-2' cx='440.7' cy='672' r='.7'/%3e%3ccircle class='cls-2' cx='430.7' cy='688.5' r='1'/%3e%3ccircle class='cls-2' cx='610.8' cy='612.7' r='.6'/%3e%3ccircle class='cls-2' cx='602.1' cy='599.7' r='1'/%3e%3ccircle class='cls-2' cx='586' cy='589.7' r='1'/%3e%3ccircle class='cls-2' cx='563.5' cy='567.2' r='1'/%3e%3ccircle class='cls-2' cx='604' cy='556.5' r='.7'/%3e%3ccircle class='cls-2' cx='576.5' cy='684.8' r='.7'/%3e%3ccircle class='cls-2' cx='564.1' cy='718.3' r='1'/%3e%3ccircle class='cls-2' cx='569.1' cy='724.4' r='1.2'/%3e%3ccircle class='cls-2' cx='562.5' cy='734.5' r='.8'/%3e%3ccircle class='cls-2' cx='581.4' cy='771.3' r='1.1'/%3e%3ccircle class='cls-2' cx='531.4' cy='615.4' r='1.2'/%3e%3ccircle class='cls-2' cx='528.9' cy='626.5' r='1.2'/%3e%3ccircle class='cls-2' cx='522.1' cy='666.8' r='.6'/%3e%3ccircle class='cls-2' cx='526.5' cy='695.6' r='1.3'/%3e%3ccircle class='cls-2' cx='528.3' cy='706.4' r='1.3'/%3e%3ccircle class='cls-2' cx='508.6' cy='663.1' r='.9'/%3e%3ccircle class='cls-2' cx='504.5' cy='630.9' r='.5'/%3e%3ccircle class='cls-2' cx='498.3' cy='599.7' r='.5'/%3e%3ccircle class='cls-2' cx='509.2' cy='589.4' r='.7'/%3e%3ccircle class='cls-2' cx='497.4' cy='582.3' r='1.4'/%3e%3ccircle class='cls-2' cx='516.1' cy='744.3' r='1.4'/%3e%3ccircle class='cls-2' cx='508.4' cy='700' r='1.2'/%3e%3ccircle class='cls-2' cx='497.7' cy='673.6' r='1.3'/%3e%3ccircle class='cls-2' cx='474.1' cy='649' r='1.1'/%3e%3ccircle class='cls-2' cx='447.3' cy='613.6' r='1.4'/%3e%3ccircle class='cls-2' cx='432.5' cy='607.3' r='1.1'/%3e%3ccircle class='cls-2' cx='521.4' cy='620.8' r='.8'/%3e%3ccircle class='cls-2' cx='490' cy='614.5' r='1.2'/%3e%3ccircle class='cls-2' cx='478.4' cy='617.4' r='.5'/%3e%3ccircle class='cls-2' cx='438.7' cy='630.7' r='1.1'/%3e%3ccircle class='cls-2' cx='407.9' cy='641.3' r='1.4'/%3e%3ccircle class='cls-2' cx='372.1' cy='665.9' r='1.4'/%3e%3ccircle class='cls-2' cx='358.6' cy='674.6' r='.5'/%3e%3ccircle class='cls-2' cx='338.4' cy='687.5' r='.8'/%3e%3ccircle class='cls-2' cx='326.6' cy='693.2' r='1.2'/%3e%3ccircle class='cls-2' cx='618.8' cy='645.1' r='1.4'/%3e%3ccircle class='cls-2' cx='597.6' cy='634.3' r='1.4'/%3e%3ccircle class='cls-2' cx='586.5' cy='632.4' r='.9'/%3e%3ccircle class='cls-2' cx='569.5' cy='616.4' r='.9'/%3e%3ccircle class='cls-2' cx='553.5' cy='620.1' r='1.3'/%3e%3ccircle class='cls-2' cx='543' cy='619.5' r='1.4'/%3e%3ccircle class='cls-2' cx='533.6' cy='624.3' r='.9'/%3e%3ccircle class='cls-2' cx='524' cy='624.8' r='1.3'/%3e%3ccircle class='cls-2' cx='482.3' cy='628.7' r='.8'/%3e%3ccircle class='cls-2' cx='456.9' cy='623.1' r='1.1'/%3e%3ccircle class='cls-2' cx='432.7' cy='651.4' r='.7'/%3e%3ccircle class='cls-2' cx='435' cy='683.4' r='1.1'/%3e%3ccircle class='cls-2' cx='451.6' cy='712.9' r='.8'/%3e%3ccircle class='cls-2' cx='480.9' cy='741' r='.8'/%3e%3ccircle class='cls-2' cx='515' cy='745.8' r='.9'/%3e%3ccircle class='cls-2' cx='516.4' cy='716.1' r='1.4'/%3e%3ccircle class='cls-2' cx='509.8' cy='685.9' r='.7'/%3e%3ccircle class='cls-2' cx='515.6' cy='667.5' r='.5'/%3e%3ccircle class='cls-2' cx='478.3' cy='646.8' r='.7'/%3e%3ccircle class='cls-2' cx='437.3' cy='641.1' r='.7'/%3e%3ccircle class='cls-2' cx='413' cy='645.7' r='1.5'/%3e%3ccircle class='cls-2' cx='396.2' cy='662.2' r='.9'/%3e%3ccircle class='cls-2' cx='381.2' cy='664.6' r='1.5'/%3e%3ccircle class='cls-2' cx='383.4' cy='681.4' r='1'/%3e%3ccircle class='cls-2' cx='374' cy='701.5' r='.6'/%3e%3ccircle class='cls-2' cx='361.6' cy='727.9' r='.9'/%3e%3ccircle class='cls-2' cx='772.3' cy='832.7' r='.9'/%3e%3ccircle class='cls-2' cx='756.1' cy='794.4' r='1.3'/%3e%3ccircle class='cls-2' cx='751.2' cy='752.9' r='1.2'/%3e%3ccircle class='cls-2' cx='731.5' cy='740.6' r='.7'/%3e%3ccircle class='cls-2' cx='698' cy='743.1' r='.6'/%3e%3ccircle class='cls-2' cx='690.5' cy='767.3' r='.9'/%3e%3ccircle class='cls-2' cx='692.3' cy='779.2' r='.8'/%3e%3ccircle class='cls-2' cx='877.2' cy='845.1' r='.6'/%3e%3ccircle class='cls-2' cx='855.4' cy='830' r='.9'/%3e%3ccircle class='cls-2' cx='880.9' cy='561.5' r='1.3'/%3e%3ccircle class='cls-2' cx='843.5' cy='587.2' r='.8'/%3e%3ccircle class='cls-2' cx='843.7' cy='609.4' r='.7'/%3e%3ccircle class='cls-2' cx='838.6' cy='620.7' r='1'/%3e%3ccircle class='cls-2' cx='810' cy='644.7' r='.5'/%3e%3ccircle class='cls-2' cx='76.4' cy='113.2' r='.5'/%3e%3ccircle class='cls-2' cx='89.9' cy='110.8' r='.5'/%3e%3ccircle class='cls-2' cx='100.8' cy='98.8' r='.7'/%3e%3ccircle class='cls-2' cx='116.9' cy='97.6' r='.8'/%3e%3ccircle class='cls-2' cx='144.3' cy='88.5' r='1.2'/%3e%3ccircle class='cls-2' cx='163.6' cy='97.6' r='.7'/%3e%3ccircle class='cls-2' cx='181.4' cy='87.3' r='1'/%3e%3ccircle class='cls-2' cx='203.1' cy='83.6' r='.8'/%3e%3ccircle class='cls-2' cx='218.1' cy='89.3' r='1'/%3e%3ccircle class='cls-2' cx='249.9' cy='98.3' r='1.2'/%3e%3ccircle class='cls-2' cx='257.8' cy='126.5' r='1.2'/%3e%3ccircle class='cls-2' cx='273.3' cy='136.2' r='.8'/%3e%3ccircle class='cls-2' cx='127.5' cy='97.9' r='.9'/%3e%3ccircle class='cls-2' cx='102.7' cy='64.3' r='1.5'/%3e%3ccircle class='cls-2' cx='77' cy='42.4' r='1.3'/%3e%3ccircle class='cls-2' cx='53' cy='72.5' r='.6'/%3e%3ccircle class='cls-2' cx='175.7' cy='61' r='.5'/%3e%3ccircle class='cls-2' cx='179.2' cy='58.6' r='.6'/%3e%3ccircle class='cls-2' cx='153.5' cy='49.3' r='1.3'/%3e%3ccircle class='cls-2' cx='183.3' cy='100.7' r='.6'/%3e%3ccircle class='cls-2' cx='190.2' cy='67.7' r='.8'/%3e%3ccircle class='cls-2' cx='168.2' cy='45.1' r='.6'/%3e%3ccircle class='cls-2' cx='146' cy='58.5' r='.6'/%3e%3ccircle class='cls-2' cx='133' cy='89.7' r='1.4'/%3e%3ccircle class='cls-2' cx='313.8' cy='85.3' r='.6'/%3e%3ccircle class='cls-2' cx='306.1' cy='44.9' r='1'/%3e%3ccircle class='cls-2' cx='280' cy='31.4' r='.7'/%3e%3ccircle class='cls-2' cx='256.8' cy='48.1' r='.9'/%3e%3ccircle class='cls-2' cx='252.1' cy='53.8' r='.7'/%3e%3ccircle class='cls-2' cx='242.3' cy='61.9' r='1.3'/%3e%3ccircle class='cls-2' cx='232.1' cy='72.5' r='.6'/%3e%3ccircle class='cls-2' cx='215' cy='83.2' r='.8'/%3e%3ccircle class='cls-2' cx='222.3' cy='95.4' r='1'/%3e%3ccircle class='cls-2' cx='219.6' cy='116.7' r='1.4'/%3e%3ccircle class='cls-2' cx='238.1' cy='125.8' r='.7'/%3e%3ccircle class='cls-2' cx='260.1' cy='96.7' r='.7'/%3e%3ccircle class='cls-2' cx='272.4' cy='80.8' r='1.1'/%3e%3ccircle class='cls-2' cx='250' cy='38.6' r='1.2'/%3e%3ccircle class='cls-2' cx='229.8' cy='30.5' r='1.2'/%3e%3ccircle class='cls-2' cx='191.5' cy='35.4' r='.8'/%3e%3ccircle class='cls-2' cx='64.6' cy='15.4' r='1.4'/%3e%3ccircle class='cls-2' cx='354.2' cy='49' r='1.1'/%3e%3ccircle class='cls-2' cx='343.4' cy='41.2' r='1.4'/%3e%3ccircle class='cls-2' cx='337.1' cy='38.7' r='.7'/%3e%3ccircle class='cls-2' cx='330.6' cy='29.1' r='1'/%3e%3ccircle class='cls-2' cx='308.7' cy='32.8' r='1.1'/%3e%3ccircle class='cls-2' cx='293.3' cy='42.7' r='.7'/%3e%3ccircle class='cls-2' cx='187.2' cy='111.5' r='.9'/%3e%3ccircle class='cls-2' cx='210.4' cy='90.9' r='1.3'/%3e%3ccircle class='cls-2' cx='240.1' cy='69' r='.6'/%3e%3ccircle class='cls-2' cx='245.6' cy='65.9' r='1.3'/%3e%3ccircle class='cls-2' cx='266.2' cy='56.2' r='1'/%3e%3ccircle class='cls-2' cx='292.8' cy='38.7' r='1'/%3e%3ccircle class='cls-2' cx='307.9' cy='19.8' r='1.4'/%3e%3ccircle class='cls-2' cx='312.9' cy='51.3' r='.8'/%3e%3ccircle class='cls-2' cx='322.6' cy='63' r='1.3'/%3e%3ccircle class='cls-2' cx='322.3' cy='92' r='1.2'/%3e%3ccircle class='cls-2' cx='327.1' cy='102.3' r='.6'/%3e%3ccircle class='cls-2' cx='80.4' cy='216.1' r='.8'/%3e%3ccircle class='cls-2' cx='630.8' cy='533.2' r='.6'/%3e%3ccircle class='cls-2' cx='639.2' cy='522.9' r='1.4'/%3e%3ccircle class='cls-2' cx='635' cy='514.6' r='1.3'/%3e%3ccircle class='cls-2' cx='99.5' cy='126.6' r='.9'/%3e%3ccircle class='cls-2' cx='100' cy='105.5' r='.8'/%3e%3ccircle class='cls-2' cx='84.8' cy='106.6' r='.6'/%3e%3ccircle class='cls-2' cx='71.3' cy='115.3' r='.8'/%3e%3ccircle class='cls-2' cx='77.6' cy='127.8' r='.8'/%3e%3ccircle class='cls-2' cx='616.7' cy='503.6' r='.5'/%3e%3ccircle class='cls-2' cx='71.7' cy='264.4' r='1'/%3e%3ccircle class='cls-2' cx='56.3' cy='251.1' r='.6'/%3e%3ccircle class='cls-2' cx='55.4' cy='222.1' r='.8'/%3e%3ccircle class='cls-2' cx='49.9' cy='200.9' r='.8'/%3e%3ccircle class='cls-2' cx='41.1' cy='169.8' r='.9'/%3e%3ccircle class='cls-2' cx='33.2' cy='160.2' r='.7'/%3e%3ccircle class='cls-2' cx='168.9' cy='207.8' r='1.4'/%3e%3ccircle class='cls-2' cx='32.6' cy='258.2' r='1.2'/%3e%3ccircle class='cls-2' cx='49.7' cy='294.4' r='1.2'/%3e%3ccircle class='cls-2' cx='67.2' cy='312.2' r='.8'/%3e%3ccircle class='cls-2' cx='79.2' cy='311.9' r='.7'/%3e%3ccircle class='cls-2' cx='92.5' cy='301' r='1.3'/%3e%3ccircle class='cls-2' cx='106.1' cy='301.6' r='1.4'/%3e%3ccircle class='cls-2' cx='109.9' cy='262.7' r='1.1'/%3e%3ccircle class='cls-2' cx='77.7' cy='240.1' r='1.4'/%3e%3ccircle class='cls-2' cx='68.4' cy='243.3' r='1.4'/%3e%3ccircle class='cls-2' cx='129.4' cy='396.3' r='.7'/%3e%3ccircle class='cls-2' cx='128' cy='408.8' r='.7'/%3e%3ccircle class='cls-2' cx='103.9' cy='420' r='.8'/%3e%3ccircle class='cls-2' cx='61.3' cy='428.9' r='1.4'/%3e%3ccircle class='cls-2' cx='49.4' cy='424.1' r='.8'/%3e%3ccircle class='cls-2' cx='70.9' cy='400.4' r='.8'/%3e%3ccircle class='cls-2' cx='78.1' cy='369.2' r='1.4'/%3e%3ccircle class='cls-2' cx='88' cy='336.1' r='.8'/%3e%3ccircle class='cls-2' cx='95' cy='302.3' r='.8'/%3e%3ccircle class='cls-2' cx='88.6' cy='296.2' r='.6'/%3e%3ccircle class='cls-2' cx='81.7' cy='267.4' r='.6'/%3e%3ccircle class='cls-2' cx='58.9' cy='233.6' r='1'/%3e%3ccircle class='cls-2' cx='42.1' cy='240.1' r='.6'/%3e%3ccircle class='cls-2' cx='49.1' cy='416' r='1.4'/%3e%3ccircle class='cls-2' cx='67.2' cy='400.6' r='1.5'/%3e%3ccircle class='cls-2' cx='72.2' cy='374' r='.7'/%3e%3ccircle class='cls-2' cx='76.2' cy='355.2' r='.9'/%3e%3ccircle class='cls-2' cx='72.7' cy='325.5' r='1'/%3e%3ccircle class='cls-2' cx='68.1' cy='321.6' r='.6'/%3e%3ccircle class='cls-2' cx='35.2' cy='320' r='.9'/%3e%3ccircle class='cls-2' cx='111.7' cy='489.3' r='1.1'/%3e%3ccircle class='cls-2' cx='87.9' cy='517.7' r='1.3'/%3e%3ccircle class='cls-2' cx='78.8' cy='531.1' r='.9'/%3e%3ccircle class='cls-2' cx='63' cy='524.9' r='1.5'/%3e%3ccircle class='cls-2' cx='135.8' cy='239.7' r='1.5'/%3e%3ccircle class='cls-2' cx='107.7' cy='264.4' r='.5'/%3e%3ccircle class='cls-2' cx='94.2' cy='292.8' r='.9'/%3e%3ccircle class='cls-2' cx='92.8' cy='316.7' r='1.5'/%3e%3ccircle class='cls-2' cx='81.3' cy='359.8' r='1'/%3e%3ccircle class='cls-2' cx='77.4' cy='376.4' r='.6'/%3e%3ccircle class='cls-2' cx='83.2' cy='410.9' r='.9'/%3e%3ccircle class='cls-2' cx='135.3' cy='352' r='.5'/%3e%3ccircle class='cls-2' cx='141.7' cy='351.1' r='1.2'/%3e%3ccircle class='cls-2' cx='149.7' cy='312.1' r='.9'/%3e%3ccircle class='cls-2' cx='152.8' cy='293.6' r='1'/%3e%3ccircle class='cls-2' cx='161.2' cy='259.9' r='.6'/%3e%3ccircle class='cls-2' cx='161.7' cy='252.2' r='1.3'/%3e%3ccircle class='cls-2' cx='303.1' cy='381.9' r='1.1'/%3e%3ccircle class='cls-2' cx='281.7' cy='365.4' r='1.4'/%3e%3ccircle class='cls-2' cx='249.5' cy='345.2' r='.5'/%3e%3ccircle class='cls-2' cx='245' cy='325.9' r='1'/%3e%3ccircle class='cls-2' cx='225.6' cy='292.7' r='1.3'/%3e%3ccircle class='cls-2' cx='229' cy='275.8' r='1.4'/%3e%3ccircle class='cls-2' cx='224' cy='265.6' r='1.1'/%3e%3ccircle class='cls-2' cx='230.1' cy='250.4' r='.8'/%3e%3ccircle class='cls-2' cx='302.8' cy='743.4' r='1.4'/%3e%3ccircle class='cls-2' cx='311.4' cy='704.7' r='1'/%3e%3ccircle class='cls-2' cx='318.7' cy='676.5' r='1'/%3e%3ccircle class='cls-2' cx='327.2' cy='637.7' r='.5'/%3e%3ccircle class='cls-2' cx='321' cy='600.7' r='.5'/%3e%3ccircle class='cls-2' cx='327.2' cy='576.2' r='.8'/%3e%3ccircle class='cls-2' cx='271.2' cy='918.9' r='1.1'/%3e%3ccircle class='cls-2' cx='283.9' cy='904.4' r='1.3'/%3e%3ccircle class='cls-2' cx='188.6' cy='823.6' r='1.3'/%3e%3ccircle class='cls-2' cx='183.5' cy='784.7' r='.6'/%3e%3ccircle class='cls-2' cx='285.2' cy='801.8' r='1'/%3e%3ccircle class='cls-2' cx='280.6' cy='791.3' r='1.3'/%3e%3ccircle class='cls-2' cx='250.4' cy='784.7' r='1.3'/%3e%3ccircle class='cls-2' cx='235.4' cy='773.6' r='.7'/%3e%3ccircle class='cls-2' cx='221.5' cy='781.5' r='1.1'/%3e%3ccircle class='cls-2' cx='213.1' cy='810.1' r='.9'/%3e%3ccircle class='cls-2' cx='202.1' cy='852.6' r='1'/%3e%3ccircle class='cls-2' cx='207.1' cy='888.4' r='.8'/%3e%3ccircle class='cls-2' cx='211.6' cy='918.2' r='.7'/%3e%3ccircle class='cls-2' cx='210.4' cy='945.3' r='1'/%3e%3ccircle class='cls-2' cx='94.8' cy='920.4' r='.8'/%3e%3ccircle class='cls-2' cx='107.9' cy='929.4' r='.7'/%3e%3ccircle class='cls-2' cx='175.7' cy='794.3' r='.5'/%3e%3ccircle class='cls-2' cx='157.7' cy='782' r='1'/%3e%3ccircle class='cls-2' cx='164.9' cy='823' r='.6'/%3e%3ccircle class='cls-2' cx='147.3' cy='832.4' r='1'/%3e%3ccircle class='cls-2' cx='119.8' cy='782' r='1.2'/%3e%3ccircle class='cls-2' cx='111.1' cy='765' r='1.5'/%3e%3ccircle class='cls-2' cx='118.4' cy='721.9' r='1.1'/%3e%3ccircle class='cls-2' cx='108.3' cy='702.9' r='.8'/%3e%3ccircle class='cls-2' cx='116.7' cy='687.6' r='1.5'/%3e%3ccircle class='cls-2' cx='122.3' cy='664.1' r='.7'/%3e%3ccircle class='cls-2' cx='140' cy='668.8' r='1.2'/%3e%3ccircle class='cls-2' cx='155.9' cy='678.1' r='1.4'/%3e%3ccircle class='cls-2' cx='158.7' cy='684.2' r='.8'/%3e%3ccircle class='cls-2' cx='193.8' cy='772.3' r='1.4'/%3e%3ccircle class='cls-2' cx='165.6' cy='746.9' r='.6'/%3e%3ccircle class='cls-2' cx='162.8' cy='735.5' r='1.3'/%3e%3ccircle class='cls-2' cx='145.1' cy='732.1' r='1'/%3e%3ccircle class='cls-2' cx='137.5' cy='726.5' r='.5'/%3e%3ccircle class='cls-2' cx='136.9' cy='716.4' r='.6'/%3e%3ccircle class='cls-2' cx='122.8' cy='713.1' r='1.4'/%3e%3ccircle class='cls-2' cx='295.9' cy='738.5' r='1.2'/%3e%3ccircle class='cls-2' cx='87.6' cy='744.8' r='1.3'/%3e%3ccircle class='cls-2' cx='117.7' cy='775' r='1.3'/%3e%3ccircle class='cls-2' cx='113.6' cy='792.3' r='1.4'/%3e%3ccircle class='cls-2' cx='192.8' cy='851.6' r='1.3'/%3e%3ccircle class='cls-2' cx='171.9' cy='877.3' r='1'/%3e%3ccircle class='cls-2' cx='140.2' cy='896.3' r='.8'/%3e%3ccircle class='cls-2' cx='48.8' cy='1031.8' r='1'/%3e%3ccircle class='cls-2' cx='46.4' cy='1016.5' r='1.1'/%3e%3ccircle class='cls-2' cx='48.3' cy='1001.2' r='.6'/%3e%3ccircle class='cls-2' cx='35.2' cy='912.5' r='1.4'/%3e%3ccircle class='cls-2' cx='143' cy='850.3' r='.6'/%3e%3ccircle class='cls-2' cx='132.2' cy='864.3' r='1.1'/%3e%3ccircle class='cls-2' cx='125.7' cy='842.8' r='1.2'/%3e%3ccircle class='cls-2' cx='110.7' cy='888.1' r='.5'/%3e%3ccircle class='cls-2' cx='158.7' cy='866.4' r='.7'/%3e%3ccircle class='cls-2' cx='37.1' cy='1068.1' r='.8'/%3e%3ccircle class='cls-2' cx='32' cy='1027.1' r='.8'/%3e%3ccircle class='cls-2' cx='123' cy='897.4' r='1'/%3e%3ccircle class='cls-2' cx='116.1' cy='873.6' r='.6'/%3e%3ccircle class='cls-2' cx='107.2' cy='885.3' r='.8'/%3e%3ccircle class='cls-2' cx='98.1' cy='907.3' r='.8'/%3e%3ccircle class='cls-2' cx='144.5' cy='638.3' r='1.3'/%3e%3ccircle class='cls-2' cx='146.9' cy='651.8' r='1.3'/%3e%3ccircle class='cls-2' cx='176.4' cy='681.4' r='1.4'/%3e%3ccircle class='cls-2' cx='207' cy='693.9' r='.8'/%3e%3ccircle class='cls-2' cx='228.1' cy='726.9' r='.8'/%3e%3ccircle class='cls-2' cx='286.9' cy='610.7' r='1.4'/%3e%3ccircle class='cls-2' cx='295.9' cy='283.3' r='1.2'/%3e%3ccircle class='cls-2' cx='157.9' cy='188.4' r='1.4'/%3e%3ccircle class='cls-2' cx='239.5' cy='227.3' r='1.1'/%3e%3ccircle class='cls-2' cx='619.6' cy='531.1' r='1.2'/%3e%3ccircle class='cls-2' cx='603.4' cy='515.6' r='1.4'/%3e%3ccircle class='cls-2' cx='61.6' cy='143.5' r='.6'/%3e%3ccircle class='cls-2' cx='55.1' cy='132.2' r='.8'/%3e%3ccircle class='cls-2' cx='86.2' cy='897.5' r='.9'/%3e%3ccircle class='cls-2' cx='83.6' cy='859.6' r='1.1'/%3e%3ccircle class='cls-2' cx='92.5' cy='845.6' r='1'/%3e%3ccircle class='cls-2' cx='87.1' cy='836.3' r='1.2'/%3e%3ccircle class='cls-2' cx='99.9' cy='827.1' r='1'/%3e%3ccircle class='cls-2' cx='109' cy='791.5' r='1.4'/%3e%3ccircle class='cls-2' cx='117.6' cy='767.9' r='1.5'/%3e%3ccircle class='cls-2' cx='126.5' cy='724.9' r='.8'/%3e%3ccircle class='cls-2' cx='130.3' cy='691.5' r='1.4'/%3e%3ccircle class='cls-2' cx='122.7' cy='680.1' r='.7'/%3e%3ccircle class='cls-2' cx='116.6' cy='672.6' r='1.2'/%3e%3ccircle class='cls-2' cx='292.4' cy='689.8' r='.7'/%3e%3ccircle class='cls-2' cx='263.4' cy='690' r='1.2'/%3e%3ccircle class='cls-2' cx='56.6' cy='875.3' r='.9'/%3e%3ccircle class='cls-2' cx='33.1' cy='996' r='.8'/%3e%3ccircle class='cls-2' cx='111.2' cy='903.6' r='1.4'/%3e%3ccircle class='cls-2' cx='114.3' cy='870.3' r='.9'/%3e%3ccircle class='cls-2' cx='96.6' cy='845.3' r='1.1'/%3e%3ccircle class='cls-2' cx='97.1' cy='802.8' r='.6'/%3e%3ccircle class='cls-2' cx='90.4' cy='792.6' r='1'/%3e%3ccircle class='cls-2' cx='77.4' cy='779.1' r='.8'/%3e%3ccircle class='cls-2' cx='90.9' cy='885.9' r='.5'/%3e%3ccircle class='cls-2' cx='100.9' cy='848.1' r='.8'/%3e%3ccircle class='cls-2' cx='98.4' cy='832.9' r='1.3'/%3e%3ccircle class='cls-2' cx='106.3' cy='821.2' r='.8'/%3e%3ccircle class='cls-2' cx='796.6' cy='888.4' r='.8'/%3e%3ccircle class='cls-2' cx='771.9' cy='893.3' r='1.2'/%3e%3ccircle class='cls-2' cx='757.6' cy='893.6' r='1.1'/%3e%3ccircle class='cls-2' cx='742' cy='891.7' r='1'/%3e%3ccircle class='cls-2' cx='722' cy='876.3' r='.9'/%3e%3ccircle class='cls-2' cx='691' cy='863.9' r='.6'/%3e%3ccircle class='cls-2' cx='661.3' cy='840.7' r='1.2'/%3e%3ccircle class='cls-2' cx='635.1' cy='822.7' r='.9'/%3e%3ccircle class='cls-2' cx='623.9' cy='834.5' r='.5'/%3e%3ccircle class='cls-2' cx='599.4' cy='840.4' r='.5'/%3e%3ccircle class='cls-2' cx='566.9' cy='847.1' r='.6'/%3e%3ccircle class='cls-2' cx='556.6' cy='834.1' r='1.1'/%3e%3ccircle class='cls-2' cx='544.4' cy='796.9' r='1.1'/%3e%3ccircle class='cls-2' cx='531.9' cy='775.8' r='.6'/%3e%3ccircle class='cls-2' cx='525.1' cy='766.7' r='1.1'/%3e%3ccircle class='cls-2' cx='495.2' cy='768.7' r='1'/%3e%3ccircle class='cls-2' cx='463.6' cy='786.4' r='.7'/%3e%3ccircle class='cls-2' cx='457.7' cy='803.3' r='1.2'/%3e%3ccircle class='cls-2' cx='436.7' cy='835.4' r='1.4'/%3e%3ccircle class='cls-2' cx='165' cy='1061.2' r='.5'/%3e%3ccircle class='cls-2' cx='148.1' cy='1077.2' r='.7'/%3e%3ccircle class='cls-2' cx='377.2' cy='706.6' r='.8'/%3e%3ccircle class='cls-2' cx='371.4' cy='710.9' r='1'/%3e%3ccircle class='cls-2' cx='354.1' cy='717.5' r='1'/%3e%3ccircle class='cls-2' cx='345.2' cy='731.9' r='.9'/%3e%3ccircle class='cls-2' cx='314.9' cy='746.4' r='1.4'/%3e%3ccircle class='cls-2' cx='309.5' cy='735.4' r='1.4'/%3e%3ccircle class='cls-2' cx='297.5' cy='765.4' r='.6'/%3e%3ccircle class='cls-2' cx='275.8' cy='785.4' r='1.1'/%3e%3ccircle class='cls-2' cx='266.5' cy='798.5' r='.8'/%3e%3ccircle class='cls-2' cx='246.4' cy='822.6' r='.8'/%3e%3ccircle class='cls-2' cx='238.3' cy='833.3' r='1.1'/%3e%3ccircle class='cls-2' cx='233.6' cy='873.4' r='1.3'/%3e%3ccircle class='cls-2' cx='227.9' cy='913.9' r='.8'/%3e%3ccircle class='cls-2' cx='232.2' cy='952.6' r='.6'/%3e%3ccircle class='cls-2' cx='231' cy='962.4' r='.8'/%3e%3ccircle class='cls-2' cx='246.7' cy='971.7' r='.8'/%3e%3ccircle class='cls-2' cx='248.8' cy='983.6' r='.6'/%3e%3ccircle class='cls-2' cx='246.2' cy='1007.4' r='.6'/%3e%3ccircle class='cls-2' cx='253.8' cy='1011' r='.5'/%3e%3ccircle class='cls-2' cx='263.4' cy='1044.1' r='1.3'/%3e%3ccircle class='cls-2' cx='266.3' cy='1060.8' r='1'/%3e%3ccircle class='cls-2' cx='279.7' cy='1066.6' r='1.1'/%3e%3ccircle class='cls-2' cx='280.2' cy='1074.4' r='.6'/%3e%3ccircle class='cls-2' cx='388.4' cy='1079' r='.9'/%3e%3ccircle class='cls-2' cx='389.3' cy='1049.2' r='1.1'/%3e%3ccircle class='cls-2' cx='392.9' cy='1032.4' r='1.1'/%3e%3ccircle class='cls-2' cx='373.1' cy='1009.7' r='1.3'/%3e%3ccircle class='cls-2' cx='358.1' cy='1004.1' r='1.5'/%3e%3ccircle class='cls-2' cx='348.3' cy='998.5' r='1.2'/%3e%3ccircle class='cls-2' cx='333.8' cy='995.4' r='.8'/%3e%3ccircle class='cls-2' cx='327.3' cy='987.1' r='1.2'/%3e%3ccircle class='cls-2' cx='317.9' cy='980.7' r='.6'/%3e%3ccircle class='cls-2' cx='291' cy='977' r='1.3'/%3e%3ccircle class='cls-2' cx='262.6' cy='976' r='1.3'/%3e%3ccircle class='cls-2' cx='252.9' cy='972.6' r='.9'/%3e%3ccircle class='cls-2' cx='243.4' cy='968.7' r='1.4'/%3e%3ccircle class='cls-2' cx='231.7' cy='973.3' r='1.3'/%3e%3ccircle class='cls-2' cx='197.2' cy='979.3' r='.7'/%3e%3ccircle class='cls-2' cx='182' cy='967.6' r='1.1'/%3e%3ccircle class='cls-2' cx='162.6' cy='967.2' r='1.4'/%3e%3ccircle class='cls-2' cx='135.9' cy='975' r='.7'/%3e%3ccircle class='cls-2' cx='131.1' cy='962.7' r='1.2'/%3e%3ccircle class='cls-2' cx='91.8' cy='974.5' r='1.1'/%3e%3ccircle class='cls-2' cx='52.8' cy='968.4' r='1.2'/%3e%3ccircle class='cls-2' cx='292.8' cy='631.2' r='1'/%3e%3ccircle class='cls-2' cx='294.8' cy='627.3' r='1.1'/%3e%3ccircle class='cls-2' cx='39.5' cy='543.1' r='.8'/%3e%3ccircle class='cls-2' cx='64.2' cy='575.7' r='1.3'/%3e%3ccircle class='cls-2' cx='183.3' cy='650.1' r='.6'/%3e%3ccircle class='cls-2' cx='190.4' cy='659.3' r='1'/%3e%3ccircle class='cls-2' cx='203.6' cy='663.5' r='.9'/%3e%3ccircle class='cls-2' cx='236.1' cy='687.3' r='1.4'/%3e%3ccircle class='cls-2' cx='188.7' cy='888.8' r='.6'/%3e%3ccircle class='cls-2' cx='173.9' cy='906.6' r='.6'/%3e%3ccircle class='cls-2' cx='152.1' cy='926.8' r='1.1'/%3e%3ccircle class='cls-2' cx='94' cy='905.7' r='.9'/%3e%3ccircle class='cls-2' cx='89.1' cy='893.7' r='.7'/%3e%3ccircle class='cls-2' cx='88.3' cy='859.6' r='1.3'/%3e%3ccircle class='cls-2' cx='77.3' cy='841' r='1.1'/%3e%3ccircle class='cls-2' cx='88.9' cy='805.1' r='1.4'/%3e%3ccircle class='cls-2' cx='87' cy='798' r='1.3'/%3e%3ccircle class='cls-2' cx='292.4' cy='755.8' r='1.4'/%3e%3ccircle class='cls-2' cx='283.9' cy='748' r='.7'/%3e%3ccircle class='cls-2' cx='284.6' cy='727' r='1.3'/%3e%3ccircle class='cls-2' cx='279.7' cy='691.2' r='1.4'/%3e%3ccircle class='cls-2' cx='282.8' cy='674' r='1.1'/%3e%3ccircle class='cls-2' cx='279.9' cy='646.9' r='1'/%3e%3ccircle class='cls-2' cx='272.5' cy='632.3' r='.6'/%3e%3ccircle class='cls-2' cx='275.5' cy='620.2' r='1.4'/%3e%3ccircle class='cls-2' cx='97.1' cy='653.4' r='1.1'/%3e%3ccircle class='cls-2' cx='92.1' cy='671.6' r='.5'/%3e%3ccircle class='cls-2' cx='90.1' cy='686.2' r='1'/%3e%3ccircle class='cls-2' cx='90.5' cy='698.8' r='1.4'/%3e%3ccircle class='cls-2' cx='290' cy='755.4' r='.9'/%3e%3ccircle class='cls-2' cx='65.7' cy='759.2' r='1.2'/%3e%3ccircle class='cls-2' cx='42.8' cy='778.9' r='1.1'/%3e%3ccircle class='cls-2' cx='255' cy='716.4' r='.6'/%3e%3ccircle class='cls-2' cx='256.8' cy='640.1' r='1.4'/%3e%3ccircle class='cls-2' cx='268.3' cy='614.4' r='.5'/%3e%3ccircle class='cls-2' cx='33.1' cy='792.2' r='.6'/%3e%3ccircle class='cls-2' cx='55.2' cy='708.4' r='1.1'/%3e%3ccircle class='cls-2' cx='66.1' cy='1067.2' r='.9'/%3e%3ccircle class='cls-2' cx='61.4' cy='1059.2' r='.9'/%3e%3ccircle class='cls-2' cx='55.7' cy='1036.9' r='.6'/%3e%3ccircle class='cls-2' cx='58.1' cy='1003.6' r='1.4'/%3e%3ccircle class='cls-2' cx='53.4' cy='991.8' r='1'/%3e%3ccircle class='cls-2' cx='42.7' cy='968.6' r='.8'/%3e%3ccircle class='cls-2' cx='38.1' cy='948.3' r='1'/%3e%3ccircle class='cls-2' cx='51.6' cy='639.5' r='.7'/%3e%3ccircle class='cls-2' cx='66.1' cy='947' r='1'/%3e%3ccircle class='cls-2' cx='101.2' cy='906.5' r='.8'/%3e%3ccircle class='cls-2' cx='116.5' cy='886.3' r='1.4'/%3e%3ccircle class='cls-2' cx='134.5' cy='870.4' r='1.3'/%3e%3ccircle class='cls-2' cx='117.7' cy='823.6' r='1.1'/%3e%3ccircle class='cls-2' cx='161.1' cy='814.2' r='1.1'/%3e%3ccircle class='cls-2' cx='157.7' cy='793.2' r='.6'/%3e%3ccircle class='cls-2' cx='134.4' cy='795.3' r='.7'/%3e%3ccircle class='cls-2' cx='108.2' cy='796' r='.7'/%3e%3ccircle class='cls-2' cx='81.3' cy='805' r='.9'/%3e%3ccircle class='cls-2' cx='61.8' cy='816.9' r='.8'/%3e%3ccircle class='cls-2' cx='57.5' cy='826.3' r='.8'/%3e%3ccircle class='cls-2' cx='56.7' cy='816.9' r='1.3'/%3e%3ccircle class='cls-2' cx='69.9' cy='801' r='1.4'/%3e%3ccircle class='cls-2' cx='103.1' cy='773.3' r='1.4'/%3e%3ccircle class='cls-2' cx='108.3' cy='749.5' r='.8'/%3e%3ccircle class='cls-2' cx='112.8' cy='740.3' r='1.4'/%3e%3ccircle class='cls-2' cx='112.4' cy='725' r='.8'/%3e%3ccircle class='cls-2' cx='106.7' cy='704.9' r='1.4'/%3e%3ccircle class='cls-2' cx='92.4' cy='695.9' r='1.2'/%3e%3ccircle class='cls-2' cx='288.5' cy='723.3' r='.5'/%3e%3ccircle class='cls-2' cx='269.2' cy='714.1' r='1.1'/%3e%3ccircle class='cls-2' cx='266.4' cy='700.4' r='.7'/%3e%3ccircle class='cls-2' cx='1527.6' cy='139.5' r='.8'/%3e%3ccircle class='cls-2' cx='1361.5' cy='1018' r='1.5'/%3e%3ccircle class='cls-2' cx='1297.8' cy='1013.4' r='.7'/%3e%3ccircle class='cls-2' cx='1333' cy='989.7' r='1.4'/%3e%3ccircle class='cls-2' cx='404.4' cy='574.3' r='1.1'/%3e%3ccircle class='cls-2' cx='402.5' cy='540.3' r='.5'/%3e%3ccircle class='cls-2' cx='365.3' cy='539.9' r='.9'/%3e%3ccircle class='cls-2' cx='346.6' cy='535.8' r='1.1'/%3e%3ccircle class='cls-2' cx='333.9' cy='552.3' r='.9'/%3e%3ccircle class='cls-2' cx='312.8' cy='567.7' r='1.2'/%3e%3ccircle class='cls-2' cx='299.6' cy='567.3' r='1.2'/%3e%3ccircle class='cls-2' cx='279.4' cy='582.2' r='.8'/%3e%3ccircle class='cls-2' cx='370.5' cy='489.4' r='1'/%3e%3ccircle class='cls-2' cx='360.1' cy='487.7' r='1.5'/%3e%3ccircle class='cls-2' cx='347.4' cy='485.8' r='.9'/%3e%3ccircle class='cls-2' cx='317.9' cy='498.1' r='.5'/%3e%3ccircle class='cls-2' cx='301.6' cy='495.3' r='.6'/%3e%3ccircle class='cls-2' cx='286.9' cy='473.1' r='1'/%3e%3ccircle class='cls-2' cx='251' cy='458.6' r='1.4'/%3e%3ccircle class='cls-2' cx='224.2' cy='472.7' r='1.1'/%3e%3ccircle class='cls-2' cx='193.2' cy='487.2' r='1.3'/%3e%3ccircle class='cls-2' cx='177.1' cy='497.9' r='1.3'/%3e%3ccircle class='cls-2' cx='161.9' cy='513.1' r='.9'/%3e%3ccircle class='cls-2' cx='139.9' cy='536.3' r='.6'/%3e%3ccircle class='cls-2' cx='133' cy='547.9' r='1.3'/%3e%3ccircle class='cls-2' cx='116.9' cy='557.4' r='.9'/%3e%3ccircle class='cls-2' cx='116' cy='568.4' r='.8'/%3e%3ccircle class='cls-2' cx='109.6' cy='572.8' r='.6'/%3e%3ccircle class='cls-2' cx='528.1' cy='241.1' r='1.5'/%3e%3ccircle class='cls-2' cx='517.8' cy='245.6' r='1.1'/%3e%3ccircle class='cls-2' cx='516.1' cy='261.4' r='1.2'/%3e%3ccircle class='cls-2' cx='499.6' cy='262.8' r='.9'/%3e%3ccircle class='cls-2' cx='502' cy='275.4' r='.5'/%3e%3ccircle class='cls-2' cx='472.3' cy='295' r='1.3'/%3e%3ccircle class='cls-2' cx='435' cy='311.8' r='1.2'/%3e%3ccircle class='cls-2' cx='396.3' cy='324' r='1.1'/%3e%3ccircle class='cls-2' cx='381.9' cy='323.8' r='.5'/%3e%3ccircle class='cls-2' cx='586.6' cy='219.1' r='.6'/%3e%3ccircle class='cls-2' cx='568.3' cy='204.1' r='1.4'/%3e%3ccircle class='cls-2' cx='553.3' cy='167.1' r='1.1'/%3e%3ccircle class='cls-2' cx='547.6' cy='138.6' r='1'/%3e%3ccircle class='cls-2' cx='547.6' cy='124.8' r='.8'/%3e%3ccircle class='cls-2' cx='515.8' cy='103.4' r='.7'/%3e%3ccircle class='cls-2' cx='488' cy='113' r='1'/%3e%3ccircle class='cls-2' cx='463.2' cy='106.4' r='1'/%3e%3ccircle class='cls-2' cx='422.9' cy='112.2' r='.6'/%3e%3ccircle class='cls-2' cx='388.7' cy='118' r='.9'/%3e%3ccircle class='cls-2' cx='376.5' cy='127.2' r='.8'/%3e%3ccircle class='cls-2' cx='370.4' cy='132.7' r='.7'/%3e%3ccircle class='cls-2' cx='357.8' cy='135.1' r='1.4'/%3e%3ccircle class='cls-2' cx='343.7' cy='141.5' r='.9'/%3e%3ccircle class='cls-2' cx='334.6' cy='135.3' r='.6'/%3e%3ccircle class='cls-2' cx='953.1' cy='125.2' r='.7'/%3e%3ccircle class='cls-2' cx='939.5' cy='96.2' r='1.3'/%3e%3ccircle class='cls-2' cx='907.3' cy='83.6' r='.5'/%3e%3ccircle class='cls-2' cx='881.4' cy='82.6' r='.7'/%3e%3ccircle class='cls-2' cx='837.8' cy='92.5' r='.9'/%3e%3ccircle class='cls-2' cx='824.6' cy='90.4' r='.6'/%3e%3ccircle class='cls-2' cx='808.6' cy='96.4' r='1.1'/%3e%3ccircle class='cls-2' cx='776.5' cy='96.1' r='1.2'/%3e%3ccircle class='cls-2' cx='742.4' cy='103' r='1.4'/%3e%3ccircle class='cls-2' cx='677.5' cy='162.3' r='.9'/%3e%3ccircle class='cls-2' cx='673.2' cy='107.7' r='1.1'/%3e%3ccircle class='cls-2' cx='647.9' cy='98.3' r='1.1'/%3e%3ccircle class='cls-2' cx='636.1' cy='103.5' r='.9'/%3e%3ccircle class='cls-2' cx='624.1' cy='100.5' r='1.4'/%3e%3ccircle class='cls-2' cx='574.5' cy='125.1' r='1'/%3e%3ccircle class='cls-2' cx='555' cy='119.3' r='1'/%3e%3ccircle class='cls-2' cx='554.5' cy='108.3' r='1.1'/%3e%3ccircle class='cls-2' cx='546.5' cy='103.8' r='.8'/%3e%3ccircle class='cls-2' cx='571' cy='127.1' r='.7'/%3e%3ccircle class='cls-2' cx='594.1' cy='96.8' r='1'/%3e%3ccircle class='cls-2' cx='627.2' cy='100.8' r='.6'/%3e%3ccircle class='cls-2' cx='644.2' cy='110.3' r='1'/%3e%3ccircle class='cls-2' cx='639.4' cy='96.5' r='1.3'/%3e%3ccircle class='cls-2' cx='578.6' cy='126.1' r='.8'/%3e%3ccircle class='cls-2' cx='568.7' cy='118.7' r='.6'/%3e%3ccircle class='cls-2' cx='554.1' cy='105.7' r='.6'/%3e%3ccircle class='cls-2' cx='544.2' cy='95.6' r='1.3'/%3e%3ccircle class='cls-2' cx='510.6' cy='82.2' r='1.1'/%3e%3ccircle class='cls-2' cx='508.2' cy='70.7' r='.7'/%3e%3ccircle class='cls-2' cx='484.1' cy='76' r='1.2'/%3e%3ccircle class='cls-2' cx='466.3' cy='69' r='1.2'/%3e%3ccircle class='cls-2' cx='435.9' cy='66.3' r='.6'/%3e%3ccircle class='cls-2' cx='420.3' cy='76' r='1.1'/%3e%3ccircle class='cls-2' cx='383.5' cy='85.5' r='.6'/%3e%3ccircle class='cls-2' cx='369.8' cy='91.4' r='1.3'/%3e%3ccircle class='cls-2' cx='361.5' cy='111.2' r='1.3'/%3e%3ccircle class='cls-2' cx='1764.2' cy='114.5' r='1.3'/%3e%3ccircle class='cls-2' cx='1756.7' cy='100.8' r='1.2'/%3e%3ccircle class='cls-2' cx='1749.2' cy='97.9' r='1.4'/%3e%3ccircle class='cls-2' cx='1722.4' cy='70.1' r='.7'/%3e%3ccircle class='cls-2' cx='1702.5' cy='63.4' r='.5'/%3e%3ccircle class='cls-2' cx='1628.6' cy='33' r='1.2'/%3e%3ccircle class='cls-2' cx='1610.9' cy='19.4' r='.6'/%3e%3ccircle class='cls-2' cx='1602.6' cy='23.3' r='1.2'/%3e%3ccircle class='cls-2' cx='1587.1' cy='24.4' r='1.3'/%3e%3ccircle class='cls-2' cx='1552' cy='35' r='1.4'/%3e%3ccircle class='cls-2' cx='1516.1' cy='46.2' r='.6'/%3e%3ccircle class='cls-2' cx='1508.9' cy='47.1' r='1.2'/%3e%3ccircle class='cls-2' cx='1482.3' cy='62.2' r='.8'/%3e%3ccircle class='cls-2' cx='1474.7' cy='82.4' r='1.3'/%3e%3ccircle class='cls-2' cx='1461.5' cy='108.1' r='1'/%3e%3ccircle class='cls-2' cx='1450.7' cy='124.6' r='.5'/%3e%3ccircle class='cls-2' cx='1443.5' cy='141.4' r='1.4'/%3e%3ccircle class='cls-2' cx='1449.5' cy='163.7' r='.6'/%3e%3ccircle class='cls-2' cx='1463.1' cy='202' r='.8'/%3e%3ccircle class='cls-2' cx='1471.5' cy='216.1' r='.5'/%3e%3ccircle class='cls-2' cx='1487.6' cy='216.7' r='1.1'/%3e%3ccircle class='cls-2' cx='1493.2' cy='228.9' r='.6'/%3e%3ccircle class='cls-2' cx='1512.4' cy='220.8' r='1.3'/%3e%3ccircle class='cls-2' cx='1530.8' cy='217.2' r='1.3'/%3e%3ccircle class='cls-2' cx='1575.9' cy='222.3' r='1'/%3e%3ccircle class='cls-2' cx='1590.3' cy='210.8' r='.9'/%3e%3ccircle class='cls-2' cx='1598.3' cy='216.8' r='.9'/%3e%3ccircle class='cls-2' cx='1608' cy='203.4' r='.6'/%3e%3ccircle class='cls-2' cx='1645' cy='205.2' r='1'/%3e%3ccircle class='cls-2' cx='1678.9' cy='187.7' r='.8'/%3e%3ccircle class='cls-2' cx='1691.4' cy='178.2' r='.7'/%3e%3ccircle class='cls-2' cx='1728.8' cy='161' r='.5'/%3e%3ccircle class='cls-2' cx='1797.2' cy='110' r='1.4'/%3e%3ccircle class='cls-2' cx='1809.8' cy='44.9' r='.7'/%3e%3ccircle class='cls-2' cx='1744.7' cy='1.1' r='1'/%3e%3ccircle class='cls-2' cx='1740.6' cy='53.4' r='.7'/%3e%3ccircle class='cls-2' cx='1699.8' cy='69.1' r='1.3'/%3e%3ccircle class='cls-2' cx='1665.9' cy='75.7' r='.8'/%3e%3ccircle class='cls-2' cx='1624.3' cy='77.7' r='1.1'/%3e%3ccircle class='cls-2' cx='1614.7' cy='76.9' r='1'/%3e%3ccircle class='cls-2' cx='1590.4' cy='85.1' r='.7'/%3e%3ccircle class='cls-2' cx='1578.4' cy='76.9' r='.9'/%3e%3ccircle class='cls-2' cx='1561.2' cy='89.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1532.7' cy='89.4' r='.6'/%3e%3ccircle class='cls-2' cx='1528' cy='97' r='.5'/%3e%3ccircle class='cls-2' cx='1517.6' cy='89.5' r='1.3'/%3e%3ccircle class='cls-2' cx='1492.8' cy='100.1' r='1'/%3e%3ccircle class='cls-2' cx='1515.5' cy='92.3' r='1.4'/%3e%3ccircle class='cls-2' cx='1522.3' cy='71.1' r='1.4'/%3e%3ccircle class='cls-2' cx='1538' cy='60.5' r='1.2'/%3e%3ccircle class='cls-2' cx='1883.9' cy='199.1' r='1.3'/%3e%3ccircle class='cls-2' cx='1883.5' cy='166.5' r='1.2'/%3e%3ccircle class='cls-2' cx='1874.1' cy='134.7' r='.9'/%3e%3ccircle class='cls-2' cx='1891' cy='124.2' r='1.4'/%3e%3ccircle class='cls-2' cx='1814' cy='155' r='.6'/%3e%3ccircle class='cls-2' cx='1804.1' cy='257.9' r='1'/%3e%3ccircle class='cls-2' cx='1853.4' cy='754.7' r='.8'/%3e%3ccircle class='cls-2' cx='1832' cy='767.6' r='1.5'/%3e%3ccircle class='cls-2' cx='1825.5' cy='789.8' r='1.2'/%3e%3ccircle class='cls-2' cx='1823.5' cy='803.7' r='.6'/%3e%3ccircle class='cls-2' cx='1828.5' cy='811.8' r='1.2'/%3e%3ccircle class='cls-2' cx='1833.3' cy='788.6' r='.6'/%3e%3ccircle class='cls-2' cx='1855.3' cy='774.3' r='.8'/%3e%3ccircle class='cls-2' cx='1863.9' cy='749' r='1.1'/%3e%3ccircle class='cls-2' cx='1226.1' cy='851.3' r='1'/%3e%3ccircle class='cls-2' cx='1234' cy='817' r='.9'/%3e%3ccircle class='cls-2' cx='1231.5' cy='781.5' r='.8'/%3e%3ccircle class='cls-2' cx='1877.8' cy='567.6' r='1.5'/%3e%3ccircle class='cls-2' cx='1852.2' cy='600.5' r='1.2'/%3e%3ccircle class='cls-2' cx='1844.8' cy='611' r='.5'/%3e%3ccircle class='cls-2' cx='1846' cy='640.7' r='.7'/%3e%3ccircle class='cls-2' cx='1871.7' cy='649.1' r='1.3'/%3e%3ccircle class='cls-2' cx='1214.1' cy='834.1' r='.8'/%3e%3ccircle class='cls-2' cx='1236.7' cy='796.6' r='.9'/%3e%3ccircle class='cls-2' cx='1257.2' cy='778.4' r='.8'/%3e%3ccircle class='cls-2' cx='1872.5' cy='433.6' r='1.2'/%3e%3ccircle class='cls-2' cx='1861.3' cy='450.9' r='1.2'/%3e%3ccircle class='cls-2' cx='1850.3' cy='462.8' r='1.3'/%3e%3ccircle class='cls-2' cx='1854.7' cy='475.2' r='.8'/%3e%3ccircle class='cls-2' cx='1834.9' cy='478.7' r='.9'/%3e%3ccircle class='cls-2' cx='1842.5' cy='489.8' r='1.2'/%3e%3ccircle class='cls-2' cx='1839.1' cy='463.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1858.2' cy='427.5' r='1.1'/%3e%3ccircle class='cls-2' cx='1851.6' cy='399.5' r='.7'/%3e%3ccircle class='cls-2' cx='1864.1' cy='381.8' r='.6'/%3e%3ccircle class='cls-2' cx='1875.9' cy='341.8' r='1.5'/%3e%3ccircle class='cls-2' cx='1888.3' cy='290.6' r='.5'/%3e%3ccircle class='cls-2' cx='1890.7' cy='277.9' r='.8'/%3e%3ccircle class='cls-2' cx='1876.3' cy='195.2' r='1.4'/%3e%3ccircle class='cls-2' cx='1837.8' cy='239.9' r='1.4'/%3e%3ccircle class='cls-2' cx='1823.3' cy='277' r='1'/%3e%3ccircle class='cls-2' cx='1817.2' cy='290.4' r='.7'/%3e%3ccircle class='cls-2' cx='1824.2' cy='311.6' r='1.4'/%3e%3ccircle class='cls-2' cx='1866.3' cy='982.1' r='1.1'/%3e%3ccircle class='cls-2' cx='1874.5' cy='978.3' r='.6'/%3e%3ccircle class='cls-2' cx='1865.2' cy='999.4' r='1.3'/%3e%3ccircle class='cls-2' cx='1850.3' cy='1022.9' r='.7'/%3e%3ccircle class='cls-2' cx='1852.9' cy='1033.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1852.5' cy='1059.2' r='1.4'/%3e%3ccircle class='cls-2' cx='1882.3' cy='1075.9' r='1'/%3e%3ccircle class='cls-2' cx='1883.8' cy='500.5' r='.8'/%3e%3ccircle class='cls-2' cx='1867.1' cy='512.4' r='1.5'/%3e%3ccircle class='cls-2' cx='1844.7' cy='547.6' r='.8'/%3e%3ccircle class='cls-2' cx='1835.5' cy='587' r='1.2'/%3e%3ccircle class='cls-2' cx='1856.5' cy='613.2' r='1.4'/%3e%3ccircle class='cls-2' cx='1858.8' cy='619.5' r='.6'/%3e%3ccircle class='cls-2' cx='1205.4' cy='804.5' r='.6'/%3e%3ccircle class='cls-2' cx='1235.2' cy='768' r='.8'/%3e%3ccircle class='cls-2' cx='1289.7' cy='775.2' r='.5'/%3e%3ccircle class='cls-2' cx='1251.4' cy='780.9' r='1'/%3e%3ccircle class='cls-2' cx='1239.6' cy='811.7' r='.5'/%3e%3ccircle class='cls-2' cx='1226' cy='842.6' r='.8'/%3e%3ccircle class='cls-2' cx='1221.9' cy='848.2' r='1.3'/%3e%3ccircle class='cls-2' cx='1208.8' cy='869' r='1.4'/%3e%3ccircle class='cls-2' cx='1874.2' cy='744.7' r='.8'/%3e%3ccircle class='cls-2' cx='1876.8' cy='776.5' r='.6'/%3e%3ccircle class='cls-2' cx='1876' cy='799.7' r='1'/%3e%3ccircle class='cls-2' cx='1885' cy='556.9' r='.5'/%3e%3ccircle class='cls-2' cx='1880.7' cy='550.5' r='.8'/%3e%3ccircle class='cls-2' cx='1843.3' cy='546.3' r='.6'/%3e%3ccircle class='cls-2' cx='1822.8' cy='542.7' r='1.1'/%3e%3ccircle class='cls-2' cx='1815.5' cy='544.4' r='1.2'/%3e%3ccircle class='cls-2' cx='1804.9' cy='540.4' r='.8'/%3e%3ccircle class='cls-2' cx='1811.1' cy='554.4' r='1'/%3e%3ccircle class='cls-2' cx='1813.3' cy='562.8' r='1.5'/%3e%3ccircle class='cls-2' cx='1830' cy='583.3' r='.9'/%3e%3ccircle class='cls-2' cx='1859.2' cy='612.3' r='1.2'/%3e%3ccircle class='cls-2' cx='1199.6' cy='840.9' r='.9'/%3e%3ccircle class='cls-2' cx='1318.5' cy='796.1' r='1.1'/%3e%3ccircle class='cls-2' cx='1245.9' cy='833.4' r='1.4'/%3e%3ccircle class='cls-2' cx='1258.4' cy='796.3' r='1.2'/%3e%3ccircle class='cls-2' cx='1881.7' cy='479.6' r='1.2'/%3e%3ccircle class='cls-2' cx='1879.2' cy='517.3' r='1.4'/%3e%3ccircle class='cls-2' cx='1216' cy='790.6' r='.6'/%3e%3ccircle class='cls-2' cx='1218.2' cy='796.1' r='.6'/%3e%3ccircle class='cls-2' cx='1223.9' cy='805.7' r='1.4'/%3e%3ccircle class='cls-2' cx='1239.9' cy='815.4' r='1.2'/%3e%3ccircle class='cls-2' cx='1257.9' cy='834.5' r='1.3'/%3e%3ccircle class='cls-2' cx='1877.9' cy='475.8' r='1.3'/%3e%3ccircle class='cls-2' cx='1861' cy='493' r='1.2'/%3e%3ccircle class='cls-2' cx='1830.6' cy='520.6' r='.6'/%3e%3ccircle class='cls-2' cx='1850' cy='537.5' r='1.4'/%3e%3ccircle class='cls-2' cx='1879.4' cy='375.8' r='1.3'/%3e%3ccircle class='cls-2' cx='1852.5' cy='390.3' r='1.3'/%3e%3ccircle class='cls-2' cx='1831.4' cy='405.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1850.4' cy='423.3' r='1'/%3e%3ccircle class='cls-2' cx='1360.4' cy='352.8' r='1.3'/%3e%3ccircle class='cls-2' cx='1321.6' cy='356.1' r='1.3'/%3e%3ccircle class='cls-2' cx='1296' cy='384' r='1.3'/%3e%3ccircle class='cls-2' cx='1272.8' cy='412.5' r='1.3'/%3e%3ccircle class='cls-2' cx='1263.6' cy='429.9' r='1.3'/%3e%3ccircle class='cls-2' cx='1253.1' cy='450' r='1.2'/%3e%3ccircle class='cls-2' cx='1253' cy='479.3' r='.8'/%3e%3ccircle class='cls-2' cx='1255.7' cy='513.1' r='.9'/%3e%3ccircle class='cls-2' cx='1267.4' cy='529.8' r='.7'/%3e%3ccircle class='cls-2' cx='1285.1' cy='547.6' r='1.4'/%3e%3ccircle class='cls-2' cx='1300.1' cy='548.9' r='.6'/%3e%3ccircle class='cls-2' cx='1321' cy='549.6' r='1'/%3e%3ccircle class='cls-2' cx='1345.2' cy='550.6' r='1.4'/%3e%3ccircle class='cls-2' cx='1369.9' cy='553.3' r='1'/%3e%3ccircle class='cls-2' cx='1406.2' cy='554.9' r='1'/%3e%3ccircle class='cls-2' cx='1429.5' cy='533.7' r='1.3'/%3e%3ccircle class='cls-2' cx='1436.8' cy='531.9' r='1.2'/%3e%3ccircle class='cls-2' cx='1477.2' cy='524.7' r='.9'/%3e%3ccircle class='cls-2' cx='1486.5' cy='511.9' r='.6'/%3e%3ccircle class='cls-2' cx='1499.6' cy='497.2' r='1.4'/%3e%3ccircle class='cls-2' cx='1524.7' cy='477.6' r='1.3'/%3e%3ccircle class='cls-2' cx='1528.3' cy='470' r='1.4'/%3e%3ccircle class='cls-2' cx='1552.8' cy='456.7' r='1.4'/%3e%3ccircle class='cls-2' cx='1550.1' cy='442.2' r='1.2'/%3e%3ccircle class='cls-2' cx='1568.3' cy='431.1' r='1.2'/%3e%3ccircle class='cls-2' cx='1528.7' cy='446.9' r='.8'/%3e%3ccircle class='cls-2' cx='1509' cy='449.4' r='.6'/%3e%3ccircle class='cls-2' cx='1632.4' cy='427' r='1.3'/%3e%3ccircle class='cls-2' cx='1644.7' cy='404.7' r='.5'/%3e%3ccircle class='cls-2' cx='1637.8' cy='387.5' r='1'/%3e%3ccircle class='cls-2' cx='1643.5' cy='372.1' r='.6'/%3e%3ccircle class='cls-2' cx='1644.7' cy='373.7' r='.8'/%3e%3ccircle class='cls-2' cx='1656.3' cy='386.7' r='.6'/%3e%3ccircle class='cls-2' cx='1667.8' cy='428.1' r='.8'/%3e%3ccircle class='cls-2' cx='1675.3' cy='450.5' r='.7'/%3e%3ccircle class='cls-2' cx='1681.1' cy='473.3' r='1.5'/%3e%3ccircle class='cls-2' cx='1685' cy='488.7' r='1.1'/%3e%3ccircle class='cls-2' cx='1717.1' cy='521.8' r='1'/%3e%3ccircle class='cls-2' cx='1731.9' cy='485.3' r='.6'/%3e%3ccircle class='cls-2' cx='1740.9' cy='470.7' r='1.5'/%3e%3ccircle class='cls-2' cx='1715' cy='441.1' r='.5'/%3e%3ccircle class='cls-2' cx='1688.8' cy='455.6' r='.5'/%3e%3ccircle class='cls-2' cx='1680.8' cy='456.7' r='.8'/%3e%3ccircle class='cls-2' cx='1656' cy='465.6' r='.9'/%3e%3ccircle class='cls-2' cx='1641.6' cy='469.7' r='1.4'/%3e%3ccircle class='cls-2' cx='1613.5' cy='466.8' r='.5'/%3e%3ccircle class='cls-2' cx='1588.5' cy='469.9' r='1.2'/%3e%3ccircle class='cls-2' cx='1577.3' cy='483.8' r='1.2'/%3e%3ccircle class='cls-2' cx='1567.8' cy='478.6' r='1.4'/%3e%3ccircle class='cls-2' cx='1550.3' cy='485.9' r='1.1'/%3e%3ccircle class='cls-2' cx='1544.7' cy='489' r='1'/%3e%3ccircle class='cls-2' cx='1537' cy='487.7' r='.5'/%3e%3ccircle class='cls-2' cx='1513' cy='495.5' r='.6'/%3e%3ccircle class='cls-2' cx='1120.8' cy='343.8' r='1.4'/%3e%3ccircle class='cls-2' cx='1133.8' cy='349.4' r='.9'/%3e%3ccircle class='cls-2' cx='1140.9' cy='370.2' r='1'/%3e%3ccircle class='cls-2' cx='1152.3' cy='367.8' r='.6'/%3e%3ccircle class='cls-2' cx='1169.7' cy='381.5' r='1'/%3e%3ccircle class='cls-2' cx='1209.7' cy='386.6' r='1'/%3e%3ccircle class='cls-2' cx='1229.4' cy='377.9' r='.6'/%3e%3ccircle class='cls-2' cx='1247' cy='377' r='1.4'/%3e%3ccircle class='cls-2' cx='1290.7' cy='374.8' r='.8'/%3e%3ccircle class='cls-2' cx='1312.3' cy='372.8' r='1.2'/%3e%3ccircle class='cls-2' cx='1330.7' cy='384.2' r='.9'/%3e%3ccircle class='cls-2' cx='1350.3' cy='377.8' r='.9'/%3e%3ccircle class='cls-2' cx='1353.8' cy='390.3' r='.8'/%3e%3ccircle class='cls-2' cx='1371.9' cy='389.5' r='1.3'/%3e%3ccircle class='cls-2' cx='1387.7' cy='396.4' r='.9'/%3e%3ccircle class='cls-2' cx='1419.6' cy='395.8' r='1.2'/%3e%3ccircle class='cls-2' cx='1438.4' cy='430.5' r='1'/%3e%3ccircle class='cls-2' cx='1433.5' cy='455.6' r='.7'/%3e%3ccircle class='cls-2' cx='1423.9' cy='477.9' r='1.3'/%3e%3ccircle class='cls-2' cx='1472.5' cy='484.1' r='1.1'/%3e%3ccircle class='cls-2' cx='1507.3' cy='479.3' r='.8'/%3e%3ccircle class='cls-2' cx='1545.9' cy='455.5' r='1.2'/%3e%3ccircle class='cls-2' cx='1588.1' cy='452.5' r='1.4'/%3e%3ccircle class='cls-2' cx='1623.3' cy='429.2' r='1.2'/%3e%3ccircle class='cls-2' cx='1630.6' cy='431.1' r='.6'/%3e%3ccircle class='cls-2' cx='1651.5' cy='415.2' r='1.1'/%3e%3ccircle class='cls-2' cx='1661.1' cy='409.3' r='1.2'/%3e%3ccircle class='cls-2' cx='1697.8' cy='398.2' r='1.4'/%3e%3ccircle class='cls-2' cx='1715.2' cy='398.1' r='.8'/%3e%3ccircle class='cls-2' cx='1702.8' cy='428.5' r='.7'/%3e%3ccircle class='cls-2' cx='1696.8' cy='463.3' r='1'/%3e%3ccircle class='cls-2' cx='1695.3' cy='476.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1683.1' cy='490.4' r='1'/%3e%3ccircle class='cls-2' cx='1682.2' cy='505' r='.6'/%3e%3ccircle class='cls-2' cx='984.3' cy='309.5' r='.8'/%3e%3ccircle class='cls-2' cx='1010.8' cy='307.3' r='.8'/%3e%3ccircle class='cls-2' cx='1047.7' cy='292.9' r='.8'/%3e%3ccircle class='cls-2' cx='396.4' cy='282' r='.9'/%3e%3ccircle class='cls-2' cx='380.5' cy='271.1' r='.5'/%3e%3ccircle class='cls-2' cx='361.6' cy='272.7' r='.6'/%3e%3ccircle class='cls-2' cx='362.5' cy='258.7' r='.7'/%3e%3ccircle class='cls-2' cx='403.1' cy='249.8' r='.7'/%3e%3ccircle class='cls-2' cx='424.5' cy='266.7' r='.7'/%3e%3ccircle class='cls-2' cx='436' cy='289.9' r='1.3'/%3e%3ccircle class='cls-2' cx='464.8' cy='297.5' r='.7'/%3e%3ccircle class='cls-2' cx='476.6' cy='291.5' r='1'/%3e%3ccircle class='cls-2' cx='511.8' cy='285.6' r='1.2'/%3e%3ccircle class='cls-2' cx='550.3' cy='265.9' r='.8'/%3e%3ccircle class='cls-2' cx='589.3' cy='251.4' r='1.2'/%3e%3ccircle class='cls-2' cx='610.3' cy='253.9' r='.7'/%3e%3ccircle class='cls-2' cx='636.1' cy='247.4' r='1.2'/%3e%3ccircle class='cls-2' cx='651.1' cy='241.7' r='.6'/%3e%3ccircle class='cls-2' cx='667.7' cy='226.8' r='.9'/%3e%3ccircle class='cls-2' cx='703.5' cy='219.1' r='1.2'/%3e%3ccircle class='cls-2' cx='744.7' cy='219.6' r='.5'/%3e%3ccircle class='cls-2' cx='767.8' cy='252.3' r='.8'/%3e%3ccircle class='cls-2' cx='771.4' cy='262.2' r='.6'/%3e%3ccircle class='cls-2' cx='802.6' cy='268' r='1.4'/%3e%3ccircle class='cls-2' cx='825.4' cy='268.6' r='1'/%3e%3ccircle class='cls-2' cx='860.6' cy='269.5' r='1.3'/%3e%3ccircle class='cls-2' cx='868.5' cy='269.7' r='.7'/%3e%3ccircle class='cls-2' cx='890.8' cy='255.4' r='.6'/%3e%3ccircle class='cls-2' cx='915.8' cy='259.5' r='1.2'/%3e%3ccircle class='cls-2' cx='994.9' cy='364.9' r='.8'/%3e%3ccircle class='cls-2' cx='978.9' cy='370.4' r='.8'/%3e%3ccircle class='cls-2' cx='951.9' cy='376' r='1.3'/%3e%3ccircle class='cls-2' cx='943' cy='378.7' r='1.1'/%3e%3ccircle class='cls-2' cx='932.6' cy='381.5' r='.9'/%3e%3ccircle class='cls-2' cx='923.1' cy='376.2' r='1.3'/%3e%3ccircle class='cls-2' cx='896.2' cy='380.9' r='1'/%3e%3ccircle class='cls-2' cx='884.4' cy='388.8' r='1.1'/%3e%3ccircle class='cls-2' cx='845.9' cy='391.7' r='1.2'/%3e%3ccircle class='cls-2' cx='833' cy='381.6' r='.9'/%3e%3ccircle class='cls-2' cx='829.6' cy='367.9' r='.7'/%3e%3ccircle class='cls-2' cx='832.9' cy='333.3' r='.8'/%3e%3ccircle class='cls-2' cx='830.8' cy='303.7' r='.8'/%3e%3ccircle class='cls-2' cx='805.5' cy='280.4' r='.8'/%3e%3ccircle class='cls-2' cx='796.5' cy='269.1' r='1'/%3e%3ccircle class='cls-2' cx='765.6' cy='267.1' r='1.1'/%3e%3ccircle class='cls-2' cx='736.9' cy='269.7' r='1.1'/%3e%3ccircle class='cls-2' cx='709.8' cy='279.7' r='1.1'/%3e%3ccircle class='cls-2' cx='694.6' cy='299.9' r='.6'/%3e%3ccircle class='cls-2' cx='665.8' cy='300.9' r='1.3'/%3e%3ccircle class='cls-2' cx='651.2' cy='316.6' r='.6'/%3e%3ccircle class='cls-2' cx='642.5' cy='318.9' r='1.4'/%3e%3ccircle class='cls-2' cx='613.4' cy='345.6' r='.7'/%3e%3ccircle class='cls-2' cx='602.4' cy='341.6' r='.7'/%3e%3ccircle class='cls-2' cx='587.6' cy='372.9' r='1.1'/%3e%3ccircle class='cls-2' cx='568.2' cy='379.6' r='.5'/%3e%3ccircle class='cls-2' cx='563.6' cy='384.9' r='1.3'/%3e%3ccircle class='cls-2' cx='1750.7' cy='1037.6' r='.8'/%3e%3ccircle class='cls-2' cx='1750.4' cy='1045.4' r='1.4'/%3e%3ccircle class='cls-2' cx='1841.1' cy='1036' r='.8'/%3e%3ccircle class='cls-2' cx='1842.4' cy='1065.7' r='1.2'/%3e%3ccircle class='cls-2' cx='1762.3' cy='1042.7' r='.7'/%3e%3ccircle class='cls-2' cx='1891.1' cy='844.7' r='.5'/%3e%3ccircle class='cls-2' cx='1884.3' cy='881.3' r='.8'/%3e%3ccircle class='cls-2' cx='1877.5' cy='893.3' r='.5'/%3e%3ccircle class='cls-2' cx='1878.4' cy='918.6' r='.9'/%3e%3ccircle class='cls-2' cx='1728.4' cy='915.8' r='1.2'/%3e%3ccircle class='cls-2' cx='1732.7' cy='903.3' r='1.2'/%3e%3ccircle class='cls-2' cx='1748.8' cy='895.7' r='1'/%3e%3ccircle class='cls-2' cx='1776.7' cy='901.8' r='.6'/%3e%3ccircle class='cls-2' cx='1790.7' cy='940.7' r='1.1'/%3e%3ccircle class='cls-2' cx='1820.2' cy='939.3' r='.7'/%3e%3ccircle class='cls-2' cx='1858' cy='931.5' r='1.4'/%3e%3ccircle class='cls-2' cx='1878.5' cy='922' r='.9'/%3e%3ccircle class='cls-2' cx='1831.1' cy='879.6' r='1.4'/%3e%3ccircle class='cls-2' cx='1833.4' cy='918.2' r='.9'/%3e%3ccircle class='cls-2' cx='1843.2' cy='942.9' r='.5'/%3e%3ccircle class='cls-2' cx='1843' cy='948.8' r='1.2'/%3e%3ccircle class='cls-2' cx='1852.6' cy='991' r='.9'/%3e%3ccircle class='cls-2' cx='1868.4' cy='979.8' r='.6'/%3e%3ccircle class='cls-2' cx='1858.4' cy='987.5' r='.8'/%3e%3ccircle class='cls-2' cx='1798.9' cy='781.9' r='1.4'/%3e%3ccircle class='cls-2' cx='1789.7' cy='787.2' r='.9'/%3e%3ccircle class='cls-2' cx='1788.4' cy='767.5' r='1.3'/%3e%3ccircle class='cls-2' cx='1746.7' cy='778.9' r='1.3'/%3e%3ccircle class='cls-2' cx='1722.9' cy='786.4' r='.9'/%3e%3ccircle class='cls-2' cx='1708.2' cy='818.2' r='.7'/%3e%3ccircle class='cls-2' cx='1704.6' cy='857.6' r='.6'/%3e%3ccircle class='cls-2' cx='1701.4' cy='893.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1709.1' cy='936.2' r='1.1'/%3e%3ccircle class='cls-2' cx='1716.7' cy='962.3' r='1.4'/%3e%3ccircle class='cls-2' cx='1879' cy='684.1' r='.9'/%3e%3ccircle class='cls-2' cx='1869.2' cy='690.8' r='1.4'/%3e%3ccircle class='cls-2' cx='1866.3' cy='704.2' r='.5'/%3e%3ccircle class='cls-2' cx='1858.2' cy='706.4' r='.9'/%3e%3ccircle class='cls-2' cx='1831' cy='764' r='.6'/%3e%3ccircle class='cls-2' cx='1820.4' cy='775.9' r='1.5'/%3e%3ccircle class='cls-2' cx='1816.3' cy='797.6' r='1.3'/%3e%3ccircle class='cls-2' cx='1809.5' cy='822.4' r='1.4'/%3e%3ccircle class='cls-2' cx='1814.3' cy='813' r='.7'/%3e%3ccircle class='cls-2' cx='1839.8' cy='793.1' r='.9'/%3e%3ccircle class='cls-2' cx='1847.1' cy='778' r='.9'/%3e%3ccircle class='cls-2' cx='1842.7' cy='811.4' r='1.2'/%3e%3ccircle class='cls-2' cx='1846' cy='827' r='.9'/%3e%3ccircle class='cls-2' cx='1845.7' cy='860.3' r='1.3'/%3e%3ccircle class='cls-2' cx='1847.1' cy='879.2' r='.8'/%3e%3ccircle class='cls-2' cx='1267.4' cy='864.2' r='.8'/%3e%3ccircle class='cls-2' cx='1256.1' cy='863.1' r='.7'/%3e%3ccircle class='cls-2' cx='1268.1' cy='827.4' r='1.3'/%3e%3ccircle class='cls-2' cx='1266.2' cy='830.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1262.7' cy='861.2' r='1'/%3e%3ccircle class='cls-2' cx='1690.5' cy='876.8' r='1.4'/%3e%3ccircle class='cls-2' cx='1733.2' cy='867.5' r='1'/%3e%3ccircle class='cls-2' cx='1754.7' cy='840.5' r='1.4'/%3e%3ccircle class='cls-2' cx='1784.7' cy='810.1' r='1.3'/%3e%3ccircle class='cls-2' cx='1783.8' cy='795.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1759.3' cy='771.6' r='.7'/%3e%3ccircle class='cls-2' cx='1749.9' cy='757.1' r='1.2'/%3e%3ccircle class='cls-2' cx='1741.6' cy='751.3' r='1.2'/%3e%3ccircle class='cls-2' cx='1727.2' cy='708.8' r='1'/%3e%3ccircle class='cls-2' cx='1732.1' cy='687.8' r='1.4'/%3e%3ccircle class='cls-2' cx='1773.1' cy='702.9' r='.6'/%3e%3ccircle class='cls-2' cx='1791' cy='695.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1596.2' cy='1006.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1589.7' cy='999.8' r='1.4'/%3e%3ccircle class='cls-2' cx='1569.9' cy='995.2' r='1'/%3e%3ccircle class='cls-2' cx='1546.3' cy='1002.3' r='.9'/%3e%3ccircle class='cls-2' cx='1534.6' cy='996.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1279' cy='785.1' r='.7'/%3e%3ccircle class='cls-2' cx='1289.8' cy='818' r='.5'/%3e%3ccircle class='cls-2' cx='1279.4' cy='857.5' r='1.5'/%3e%3ccircle class='cls-2' cx='1287.2' cy='871.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1740.4' cy='254.7' r='.9'/%3e%3ccircle class='cls-2' cx='1715.4' cy='248.9' r='1.3'/%3e%3ccircle class='cls-2' cx='1694.8' cy='222.6' r='1.1'/%3e%3ccircle class='cls-2' cx='1673.9' cy='237.6' r='1.3'/%3e%3ccircle class='cls-2' cx='1674.3' cy='259.7' r='.7'/%3e%3ccircle class='cls-2' cx='1679.6' cy='271.5' r='.8'/%3e%3ccircle class='cls-2' cx='1671' cy='292.1' r='1'/%3e%3ccircle class='cls-2' cx='1665.9' cy='276' r='1.4'/%3e%3ccircle class='cls-2' cx='1683.2' cy='244.1' r='.8'/%3e%3ccircle class='cls-2' cx='1695' cy='229.9' r='.8'/%3e%3ccircle class='cls-2' cx='1709.8' cy='218.5' r='1.4'/%3e%3ccircle class='cls-2' cx='1708.5' cy='227.9' r='1.1'/%3e%3ccircle class='cls-2' cx='1703.4' cy='236.6' r='1.1'/%3e%3ccircle class='cls-2' cx='1709' cy='261.4' r='1.4'/%3e%3ccircle class='cls-2' cx='1716.1' cy='270' r='1.3'/%3e%3ccircle class='cls-2' cx='1745.3' cy='197.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1724.2' cy='222.6' r='.8'/%3e%3ccircle class='cls-2' cx='1723.9' cy='250.8' r='.8'/%3e%3ccircle class='cls-2' cx='1714' cy='284.2' r='.6'/%3e%3ccircle class='cls-2' cx='1607.3' cy='298.9' r='1.1'/%3e%3ccircle class='cls-2' cx='1862.4' cy='39.9' r='.7'/%3e%3ccircle class='cls-2' cx='1765.8' cy='227.4' r='1.2'/%3e%3ccircle class='cls-2' cx='1176' cy='1010.8' r='1.2'/%3e%3ccircle class='cls-2' cx='1773.6' cy='96.1' r='1.4'/%3e%3ccircle class='cls-2' cx='1799.3' cy='88.5' r='.6'/%3e%3ccircle class='cls-2' cx='1189.8' cy='30.7' r='.6'/%3e%3ccircle class='cls-2' cx='1836.8' cy='238.2' r='1.4'/%3e%3ccircle class='cls-2' cx='1635.9' cy='802.3' r='.5'/%3e%3ccircle class='cls-2' cx='1627' cy='308.9' r='1.3'/%3e%3ccircle class='cls-2' cx='1804.5' cy='256.2' r='.8'/%3e%3ccircle class='cls-2' cx='1841.3' cy='211.8' r='.6'/%3e%3ccircle class='cls-2' cx='1828.8' cy='189.9' r='.6'/%3e%3ccircle class='cls-2' cx='1501.1' cy='66.4' r='.6'/%3e%3ccircle class='cls-2' cx='1504.7' cy='65.2' r='.7'/%3e%3ccircle class='cls-2' cx='1521.9' cy='57.4' r='.8'/%3e%3ccircle class='cls-2' cx='1530.5' cy='57.5' r='.7'/%3e%3ccircle class='cls-2' cx='1575.1' cy='58.9' r='1.3'/%3e%3ccircle class='cls-2' cx='1611.1' cy='45.8' r='1.4'/%3e%3ccircle class='cls-2' cx='1629.9' cy='42.8' r='1.2'/%3e%3ccircle class='cls-2' cx='1147.4' cy='111' r='1.2'/%3e%3ccircle class='cls-2' cx='1169.2' cy='119.2' r='.9'/%3e%3ccircle class='cls-2' cx='1185.5' cy='140.3' r='.5'/%3e%3ccircle class='cls-2' cx='1228.7' cy='137' r='1'/%3e%3ccircle class='cls-2' cx='1231.5' cy='149.7' r='1'/%3e%3ccircle class='cls-2' cx='1263.1' cy='155.3' r='.9'/%3e%3ccircle class='cls-2' cx='1281.8' cy='155.4' r='1'/%3e%3ccircle class='cls-2' cx='1287.6' cy='171.7' r='.8'/%3e%3ccircle class='cls-2' cx='1325' cy='84.3' r='1.3'/%3e%3ccircle class='cls-2' cx='1339.2' cy='87.6' r='1.3'/%3e%3ccircle class='cls-2' cx='1348.5' cy='80.5' r='.6'/%3e%3ccircle class='cls-2' cx='1360.4' cy='80.2' r='.8'/%3e%3ccircle class='cls-2' cx='1368.5' cy='70.8' r='1.5'/%3e%3ccircle class='cls-2' cx='1382' cy='63.8' r='.9'/%3e%3ccircle class='cls-2' cx='1398.2' cy='67.2' r='.8'/%3e%3ccircle class='cls-2' cx='1406' cy='61.1' r='1.1'/%3e%3ccircle class='cls-2' cx='1429.7' cy='44.1' r='.9'/%3e%3ccircle class='cls-2' cx='1462.9' cy='17.3' r='1.3'/%3e%3ccircle class='cls-2' cx='1484.3' cy='10.5' r='.6'/%3e%3ccircle class='cls-2' cx='1365.1' cy='15.9' r='.7'/%3e%3ccircle class='cls-2' cx='1293.6' cy='130.4' r='.6'/%3e%3ccircle class='cls-2' cx='1278.5' cy='133.6' r='.6'/%3e%3ccircle class='cls-2' cx='1250.6' cy='133.6' r='1.1'/%3e%3ccircle class='cls-2' cx='1222.1' cy='121.7' r='1.3'/%3e%3ccircle class='cls-2' cx='1222.5' cy='107.9' r='1'/%3e%3ccircle class='cls-2' cx='1205.8' cy='106.8' r='1.3'/%3e%3ccircle class='cls-2' cx='1191' cy='92' r='1.3'/%3e%3ccircle class='cls-2' cx='1180.6' cy='89.2' r='1.4'/%3e%3ccircle class='cls-2' cx='1192.4' cy='84.5' r='.8'/%3e%3ccircle class='cls-2' cx='1221' cy='87.6' r='1.4'/%3e%3ccircle class='cls-2' cx='1239.7' cy='100' r='.6'/%3e%3ccircle class='cls-2' cx='1035.6' cy='58.2' r='.9'/%3e%3ccircle class='cls-2' cx='1052.5' cy='27.7' r='.6'/%3e%3ccircle class='cls-2' cx='1074.5' cy='107.9' r='.7'/%3e%3ccircle class='cls-2' cx='1086.8' cy='81.7' r='.8'/%3e%3ccircle class='cls-2' cx='1099.4' cy='77' r='.9'/%3e%3ccircle class='cls-2' cx='1101.7' cy='61.8' r='.6'/%3e%3ccircle class='cls-2' cx='1114.8' cy='43.2' r='.5'/%3e%3ccircle class='cls-2' cx='1106.1' cy='63.6' r='1.5'/%3e%3ccircle class='cls-2' cx='1123.4' cy='89.2' r='.9'/%3e%3ccircle class='cls-2' cx='1138.4' cy='91.1' r='.7'/%3e%3ccircle class='cls-2' cx='1160.3' cy='81.7' r='1'/%3e%3ccircle class='cls-2' cx='1169.5' cy='91.2' r='1.2'/%3e%3ccircle class='cls-2' cx='1189.5' cy='80.2' r='1.3'/%3e%3ccircle class='cls-2' cx='1168.3' cy='73.9' r='.9'/%3e%3ccircle class='cls-2' cx='1128' cy='68.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1115.7' cy='68.8' r='1.3'/%3e%3ccircle class='cls-2' cx='1108.6' cy='68.1' r='1.1'/%3e%3ccircle class='cls-2' cx='1080.5' cy='73.1' r='.8'/%3e%3ccircle class='cls-2' cx='1034.4' cy='71.4' r='.7'/%3e%3ccircle class='cls-2' cx='1011.3' cy='96.1' r='.5'/%3e%3ccircle class='cls-2' cx='1002.4' cy='114.4' r='.8'/%3e%3ccircle class='cls-2' cx='992' cy='121.2' r='.8'/%3e%3ccircle class='cls-2' cx='991.3' cy='130.7' r='.5'/%3e%3ccircle class='cls-2' cx='998.4' cy='99.2' r='1.3'/%3e%3ccircle class='cls-2' cx='1015.6' cy='64.7' r='1.5'/%3e%3ccircle class='cls-2' cx='1056.5' cy='49.1' r='.9'/%3e%3ccircle class='cls-2' cx='505.6' cy='78.4' r='.9'/%3e%3ccircle class='cls-2' cx='517.3' cy='82.4' r='.8'/%3e%3ccircle class='cls-2' cx='520.6' cy='66.6' r='.6'/%3e%3ccircle class='cls-2' cx='530.8' cy='75.2' r='.5'/%3e%3ccircle class='cls-2' cx='548.4' cy='83.5' r='.6'/%3e%3ccircle class='cls-2' cx='555.5' cy='90.5' r='1.1'/%3e%3ccircle class='cls-2' cx='567.3' cy='96.9' r='.9'/%3e%3ccircle class='cls-2' cx='572.1' cy='102.3' r='1.3'/%3e%3ccircle class='cls-2' cx='579.1' cy='121.8' r='1.3'/%3e%3ccircle class='cls-2' cx='613.9' cy='106.3' r='1.1'/%3e%3ccircle class='cls-2' cx='607.6' cy='132.7' r='.8'/%3e%3ccircle class='cls-2' cx='608.9' cy='122.2' r='1'/%3e%3ccircle class='cls-2' cx='646.6' cy='98.6' r='1.1'/%3e%3ccircle class='cls-2' cx='649.5' cy='85.4' r='.7'/%3e%3ccircle class='cls-2' cx='642.5' cy='101.4' r='1.4'/%3e%3ccircle class='cls-2' cx='456.4' cy='40.2' r='1.2'/%3e%3ccircle class='cls-2' cx='461.7' cy='25.6' r='1'/%3e%3ccircle class='cls-2' cx='438.6' cy='20.2' r='.9'/%3e%3ccircle class='cls-2' cx='396.3' cy='.8' r='.6'/%3e%3ccircle class='cls-2' cx='361.2' cy='26.6' r='1.2'/%3e%3ccircle class='cls-2' cx='368.6' cy='41' r='.8'/%3e%3ccircle class='cls-2' cx='375.5' cy='51.7' r='1.5'/%3e%3ccircle class='cls-2' cx='397.1' cy='46.7' r='.7'/%3e%3ccircle class='cls-2' cx='412.6' cy='57.2' r='1.4'/%3e%3ccircle class='cls-2' cx='434.2' cy='43.7' r='.7'/%3e%3ccircle class='cls-2' cx='412.4' cy='37' r='1.4'/%3e%3ccircle class='cls-2' cx='623.5' cy='108.6' r='1.4'/%3e%3ccircle class='cls-2' cx='613.3' cy='91.8' r='.5'/%3e%3ccircle class='cls-2' cx='601.7' cy='47.7' r='.6'/%3e%3ccircle class='cls-2' cx='573.9' cy='48.5' r='1'/%3e%3ccircle class='cls-2' cx='566.6' cy='50.7' r='1.3'/%3e%3ccircle class='cls-2' cx='538.3' cy='65.1' r='.8'/%3e%3ccircle class='cls-2' cx='564.6' cy='81.4' r='.9'/%3e%3ccircle class='cls-2' cx='573.5' cy='79.9' r='.9'/%3e%3ccircle class='cls-2' cx='561.7' cy='53.8' r='.7'/%3e%3ccircle class='cls-2' cx='526.9' cy='49.8' r='.8'/%3e%3ccircle class='cls-2' cx='511.6' cy='44' r='.8'/%3e%3ccircle class='cls-2' cx='505.8' cy='35.9' r='1.5'/%3e%3ccircle class='cls-2' cx='474.3' cy='27.3' r='.7'/%3e%3ccircle class='cls-2' cx='447.8' cy='35.6' r='1.1'/%3e%3ccircle class='cls-2' cx='432.6' cy='27.7' r='1'/%3e%3ccircle class='cls-2' cx='698.9' cy='144.4' r='1.1'/%3e%3ccircle class='cls-2' cx='708.6' cy='101.3' r='.7'/%3e%3ccircle class='cls-2' cx='691.8' cy='92.9' r='.7'/%3e%3ccircle class='cls-2' cx='659.8' cy='111' r='1'/%3e%3ccircle class='cls-2' cx='659.1' cy='128.8' r='1.1'/%3e%3ccircle class='cls-2' cx='678.6' cy='93.3' r='.9'/%3e%3ccircle class='cls-2' cx='685.5' cy='93.8' r='.8'/%3e%3ccircle class='cls-2' cx='738.4' cy='52.5' r='1.1'/%3e%3ccircle class='cls-2' cx='755.5' cy='39.1' r='1.4'/%3e%3ccircle class='cls-2' cx='769.1' cy='30.2' r='.9'/%3e%3ccircle class='cls-2' cx='842.7' cy='29' r='.9'/%3e%3ccircle class='cls-2' cx='866.6' cy='34.7' r='1.1'/%3e%3ccircle class='cls-2' cx='839.3' cy='29.6' r='.5'/%3e%3ccircle class='cls-2' cx='817' cy='36.6' r='.8'/%3e%3ccircle class='cls-2' cx='806.9' cy='44.7' r='1.4'/%3e%3ccircle class='cls-2' cx='790.2' cy='39.9' r='.9'/%3e%3ccircle class='cls-2' cx='768' cy='34.6' r='1.3'/%3e%3ccircle class='cls-2' cx='760.6' cy='26.9' r='.9'/%3e%3ccircle class='cls-2' cx='893' cy='94.8' r='.5'/%3e%3ccircle class='cls-2' cx='869.7' cy='69.9' r='1.3'/%3e%3ccircle class='cls-2' cx='871.4' cy='63.6' r='.7'/%3e%3ccircle class='cls-2' cx='819.5' cy='165' r='.8'/%3e%3ccircle class='cls-2' cx='851.4' cy='144.6' r='1'/%3e%3ccircle class='cls-2' cx='858' cy='123' r='.7'/%3e%3ccircle class='cls-2' cx='861.8' cy='113.7' r='.7'/%3e%3ccircle class='cls-2' cx='855.3' cy='92.8' r='1.1'/%3e%3ccircle class='cls-2' cx='846.1' cy='71.8' r='1.2'/%3e%3ccircle class='cls-2' cx='504.7' cy='203' r='.5'/%3e%3ccircle class='cls-2' cx='536.5' cy='198.6' r='.6'/%3e%3ccircle class='cls-2' cx='546.6' cy='155.8' r='.5'/%3e%3ccircle class='cls-2' cx='507' cy='143.4' r='.9'/%3e%3ccircle class='cls-2' cx='483.5' cy='143.7' r='.6'/%3e%3ccircle class='cls-2' cx='462.5' cy='434.5' r='.6'/%3e%3ccircle class='cls-2' cx='476.8' cy='397.6' r='1.3'/%3e%3ccircle class='cls-2' cx='492.6' cy='377.3' r='.6'/%3e%3ccircle class='cls-2' cx='500.8' cy='355.9' r='.9'/%3e%3ccircle class='cls-2' cx='498.6' cy='327.6' r='1.4'/%3e%3ccircle class='cls-2' cx='496.7' cy='321.1' r='1'/%3e%3ccircle class='cls-2' cx='493.9' cy='284.7' r='1'/%3e%3ccircle class='cls-2' cx='479.3' cy='240.9' r='.8'/%3e%3ccircle class='cls-2' cx='452.5' cy='225.8' r='1.2'/%3e%3ccircle class='cls-2' cx='442.6' cy='221.9' r='.9'/%3e%3ccircle class='cls-2' cx='422.6' cy='207.7' r='1.1'/%3e%3ccircle class='cls-2' cx='407.4' cy='203.8' r='1.4'/%3e%3ccircle class='cls-2' cx='401.6' cy='191.6' r='1.4'/%3e%3ccircle class='cls-2' cx='360.4' cy='201.9' r='.6'/%3e%3ccircle class='cls-2' cx='372.6' cy='222.3' r='.6'/%3e%3ccircle class='cls-2' cx='399.3' cy='239.1' r='1.4'/%3e%3ccircle class='cls-2' cx='429.4' cy='246.2' r='.9'/%3e%3ccircle class='cls-2' cx='461.7' cy='228.9' r='1.4'/%3e%3ccircle class='cls-2' cx='457.5' cy='213' r='1.2'/%3e%3ccircle class='cls-2' cx='450' cy='183.3' r='.5'/%3e%3ccircle class='cls-2' cx='447.7' cy='140.7' r='.7'/%3e%3ccircle class='cls-2' cx='442.5' cy='134.6' r='.5'/%3e%3ccircle class='cls-2' cx='417.9' cy='171.7' r='.7'/%3e%3ccircle class='cls-2' cx='420.4' cy='202.8' r='1.3'/%3e%3ccircle class='cls-2' cx='394.1' cy='225.1' r='1.4'/%3e%3ccircle class='cls-2' cx='396.6' cy='238' r='1.1'/%3e%3ccircle class='cls-2' cx='389.9' cy='211.7' r='1'/%3e%3ccircle class='cls-2' cx='414.4' cy='191' r='1.2'/%3e%3ccircle class='cls-2' cx='422.7' cy='155.6' r='.7'/%3e%3ccircle class='cls-2' cx='441.9' cy='135.7' r='.8'/%3e%3ccircle class='cls-2' cx='450.4' cy='127.5' r='1.1'/%3e%3ccircle class='cls-2' cx='449.2' cy='116.5' r='.5'/%3e%3ccircle class='cls-2' cx='605.7' cy='391.3' r='.8'/%3e%3ccircle class='cls-2' cx='622.3' cy='376.9' r='.5'/%3e%3ccircle class='cls-2' cx='603' cy='346.6' r='1.3'/%3e%3ccircle class='cls-2' cx='569.4' cy='347.3' r='.9'/%3e%3ccircle class='cls-2' cx='557' cy='336.9' r='1.5'/%3e%3ccircle class='cls-2' cx='533.6' cy='331.4' r='1.4'/%3e%3ccircle class='cls-2' cx='492' cy='319' r='1.1'/%3e%3ccircle class='cls-2' cx='479.6' cy='346.1' r='1.2'/%3e%3ccircle class='cls-2' cx='457.3' cy='371.2' r='1'/%3e%3ccircle class='cls-2' cx='443.7' cy='375.7' r='1.1'/%3e%3ccircle class='cls-2' cx='431.6' cy='341.5' r='1.4'/%3e%3ccircle class='cls-2' cx='425.2' cy='314.8' r='1.4'/%3e%3ccircle class='cls-2' cx='405.8' cy='334.9' r='1.1'/%3e%3ccircle class='cls-2' cx='377.6' cy='342.8' r='1.3'/%3e%3ccircle class='cls-2' cx='368.8' cy='367.8' r='1.3'/%3e%3ccircle class='cls-2' cx='714.5' cy='317.1' r='1.1'/%3e%3ccircle class='cls-2' cx='701.1' cy='308.9' r='.9'/%3e%3ccircle class='cls-2' cx='694.2' cy='307.8' r='1.4'/%3e%3ccircle class='cls-2' cx='650.5' cy='304.9' r='.6'/%3e%3ccircle class='cls-2' cx='642' cy='306.5' r='.7'/%3e%3ccircle class='cls-2' cx='611.4' cy='310.1' r='.9'/%3e%3ccircle class='cls-2' cx='583.3' cy='315' r='.5'/%3e%3ccircle class='cls-2' cx='540.3' cy='325.6' r='.8'/%3e%3ccircle class='cls-2' cx='974' cy='812.9' r='.6'/%3e%3ccircle class='cls-2' cx='961.3' cy='791.7' r='.6'/%3e%3ccircle class='cls-2' cx='950.6' cy='781.4' r='1.3'/%3e%3ccircle class='cls-2' cx='939.1' cy='760' r='1.1'/%3e%3ccircle class='cls-2' cx='929.4' cy='737' r='1.3'/%3e%3ccircle class='cls-2' cx='920.2' cy='726' r='.7'/%3e%3ccircle class='cls-2' cx='898.8' cy='715.6' r='1'/%3e%3ccircle class='cls-2' cx='888.4' cy='707.2' r='.7'/%3e%3ccircle class='cls-2' cx='857' cy='704.8' r='.7'/%3e%3ccircle class='cls-2' cx='847.5' cy='711.9' r='.5'/%3e%3ccircle class='cls-2' cx='818.1' cy='702' r='1.1'/%3e%3ccircle class='cls-2' cx='783.5' cy='711.4' r='.7'/%3e%3ccircle class='cls-2' cx='773.5' cy='716.3' r='1.1'/%3e%3ccircle class='cls-2' cx='758.5' cy='713' r='1.1'/%3e%3ccircle class='cls-2' cx='746.3' cy='727.6' r='.8'/%3e%3ccircle class='cls-2' cx='726.5' cy='734.6' r='.6'/%3e%3ccircle class='cls-2' cx='717.8' cy='743.9' r='.9'/%3e%3ccircle class='cls-2' cx='684.4' cy='751.1' r='1.4'/%3e%3ccircle class='cls-2' cx='660.4' cy='770.2' r='.5'/%3e%3ccircle class='cls-2' cx='637.1' cy='796.7' r='.9'/%3e%3ccircle class='cls-2' cx='634.6' cy='802.6' r='1.1'/%3e%3ccircle class='cls-2' cx='618.9' cy='816.1' r='.6'/%3e%3ccircle class='cls-2' cx='627' cy='836.2' r='1'/%3e%3ccircle class='cls-2' cx='975.8' cy='902.8' r='.5'/%3e%3ccircle class='cls-2' cx='967.1' cy='906.3' r='1.2'/%3e%3ccircle class='cls-2' cx='959.2' cy='904.9' r='.9'/%3e%3ccircle class='cls-2' cx='928.4' cy='898.2' r='1'/%3e%3ccircle class='cls-2' cx='906.8' cy='867' r='1.2'/%3e%3ccircle class='cls-2' cx='894.2' cy='856.9' r='.8'/%3e%3ccircle class='cls-2' cx='880.1' cy='839.6' r='1.3'/%3e%3ccircle class='cls-2' cx='846.5' cy='819.1' r='.9'/%3e%3ccircle class='cls-2' cx='828.4' cy='807.9' r='1.2'/%3e%3ccircle class='cls-2' cx='815.2' cy='783.4' r='1.3'/%3e%3ccircle class='cls-2' cx='789.1' cy='780.5' r='1.2'/%3e%3ccircle class='cls-2' cx='780.4' cy='768.5' r='1'/%3e%3ccircle class='cls-2' cx='757.5' cy='754.4' r='.7'/%3e%3ccircle class='cls-2' cx='929.5' cy='931.8' r='.7'/%3e%3ccircle class='cls-2' cx='938.5' cy='910' r='1.4'/%3e%3ccircle class='cls-2' cx='948.3' cy='909.3' r='.5'/%3e%3ccircle class='cls-2' cx='958.6' cy='883.5' r='1'/%3e%3ccircle class='cls-2' cx='966.3' cy='874.1' r='.8'/%3e%3ccircle class='cls-2' cx='932.1' cy='892' r='.9'/%3e%3ccircle class='cls-2' cx='931.9' cy='949.7' r='.9'/%3e%3ccircle class='cls-2' cx='930.5' cy='944.2' r='.8'/%3e%3ccircle class='cls-2' cx='946.4' cy='928.8' r='1.4'/%3e%3ccircle class='cls-2' cx='964.2' cy='924.7' r='1.1'/%3e%3ccircle class='cls-2' cx='984.4' cy='898.4' r='1.2'/%3e%3ccircle class='cls-2' cx='991' cy='922' r='.6'/%3e%3ccircle class='cls-2' cx='1020.9' cy='913' r='1'/%3e%3ccircle class='cls-2' cx='1000.6' cy='931.8' r='.8'/%3e%3ccircle class='cls-2' cx='1010.5' cy='920.7' r='.8'/%3e%3ccircle class='cls-2' cx='1016.2' cy='914.3' r='.6'/%3e%3ccircle class='cls-2' cx='1018.3' cy='905' r='.9'/%3e%3ccircle class='cls-2' cx='1033.1' cy='897.1' r='1.2'/%3e%3ccircle class='cls-2' cx='1058.4' cy='890.5' r='.6'/%3e%3ccircle class='cls-2' cx='1065.8' cy='878.1' r='1.1'/%3e%3ccircle class='cls-2' cx='1097.5' cy='870.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1091.8' cy='868.5' r='1.1'/%3e%3ccircle class='cls-2' cx='1063' cy='866.3' r='.8'/%3e%3ccircle class='cls-2' cx='1024.1' cy='850.9' r='.8'/%3e%3ccircle class='cls-2' cx='1008.5' cy='849.3' r='1.3'/%3e%3ccircle class='cls-2' cx='969.8' cy='852.6' r='1'/%3e%3ccircle class='cls-2' cx='1042.3' cy='924.2' r='1.2'/%3e%3ccircle class='cls-2' cx='1065.5' cy='898.9' r='.9'/%3e%3ccircle class='cls-2' cx='1095' cy='870.5' r='.9'/%3e%3ccircle class='cls-2' cx='1080' cy='855.8' r='1.4'/%3e%3ccircle class='cls-2' cx='1040.8' cy='869.2' r='.7'/%3e%3ccircle class='cls-2' cx='1034.5' cy='881.9' r='1.3'/%3e%3ccircle class='cls-2' cx='1018.7' cy='884.8' r='1'/%3e%3ccircle class='cls-2' cx='1013.6' cy='885.7' r='1.2'/%3e%3ccircle class='cls-2' cx='987' cy='895.8' r='1'/%3e%3ccircle class='cls-2' cx='973.4' cy='881.8' r='.7'/%3e%3ccircle class='cls-2' cx='1043.3' cy='911' r='1.3'/%3e%3ccircle class='cls-2' cx='1055' cy='907.4' r='.7'/%3e%3ccircle class='cls-2' cx='1073.9' cy='876.2' r='.7'/%3e%3ccircle class='cls-2' cx='1063' cy='923.3' r='.7'/%3e%3ccircle class='cls-2' cx='1066' cy='921.3' r='.7'/%3e%3ccircle class='cls-2' cx='1086' cy='901' r='.7'/%3e%3ccircle class='cls-2' cx='1087.5' cy='916' r='1.1'/%3e%3ccircle class='cls-2' cx='1078.5' cy='907.8' r='1.3'/%3e%3ccircle class='cls-2' cx='1100.5' cy='895.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1122.8' cy='890.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1106.2' cy='912.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1127.4' cy='897.8' r='1.5'/%3e%3ccircle class='cls-2' cx='1148.5' cy='876.8' r='.8'/%3e%3ccircle class='cls-2' cx='1111.4' cy='930.6' r='.9'/%3e%3ccircle class='cls-2' cx='1115.2' cy='914.9' r='.9'/%3e%3ccircle class='cls-2' cx='1145.9' cy='891.7' r='.7'/%3e%3ccircle class='cls-2' cx='1329.6' cy='927.1' r='1.3'/%3e%3ccircle class='cls-2' cx='1313.4' cy='940.1' r='.6'/%3e%3ccircle class='cls-2' cx='1287.1' cy='947.4' r='1.4'/%3e%3ccircle class='cls-2' cx='1273.2' cy='961.9' r='.5'/%3e%3ccircle class='cls-2' cx='1264.4' cy='961.8' r='.9'/%3e%3ccircle class='cls-2' cx='1282.8' cy='955.2' r='1.2'/%3e%3ccircle class='cls-2' cx='1282.9' cy='947.5' r='.7'/%3e%3ccircle class='cls-2' cx='1286.3' cy='934.8' r='1.3'/%3e%3ccircle class='cls-2' cx='1311' cy='924.6' r='1.1'/%3e%3ccircle class='cls-2' cx='1318.5' cy='907.1' r='.8'/%3e%3ccircle class='cls-2' cx='1344.8' cy='894.6' r='.7'/%3e%3ccircle class='cls-2' cx='1327.4' cy='888.5' r='1.3'/%3e%3ccircle class='cls-2' cx='1313.3' cy='904.9' r='1.3'/%3e%3ccircle class='cls-2' cx='1305.8' cy='915' r='1.5'/%3e%3ccircle class='cls-2' cx='1271.9' cy='924.3' r='.9'/%3e%3ccircle class='cls-2' cx='1262' cy='940.6' r='1.4'/%3e%3ccircle class='cls-2' cx='1245.2' cy='949.6' r='.8'/%3e%3ccircle class='cls-2' cx='1217.8' cy='954.1' r='1.3'/%3e%3ccircle class='cls-2' cx='1230.3' cy='941.6' r='1'/%3e%3ccircle class='cls-2' cx='1236.3' cy='930.7' r='1.1'/%3e%3ccircle class='cls-2' cx='1272.6' cy='907' r='1.1'/%3e%3ccircle class='cls-2' cx='1294.7' cy='883.6' r='1.2'/%3e%3ccircle class='cls-2' cx='1268.2' cy='883.9' r='.9'/%3e%3ccircle class='cls-2' cx='1243.3' cy='902.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1213.7' cy='916.5' r='.8'/%3e%3ccircle class='cls-2' cx='1201.8' cy='917.9' r='1.4'/%3e%3ccircle class='cls-2' cx='1195.7' cy='931.1' r='1.1'/%3e%3ccircle class='cls-2' cx='1188.4' cy='939.4' r='.8'/%3e%3ccircle class='cls-2' cx='1201.5' cy='908.7' r='.5'/%3e%3ccircle class='cls-2' cx='1222.5' cy='899.6' r='.6'/%3e%3ccircle class='cls-2' cx='1226.6' cy='872.3' r='1.3'/%3e%3ccircle class='cls-2' cx='1204' cy='886.8' r='1'/%3e%3ccircle class='cls-2' cx='1203.9' cy='895.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1169.7' cy='923.7' r='1.4'/%3e%3ccircle class='cls-2' cx='1160.3' cy='925.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1131.5' cy='948' r='1.3'/%3e%3ccircle class='cls-2' cx='1141.6' cy='932.6' r='1.4'/%3e%3ccircle class='cls-2' cx='1174' cy='919.6' r='.9'/%3e%3ccircle class='cls-2' cx='1193.7' cy='890.9' r='.8'/%3e%3ccircle class='cls-2' cx='1317.4' cy='945.2' r='1.3'/%3e%3ccircle class='cls-2' cx='1332.1' cy='945' r='.9'/%3e%3ccircle class='cls-2' cx='1356.8' cy='919.3' r='1'/%3e%3ccircle class='cls-2' cx='1380.4' cy='899.6' r='.5'/%3e%3ccircle class='cls-2' cx='1661.1' cy='977.2' r='1.1'/%3e%3ccircle class='cls-2' cx='1629.4' cy='966.1' r='.9'/%3e%3ccircle class='cls-2' cx='1623.7' cy='964.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1614' cy='959.7' r='.8'/%3e%3ccircle class='cls-2' cx='1585.8' cy='960.2' r='.5'/%3e%3ccircle class='cls-2' cx='1578.5' cy='945.4' r='1.4'/%3e%3ccircle class='cls-2' cx='1559.2' cy='937.3' r='1.5'/%3e%3ccircle class='cls-2' cx='1549.5' cy='933.9' r='1'/%3e%3ccircle class='cls-2' cx='1520.2' cy='921.7' r='.5'/%3e%3ccircle class='cls-2' cx='1488.1' cy='895.4' r='.7'/%3e%3ccircle class='cls-2' cx='1446.3' cy='908.6' r='1.2'/%3e%3ccircle class='cls-2' cx='1424.7' cy='932' r='.9'/%3e%3ccircle class='cls-2' cx='1399.3' cy='947' r='1.3'/%3e%3ccircle class='cls-2' cx='1376.8' cy='956' r='1.2'/%3e%3ccircle class='cls-2' cx='1380.6' cy='952.9' r='.6'/%3e%3ccircle class='cls-2' cx='1397' cy='942.1' r='.8'/%3e%3ccircle class='cls-2' cx='1407.3' cy='910.6' r='1.4'/%3e%3ccircle class='cls-2' cx='1432.9' cy='893.5' r='1'/%3e%3ccircle class='cls-2' cx='1428.8' cy='881.6' r='.6'/%3e%3ccircle class='cls-2' cx='1416.7' cy='895' r='1.4'/%3e%3ccircle class='cls-2' cx='1402.9' cy='907.3' r='.8'/%3e%3ccircle class='cls-2' cx='1388.6' cy='924.2' r='.5'/%3e%3ccircle class='cls-2' cx='1374.7' cy='927.1' r='1.2'/%3e%3ccircle class='cls-2' cx='1352.7' cy='948.2' r='.8'/%3e%3ccircle class='cls-2' cx='1376.9' cy='914.9' r='1.1'/%3e%3ccircle class='cls-2' cx='1398.5' cy='891.8' r='.8'/%3e%3ccircle class='cls-2' cx='1646.9' cy='1061.7' r='.6'/%3e%3ccircle class='cls-2' cx='1655.9' cy='1031.3' r='.8'/%3e%3ccircle class='cls-2' cx='1647.3' cy='998.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1634.6' cy='987.4' r='1.2'/%3e%3ccircle class='cls-2' cx='1639.7' cy='971.6' r='1.3'/%3e%3ccircle class='cls-2' cx='1628.1' cy='972' r='.8'/%3e%3ccircle class='cls-2' cx='1595' cy='963.8' r='.7'/%3e%3ccircle class='cls-2' cx='1567.7' cy='982.3' r='1.4'/%3e%3ccircle class='cls-2' cx='1554' cy='974.7' r='1'/%3e%3ccircle class='cls-2' cx='1531' cy='985.2' r='.9'/%3e%3ccircle class='cls-2' cx='1002.1' cy='1076.3' r='1.4'/%3e%3ccircle class='cls-2' cx='983.2' cy='1046.6' r='1'/%3e%3ccircle class='cls-2' cx='954.8' cy='1014.1' r='1.5'/%3e%3ccircle class='cls-2' cx='926.2' cy='1032.4' r='1.1'/%3e%3ccircle class='cls-2' cx='910.8' cy='1045.8' r='1.3'/%3e%3ccircle class='cls-2' cx='905.3' cy='1053.5' r='1.3'/%3e%3ccircle class='cls-2' cx='904' cy='1062.7' r='1.1'/%3e%3ccircle class='cls-2' cx='894.1' cy='1064.5' r='1.3'/%3e%3ccircle class='cls-2' cx='260.6' cy='825.5' r='1'/%3e%3ccircle class='cls-2' cx='283.9' cy='831.7' r='1.1'/%3e%3ccircle class='cls-2' cx='297.1' cy='838.9' r='.5'/%3e%3ccircle class='cls-2' cx='315.6' cy='851.5' r='.8'/%3e%3ccircle class='cls-2' cx='327.6' cy='848.4' r='1.4'/%3e%3ccircle class='cls-2' cx='341.1' cy='876.2' r='1.3'/%3e%3ccircle class='cls-2' cx='359.3' cy='903.2' r='.6'/%3e%3ccircle class='cls-2' cx='360.2' cy='941.2' r='.9'/%3e%3ccircle class='cls-2' cx='358.2' cy='983.5' r='.6'/%3e%3ccircle class='cls-2' cx='374.4' cy='1011.2' r='1'/%3e%3ccircle class='cls-2' cx='366.4' cy='1030.1' r='1.5'/%3e%3ccircle class='cls-2' cx='398.7' cy='1061.6' r='1.5'/%3e%3ccircle class='cls-2' cx='420.9' cy='1056.9' r='1.1'/%3e%3ccircle class='cls-2' cx='444.5' cy='1047.1' r='.6'/%3e%3ccircle class='cls-2' cx='464.8' cy='1051.5' r='1.1'/%3e%3ccircle class='cls-2' cx='499.9' cy='1042' r='1.3'/%3e%3ccircle class='cls-2' cx='516.2' cy='1031.8' r='1.4'/%3e%3ccircle class='cls-2' cx='523.7' cy='1044.2' r='1.1'/%3e%3ccircle class='cls-2' cx='563.2' cy='1032.2' r='1'/%3e%3ccircle class='cls-2' cx='563.7' cy='1049.3' r='1.4'/%3e%3ccircle class='cls-2' cx='565.6' cy='1057.3' r='1.1'/%3e%3ccircle class='cls-2' cx='566.2' cy='1070.8' r='1.2'/%3e%3ccircle class='cls-2' cx='339.9' cy='994.5' r='.7'/%3e%3ccircle class='cls-2' cx='345.9' cy='987.6' r='.7'/%3e%3ccircle class='cls-2' cx='351.1' cy='949.2' r='1.4'/%3e%3ccircle class='cls-2' cx='348' cy='925.4' r='.7'/%3e%3ccircle class='cls-2' cx='338.4' cy='905.7' r='.5'/%3e%3ccircle class='cls-2' cx='339.4' cy='886.7' r='.8'/%3e%3ccircle class='cls-2' cx='351.2' cy='872.3' r='.8'/%3e%3ccircle class='cls-2' cx='360.6' cy='860.5' r='1.4'/%3e%3ccircle class='cls-2' cx='382.1' cy='863' r='1.1'/%3e%3ccircle class='cls-2' cx='395.8' cy='863.9' r='1.1'/%3e%3ccircle class='cls-2' cx='409.8' cy='852.7' r='1.3'/%3e%3ccircle class='cls-2' cx='428' cy='853.5' r='1'/%3e%3ccircle class='cls-2' cx='459.5' cy='837.2' r='1.1'/%3e%3ccircle class='cls-2' cx='462.3' cy='830.4' r='.8'/%3e%3ccircle class='cls-2' cx='421.5' cy='841.9' r='.9'/%3e%3ccircle class='cls-2' cx='188.1' cy='1075.1' r='1.1'/%3e%3ccircle class='cls-2' cx='201.8' cy='1070.6' r='.8'/%3e%3ccircle class='cls-2' cx='223' cy='1031.4' r='1.1'/%3e%3ccircle class='cls-2' cx='249.1' cy='1017' r='1'/%3e%3ccircle class='cls-2' cx='258.9' cy='1015.8' r='1.5'/%3e%3ccircle class='cls-2' cx='288.2' cy='997.5' r='.8'/%3e%3ccircle class='cls-2' cx='294.7' cy='995.9' r='1.3'/%3e%3ccircle class='cls-2' cx='283.1' cy='1016.7' r='.9'/%3e%3ccircle class='cls-2' cx='294' cy='1030.2' r='.7'/%3e%3ccircle class='cls-2' cx='291.5' cy='1056.8' r='1.4'/%3e%3ccircle class='cls-2' cx='944.4' cy='1010.6' r='.6'/%3e%3ccircle class='cls-2' cx='975.3' cy='979.5' r='1.3'/%3e%3ccircle class='cls-2' cx='1010.7' cy='963.1' r='1.1'/%3e%3ccircle class='cls-2' cx='1038.8' cy='927.5' r='1.1'/%3e%3ccircle class='cls-2' cx='1027.6' cy='924.4' r='1'/%3e%3ccircle class='cls-2' cx='990.1' cy='924.2' r='1'/%3e%3ccircle class='cls-2' cx='961.1' cy='933' r='.6'/%3e%3ccircle class='cls-2' cx='930.7' cy='934.9' r='1.3'/%3e%3ccircle class='cls-2' cx='918' cy='944.8' r='.7'/%3e%3ccircle class='cls-2' cx='897.4' cy='943.1' r='1'/%3e%3ccircle class='cls-2' cx='888.4' cy='945.4' r='.9'/%3e%3ccircle class='cls-2' cx='850.6' cy='952.7' r='1.4'/%3e%3ccircle class='cls-2' cx='810.8' cy='948.7' r='1'/%3e%3ccircle class='cls-2' cx='787.8' cy='960.2' r='1.2'/%3e%3ccircle class='cls-2' cx='752.7' cy='960.2' r='.9'/%3e%3ccircle class='cls-2' cx='739' cy='957.4' r='1.4'/%3e%3ccircle class='cls-2' cx='729.7' cy='959.6' r='1.1'/%3e%3ccircle class='cls-2' cx='719.8' cy='973.2' r='1.3'/%3e%3ccircle class='cls-2' cx='714.5' cy='975.7' r='.8'/%3e%3ccircle class='cls-2' cx='674.5' cy='983' r='1'/%3e%3ccircle class='cls-2' cx='652.8' cy='1005.8' r='1.4'/%3e%3ccircle class='cls-2' cx='641.5' cy='1003.5' r='.5'/%3e%3ccircle class='cls-2' cx='633.9' cy='1017.8' r='.9'/%3e%3ccircle class='cls-2' cx='603.4' cy='1028.5' r='1.3'/%3e%3ccircle class='cls-2' cx='589.2' cy='1060.5' r='1.4'/%3e%3ccircle class='cls-2' cx='561.9' cy='1072.9' r='.6'/%3e%3ccircle class='cls-2' cx='558.9' cy='1066.1' r='.8'/%3e%3ccircle class='cls-2' cx='584.8' cy='1057.9' r='1.3'/%3e%3ccircle class='cls-2' cx='594.2' cy='1056.2' r='.9'/%3e%3ccircle class='cls-2' cx='632.5' cy='1046.6' r='1.4'/%3e%3ccircle class='cls-2' cx='671.2' cy='1041.6' r='.9'/%3e%3ccircle class='cls-2' cx='692.6' cy='1044.9' r='1.1'/%3e%3ccircle class='cls-2' cx='711.4' cy='1062.6' r='.8'/%3e%3ccircle class='cls-2' cx='771.7' cy='1055' r='.7'/%3e%3ccircle class='cls-2' cx='762.7' cy='1048.1' r='1.4'/%3e%3ccircle class='cls-2' cx='850.5' cy='1073.2' r='.5'/%3e%3ccircle class='cls-2' cx='850.8' cy='1043.9' r='.9'/%3e%3ccircle class='cls-2' cx='865.3' cy='1025.5' r='.9'/%3e%3ccircle class='cls-2' cx='833.2' cy='1002.2' r='.7'/%3e%3ccircle class='cls-2' cx='828.5' cy='1005.2' r='.7'/%3e%3ccircle class='cls-2' cx='791.2' cy='1028.9' r='.5'/%3e%3ccircle class='cls-2' cx='765.1' cy='1038.3' r='.6'/%3e%3ccircle class='cls-2' cx='766.7' cy='1052.5' r='.6'/%3e%3ccircle class='cls-2' cx='743' cy='1058.2' r='1'/%3e%3ccircle class='cls-2' cx='1084.4' cy='761.5' r='.7'/%3e%3ccircle class='cls-2' cx='1065.5' cy='774' r='.9'/%3e%3ccircle class='cls-2' cx='1066.1' cy='790.7' r='1.1'/%3e%3ccircle class='cls-2' cx='1048.6' cy='800.2' r='1.2'/%3e%3ccircle class='cls-2' cx='1024.2' cy='831.9' r='1.1'/%3e%3ccircle class='cls-2' cx='999.9' cy='855.6' r='1.3'/%3e%3ccircle class='cls-2' cx='979.4' cy='884' r='1.4'/%3e%3ccircle class='cls-2' cx='977.9' cy='906.1' r='.9'/%3e%3ccircle class='cls-2' cx='957.4' cy='940.5' r='.7'/%3e%3ccircle class='cls-2' cx='933.1' cy='955.3' r='1.5'/%3e%3ccircle class='cls-2' cx='911.9' cy='993.5' r='.6'/%3e%3ccircle class='cls-2' cx='562.4' cy='782.4' r='1.2'/%3e%3ccircle class='cls-2' cx='591.3' cy='757.9' r='.5'/%3e%3ccircle class='cls-2' cx='583.2' cy='734.6' r='.9'/%3e%3ccircle class='cls-2' cx='595.9' cy='718.9' r='.8'/%3e%3ccircle class='cls-2' cx='596.2' cy='685.1' r='1.1'/%3e%3ccircle class='cls-2' cx='604.1' cy='658.3' r='1.3'/%3e%3ccircle class='cls-2' cx='593.4' cy='651' r='.8'/%3e%3ccircle class='cls-2' cx='609.1' cy='618.8' r='.6'/%3e%3ccircle class='cls-2' cx='608.9' cy='608.4' r='.9'/%3e%3ccircle class='cls-2' cx='618.1' cy='593.9' r='1.3'/%3e%3ccircle class='cls-2' cx='606.3' cy='576.8' r='1.3'/%3e%3ccircle class='cls-2' cx='609.9' cy='609.3' r='.9'/%3e%3ccircle class='cls-2' cx='606.5' cy='636' r='1'/%3e%3ccircle class='cls-2' cx='592.6' cy='656' r='.6'/%3e%3ccircle class='cls-2' cx='234.8' cy='477' r='.6'/%3e%3ccircle class='cls-2' cx='261.3' cy='477.7' r='.7'/%3e%3ccircle class='cls-2' cx='272.5' cy='490.1' r='.6'/%3e%3ccircle class='cls-2' cx='298.4' cy='505.4' r='1.1'/%3e%3ccircle class='cls-2' cx='304.4' cy='519.7' r='.6'/%3e%3ccircle class='cls-2' cx='317.8' cy='545.4' r='1.1'/%3e%3ccircle class='cls-2' cx='320.7' cy='579.4' r='1.2'/%3e%3ccircle class='cls-2' cx='330.3' cy='615' r='1'/%3e%3ccircle class='cls-2' cx='321.9' cy='648.3' r='1.1'/%3e%3ccircle class='cls-2' cx='315.9' cy='656.6' r='.6'/%3e%3ccircle class='cls-2' cx='332.6' cy='653.4' r='1.3'/%3e%3ccircle class='cls-2' cx='343.1' cy='632.5' r='.9'/%3e%3ccircle class='cls-2' cx='362.8' cy='612.5' r='1.4'/%3e%3ccircle class='cls-2' cx='391' cy='597.7' r='.9'/%3e%3ccircle class='cls-2' cx='415.9' cy='622.7' r='1.2'/%3e%3ccircle class='cls-2' cx='433.5' cy='649.3' r='1.5'/%3e%3ccircle class='cls-2' cx='431.6' cy='659.1' r='.7'/%3e%3ccircle class='cls-2' cx='428.2' cy='671.3' r='1.3'/%3e%3ccircle class='cls-2' cx='433.8' cy='681.5' r='1.3'/%3e%3ccircle class='cls-2' cx='433' cy='710.2' r='1.1'/%3e%3ccircle class='cls-2' cx='444.8' cy='735.6' r='1'/%3e%3ccircle class='cls-2' cx='463' cy='761.8' r='.8'/%3e%3ccircle class='cls-2' cx='458.8' cy='776.9' r='.7'/%3e%3ccircle class='cls-2' cx='487' cy='799.3' r='1.4'/%3e%3ccircle class='cls-2' cx='515.6' cy='819.3' r='.8'/%3e%3ccircle class='cls-2' cx='549.2' cy='810.4' r='.7'/%3e%3ccircle class='cls-2' cx='555.7' cy='807.7' r='1.2'/%3e%3ccircle class='cls-2' cx='565.8' cy='770.9' r='.9'/%3e%3ccircle class='cls-2' cx='578.5' cy='748.1' r='1.2'/%3e%3ccircle class='cls-2' cx='582.4' cy='709.5' r='1.2'/%3e%3ccircle class='cls-2' cx='562' cy='672' r='.6'/%3e%3ccircle class='cls-2' cx='569.4' cy='655.9' r='.6'/%3e%3ccircle class='cls-2' cx='278.8' cy='586.3' r='1.3'/%3e%3ccircle class='cls-2' cx='254.7' cy='578.8' r='.5'/%3e%3ccircle class='cls-2' cx='217.7' cy='572.9' r='1.2'/%3e%3ccircle class='cls-2' cx='197.2' cy='552.9' r='.6'/%3e%3ccircle class='cls-2' cx='164.7' cy='531.6' r='1.3'/%3e%3ccircle class='cls-2' cx='160.5' cy='528.6' r='1.4'/%3e%3ccircle class='cls-2' cx='157.4' cy='517.3' r='1'/%3e%3ccircle class='cls-2' cx='157' cy='497.7' r='1.3'/%3e%3ccircle class='cls-2' cx='175' cy='503' r='.6'/%3e%3ccircle class='cls-2' cx='205.5' cy='528.5' r='.5'/%3e%3ccircle class='cls-2' cx='235.4' cy='554.8' r='1'/%3e%3ccircle class='cls-2' cx='242.4' cy='588.1' r='.9'/%3e%3ccircle class='cls-2' cx='249.4' cy='602.8' r='.8'/%3e%3ccircle class='cls-2' cx='231.5' cy='612.4' r='.5'/%3e%3ccircle class='cls-2' cx='589.3' cy='466.9' r='1.4'/%3e%3ccircle class='cls-2' cx='575.3' cy='492.3' r='1.1'/%3e%3ccircle class='cls-2' cx='554.5' cy='513.9' r='.6'/%3e%3ccircle class='cls-2' cx='535.4' cy='549.1' r='1.1'/%3e%3ccircle class='cls-2' cx='526.1' cy='561.1' r='1.4'/%3e%3ccircle class='cls-2' cx='518.8' cy='578.7' r='1.4'/%3e%3ccircle class='cls-2' cx='511' cy='590.5' r='.6'/%3e%3ccircle class='cls-2' cx='495.9' cy='631' r='.8'/%3e%3ccircle class='cls-2' cx='497.1' cy='642.9' r='.8'/%3e%3ccircle class='cls-2' cx='492.1' cy='661.3' r='1.4'/%3e%3ccircle class='cls-2' cx='490.6' cy='705.2' r='1.2'/%3e%3ccircle class='cls-2' cx='490.7' cy='727' r='1.3'/%3e%3ccircle class='cls-2' cx='506' cy='732.3' r='.6'/%3e%3ccircle class='cls-2' cx='510.7' cy='745.3' r='1.3'/%3e%3ccircle class='cls-2' cx='525.3' cy='774.8' r='.9'/%3e%3ccircle class='cls-2' cx='558' cy='789.6' r='.7'/%3e%3ccircle class='cls-2' cx='576' cy='799.9' r='1.2'/%3e%3ccircle class='cls-2' cx='551.9' cy='784.1' r='1.3'/%3e%3ccircle class='cls-2' cx='530.8' cy='773.1' r='.8'/%3e%3ccircle class='cls-2' cx='515.9' cy='762.7' r='1.1'/%3e%3ccircle class='cls-2' cx='484.1' cy='762.4' r='1.3'/%3e%3ccircle class='cls-2' cx='463.6' cy='790.4' r='.7'/%3e%3ccircle class='cls-2' cx='447.4' cy='806.9' r='1.4'/%3e%3ccircle class='cls-2' cx='419.1' cy='831.1' r='.9'/%3e%3ccircle class='cls-2' cx='418.2' cy='837.3' r='.5'/%3e%3ccircle class='cls-2' cx='415' cy='850.5' r='.8'/%3e%3ccircle class='cls-2' cx='414.9' cy='867.4' r='.9'/%3e%3ccircle class='cls-2' cx='401.8' cy='835' r='.8'/%3e%3ccircle class='cls-2' cx='404.6' cy='827.1' r='1'/%3e%3ccircle class='cls-2' cx='391.1' cy='797.4' r='1.4'/%3e%3ccircle class='cls-2' cx='372' cy='819.8' r='1.1'/%3e%3ccircle class='cls-2' cx='355' cy='823.2' r='.9'/%3e%3ccircle class='cls-2' cx='328' cy='852.3' r='1'/%3e%3ccircle class='cls-2' cx='304' cy='866.3' r='1.1'/%3e%3ccircle class='cls-2' cx='277.9' cy='894.7' r='1'/%3e%3ccircle class='cls-2' cx='296.4' cy='856.9' r='1'/%3e%3ccircle class='cls-2' cx='296.6' cy='832.6' r='1.1'/%3e%3ccircle class='cls-2' cx='308' cy='826.2' r='1'/%3e%3ccircle class='cls-2' cx='304.6' cy='815.9' r='1'/%3e%3ccircle class='cls-2' cx='325' cy='776.7' r='1.2'/%3e%3ccircle class='cls-2' cx='329.8' cy='735.4' r='1.2'/%3e%3ccircle class='cls-2' cx='327.9' cy='705.8' r='1.4'/%3e%3ccircle class='cls-2' cx='328' cy='700.2' r='1'/%3e%3ccircle class='cls-2' cx='319.3' cy='680.9' r='.6'/%3e%3ccircle class='cls-2' cx='315.8' cy='646.7' r='1.1'/%3e%3ccircle class='cls-2' cx='749.3' cy='391.6' r='1'/%3e%3ccircle class='cls-2' cx='767.2' cy='369' r='.9'/%3e%3ccircle class='cls-2' cx='777.2' cy='350.1' r='1.1'/%3e%3ccircle class='cls-2' cx='792.1' cy='351.2' r='1'/%3e%3ccircle class='cls-2' cx='803.1' cy='343.8' r='1.1'/%3e%3ccircle class='cls-2' cx='816.3' cy='328.6' r='1.4'/%3e%3ccircle class='cls-2' cx='837.6' cy='305.3' r='1.1'/%3e%3ccircle class='cls-2' cx='848' cy='283' r='1.3'/%3e%3ccircle class='cls-2' cx='883.4' cy='259.8' r='.8'/%3e%3ccircle class='cls-2' cx='880.5' cy='246.6' r='.6'/%3e%3ccircle class='cls-2' cx='886.2' cy='243.1' r='.5'/%3e%3ccircle class='cls-2' cx='892.7' cy='241' r='1'/%3e%3ccircle class='cls-2' cx='906.4' cy='231.7' r='.9'/%3e%3ccircle class='cls-2' cx='895.9' cy='263.6' r='1.3'/%3e%3ccircle class='cls-2' cx='901' cy='283.1' r='1.4'/%3e%3ccircle class='cls-2' cx='914' cy='295.4' r='1.2'/%3e%3ccircle class='cls-2' cx='914.3' cy='302.2' r='1.3'/%3e%3ccircle class='cls-2' cx='911.5' cy='309.1' r='1.2'/%3e%3ccircle class='cls-2' cx='917' cy='344.2' r='1.1'/%3e%3ccircle class='cls-2' cx='644.5' cy='441.5' r='1'/%3e%3ccircle class='cls-2' cx='604.9' cy='425.9' r='1.4'/%3e%3ccircle class='cls-2' cx='570' cy='429.1' r='1.5'/%3e%3ccircle class='cls-2' cx='531.2' cy='420.9' r='.9'/%3e%3ccircle class='cls-2' cx='496.2' cy='419.4' r='1.1'/%3e%3ccircle class='cls-2' cx='479.9' cy='417.6' r='.9'/%3e%3ccircle class='cls-2' cx='454.4' cy='425.6' r='1.4'/%3e%3ccircle class='cls-2' cx='440.9' cy='423.6' r='1.2'/%3e%3ccircle class='cls-2' cx='432.7' cy='422.7' r='1.5'/%3e%3ccircle class='cls-2' cx='394.8' cy='409.8' r='1.1'/%3e%3ccircle class='cls-2' cx='375.2' cy='398.5' r='.9'/%3e%3ccircle class='cls-2' cx='361.3' cy='402.2' r='.6'/%3e%3ccircle class='cls-2' cx='323.3' cy='390.3' r='.9'/%3e%3ccircle class='cls-2' cx='312' cy='425.9' r='1.2'/%3e%3ccircle class='cls-2' cx='313.9' cy='441.7' r='1.4'/%3e%3ccircle class='cls-2' cx='318.9' cy='456.8' r='.6'/%3e%3ccircle class='cls-2' cx='317.8' cy='482.5' r='.7'/%3e%3ccircle class='cls-2' cx='335.7' cy='464.7' r='1.3'/%3e%3ccircle class='cls-2' cx='336.3' cy='445.4' r='1'/%3e%3ccircle class='cls-2' cx='356.8' cy='411.8' r='1.1'/%3e%3ccircle class='cls-2' cx='351' cy='390.4' r='1.4'/%3e%3ccircle class='cls-2' cx='368.9' cy='370.2' r='1.1'/%3e%3ccircle class='cls-2' cx='382.7' cy='351.8' r='1.3'/%3e%3ccircle class='cls-2' cx='385' cy='335.3' r='.5'/%3e%3ccircle class='cls-2' cx='392.2' cy='313.8' r='.6'/%3e%3ccircle class='cls-2' cx='405.9' cy='304.8' r='1.3'/%3e%3ccircle class='cls-2' cx='421.6' cy='295.8' r='.7'/%3e%3ccircle class='cls-2' cx='451.9' cy='279.4' r='.9'/%3e%3ccircle class='cls-2' cx='474.2' cy='270.8' r='.7'/%3e%3ccircle class='cls-2' cx='480.8' cy='272.8' r='.5'/%3e%3ccircle class='cls-2' cx='495.4' cy='274.7' r='.5'/%3e%3ccircle class='cls-2' cx='502.4' cy='277.3' r='.7'/%3e%3ccircle class='cls-2' cx='530.8' cy='295.6' r='1.4'/%3e%3ccircle class='cls-2' cx='551.4' cy='324.3' r='.8'/%3e%3ccircle class='cls-2' cx='560.6' cy='338.9' r='1.1'/%3e%3ccircle class='cls-2' cx='562.6' cy='361.5' r='1.5'/%3e%3ccircle class='cls-2' cx='713.5' cy='537.5' r='1.3'/%3e%3ccircle class='cls-2' cx='711.6' cy='522.8' r='.9'/%3e%3ccircle class='cls-2' cx='743.7' cy='497.1' r='.6'/%3e%3ccircle class='cls-2' cx='748.4' cy='473.4' r='1'/%3e%3ccircle class='cls-2' cx='770.1' cy='450.1' r='.6'/%3e%3ccircle class='cls-2' cx='773.5' cy='436.8' r='.5'/%3e%3ccircle class='cls-2' cx='786.9' cy='406.1' r='1.4'/%3e%3ccircle class='cls-2' cx='803.9' cy='382.7' r='.9'/%3e%3ccircle class='cls-2' cx='825.3' cy='349.1' r='1.2'/%3e%3ccircle class='cls-2' cx='825.2' cy='343.5' r='.9'/%3e%3ccircle class='cls-2' cx='832.8' cy='298.9' r='1.4'/%3e%3ccircle class='cls-2' cx='795.9' cy='298.6' r='1.1'/%3e%3ccircle class='cls-2' cx='776.7' cy='297.9' r='.9'/%3e%3ccircle class='cls-2' cx='746.7' cy='310.8' r='1.2'/%3e%3ccircle class='cls-2' cx='743.6' cy='318.9' r='.7'/%3e%3ccircle class='cls-2' cx='719.8' cy='322.6' r='.7'/%3e%3ccircle class='cls-2' cx='704.5' cy='341.1' r='1'/%3e%3ccircle class='cls-2' cx='696.3' cy='351' r='.8'/%3e%3ccircle class='cls-2' cx='672.4' cy='376.6' r='1.3'/%3e%3ccircle class='cls-2' cx='652.1' cy='370.6' r='1.4'/%3e%3ccircle class='cls-2' cx='616.8' cy='397.3' r='1.2'/%3e%3ccircle class='cls-2' cx='590' cy='420.8' r='.6'/%3e%3ccircle class='cls-2' cx='564.5' cy='458.1' r='1'/%3e%3ccircle class='cls-2' cx='537.8' cy='472.8' r='1'/%3e%3ccircle class='cls-2' cx='530.1' cy='480.3' r='1.4'/%3e%3ccircle class='cls-2' cx='518.9' cy='504.5' r='1.4'/%3e%3ccircle class='cls-2' cx='508.9' cy='505.6' r='.6'/%3e%3ccircle class='cls-2' cx='495.9' cy='525.3' r='1.5'/%3e%3ccircle class='cls-2' cx='745.5' cy='449.8' r='.7'/%3e%3ccircle class='cls-2' cx='731.7' cy='422.9' r='1.4'/%3e%3ccircle class='cls-2' cx='727.6' cy='412.3' r='1.3'/%3e%3ccircle class='cls-2' cx='724.3' cy='395' r='.8'/%3e%3ccircle class='cls-2' cx='716.5' cy='377.7' r='.8'/%3e%3ccircle class='cls-2' cx='709.2' cy='358' r='.8'/%3e%3ccircle class='cls-2' cx='710' cy='355.7' r='1.2'/%3e%3ccircle class='cls-2' cx='702.3' cy='367.3' r='1.2'/%3e%3ccircle class='cls-2' cx='716.5' cy='411.2' r='1.4'/%3e%3ccircle class='cls-2' cx='738.1' cy='445.2' r='1.4'/%3e%3ccircle class='cls-2' cx='772.7' cy='461' r='.7'/%3e%3ccircle class='cls-2' cx='805.9' cy='479.7' r='1.1'/%3e%3ccircle class='cls-2' cx='845.5' cy='492.3' r='.7'/%3e%3ccircle class='cls-2' cx='873.8' cy='481.9' r='.9'/%3e%3ccircle class='cls-2' cx='896.4' cy='478.6' r='.7'/%3e%3ccircle class='cls-2' cx='934.1' cy='474.6' r='1.3'/%3e%3ccircle class='cls-2' cx='937.6' cy='466.8' r='1.3'/%3e%3ccircle class='cls-2' cx='978.7' cy='460.1' r='1.3'/%3e%3ccircle class='cls-2' cx='721.5' cy='500' r='1.1'/%3e%3ccircle class='cls-2' cx='694.5' cy='488.6' r='1.1'/%3e%3ccircle class='cls-2' cx='679.1' cy='488.3' r='.6'/%3e%3ccircle class='cls-2' cx='672.8' cy='479.9' r='.7'/%3e%3ccircle class='cls-2' cx='667' cy='472' r='1.4'/%3e%3ccircle class='cls-2' cx='653.6' cy='470.4' r='.9'/%3e%3ccircle class='cls-2' cx='640.8' cy='442.4' r='1.4'/%3e%3ccircle class='cls-2' cx='659.8' cy='414.6' r='.7'/%3e%3ccircle class='cls-2' cx='1087' cy='319.7' r='1.1'/%3e%3ccircle class='cls-2' cx='1094.7' cy='305.1' r='.7'/%3e%3ccircle class='cls-2' cx='1106.3' cy='262.4' r='.8'/%3e%3ccircle class='cls-2' cx='1115.9' cy='230.8' r='.7'/%3e%3ccircle class='cls-2' cx='1115' cy='221.8' r='.8'/%3e%3ccircle class='cls-2' cx='1127.1' cy='181' r='1.1'/%3e%3ccircle class='cls-2' cx='1124.9' cy='186.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1107.2' cy='195.4' r='.6'/%3e%3ccircle class='cls-2' cx='1101.2' cy='204.2' r='.6'/%3e%3ccircle class='cls-2' cx='1086' cy='242.1' r='.7'/%3e%3ccircle class='cls-2' cx='1081.9' cy='255.4' r='1.4'/%3e%3ccircle class='cls-2' cx='1074.1' cy='280.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1063.2' cy='305.3' r='1'/%3e%3ccircle class='cls-2' cx='1038.9' cy='334.7' r='.5'/%3e%3ccircle class='cls-2' cx='1023.1' cy='357.9' r='.9'/%3e%3ccircle class='cls-2' cx='1007.8' cy='392.9' r='1.4'/%3e%3ccircle class='cls-2' cx='983.5' cy='400.8' r='.9'/%3e%3ccircle class='cls-2' cx='992.5' cy='393' r='1.2'/%3e%3ccircle class='cls-2' cx='998.3' cy='370' r='1'/%3e%3ccircle class='cls-2' cx='1012.1' cy='341.7' r='1.4'/%3e%3ccircle class='cls-2' cx='1024.9' cy='318.2' r='1.3'/%3e%3ccircle class='cls-2' cx='1003.7' cy='298.9' r='.7'/%3e%3ccircle class='cls-2' cx='989.1' cy='304.6' r='.8'/%3e%3ccircle class='cls-2' cx='976.6' cy='311.8' r='1.4'/%3e%3ccircle class='cls-2' cx='961.2' cy='318' r='.8'/%3e%3ccircle class='cls-2' cx='957' cy='329.4' r='1.4'/%3e%3ccircle class='cls-2' cx='937.4' cy='323.7' r='1'/%3e%3ccircle class='cls-2' cx='918.1' cy='341.8' r='1.4'/%3e%3ccircle class='cls-2' cx='912.1' cy='347.7' r='1.4'/%3e%3ccircle class='cls-2' cx='874' cy='369.5' r='1.4'/%3e%3ccircle class='cls-2' cx='862.8' cy='367.8' r='1.1'/%3e%3ccircle class='cls-2' cx='836.6' cy='396.1' r='.7'/%3e%3ccircle class='cls-2' cx='800.7' cy='420.6' r='.7'/%3e%3ccircle class='cls-2' cx='787.8' cy='434.3' r='.8'/%3e%3ccircle class='cls-2' cx='785.8' cy='443.6' r='.7'/%3e%3ccircle class='cls-2' cx='765.5' cy='466.1' r='1.2'/%3e%3ccircle class='cls-2' cx='729.1' cy='488.5' r='1.3'/%3e%3ccircle class='cls-2' cx='709.8' cy='527.1' r='1.1'/%3e%3ccircle class='cls-2' cx='1258.3' cy='458.6' r='1.1'/%3e%3ccircle class='cls-2' cx='1268' cy='447.5' r='1'/%3e%3ccircle class='cls-2' cx='1253.6' cy='426.9' r='.9'/%3e%3ccircle class='cls-2' cx='1240' cy='390.2' r='.5'/%3e%3ccircle class='cls-2' cx='1235.1' cy='354.2' r='1.2'/%3e%3ccircle class='cls-2' cx='1235.9' cy='340.1' r='1.2'/%3e%3ccircle class='cls-2' cx='1219.1' cy='304.3' r='.9'/%3e%3ccircle class='cls-2' cx='1192.5' cy='282.8' r='.9'/%3e%3ccircle class='cls-2' cx='1176.2' cy='256.1' r='1.3'/%3e%3ccircle class='cls-2' cx='1178.9' cy='239' r='1.4'/%3e%3ccircle class='cls-2' cx='1178.5' cy='229.8' r='.6'/%3e%3ccircle class='cls-2' cx='1166.9' cy='212.3' r='1.3'/%3e%3ccircle class='cls-2' cx='1138.3' cy='207.8' r='.7'/%3e%3ccircle class='cls-2' cx='1107.5' cy='225.9' r='1.3'/%3e%3ccircle class='cls-2' cx='1087.6' cy='222.1' r='.7'/%3e%3ccircle class='cls-2' cx='1055.8' cy='241.4' r='1.3'/%3e%3ccircle class='cls-2' cx='1050.5' cy='244.5' r='1.3'/%3e%3ccircle class='cls-2' cx='1007.9' cy='244.6' r='.5'/%3e%3ccircle class='cls-2' cx='971.4' cy='244.2' r='.7'/%3e%3ccircle class='cls-2' cx='957.2' cy='249.7' r='1.1'/%3e%3ccircle class='cls-2' cx='944' cy='240.7' r='1'/%3e%3ccircle class='cls-2' cx='944.9' cy='218.4' r='1.5'/%3e%3ccircle class='cls-2' cx='962' cy='191' r='1.4'/%3e%3ccircle class='cls-2' cx='993' cy='173.4' r='1.3'/%3e%3ccircle class='cls-2' cx='1027.8' cy='158.9' r='1'/%3e%3ccircle class='cls-2' cx='1034.6' cy='151.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1045.5' cy='160' r='.5'/%3e%3ccircle class='cls-2' cx='1060.1' cy='157.6' r='.6'/%3e%3ccircle class='cls-2' cx='1074.9' cy='167.1' r='1.2'/%3e%3ccircle class='cls-2' cx='1095.9' cy='171.4' r='.8'/%3e%3ccircle class='cls-2' cx='1107.6' cy='194' r='.7'/%3e%3ccircle class='cls-2' cx='761.9' cy='974.8' r='1.4'/%3e%3ccircle class='cls-2' cx='786.2' cy='940' r='1.2'/%3e%3ccircle class='cls-2' cx='815.7' cy='911.9' r='.9'/%3e%3ccircle class='cls-2' cx='831.8' cy='903.3' r='1.1'/%3e%3ccircle class='cls-2' cx='854.6' cy='885.1' r='.9'/%3e%3ccircle class='cls-2' cx='860.8' cy='870' r='.6'/%3e%3ccircle class='cls-2' cx='884' cy='870' r='1.1'/%3e%3ccircle class='cls-2' cx='906.5' cy='837.4' r='.6'/%3e%3ccircle class='cls-2' cx='915.3' cy='832.2' r='.5'/%3e%3ccircle class='cls-2' cx='939.9' cy='829' r='.9'/%3e%3ccircle class='cls-2' cx='952.9' cy='812.7' r='1.2'/%3e%3ccircle class='cls-2' cx='972.9' cy='818' r='.9'/%3e%3ccircle class='cls-2' cx='972.8' cy='823.5' r='.7'/%3e%3ccircle class='cls-2' cx='976.4' cy='832.2' r='1.4'/%3e%3ccircle class='cls-2' cx='981.2' cy='839.8' r='.7'/%3e%3ccircle class='cls-2' cx='970.2' cy='859.5' r='1.4'/%3e%3ccircle class='cls-2' cx='510.4' cy='936.6' r='1.3'/%3e%3ccircle class='cls-2' cx='507.7' cy='963.5' r='1.1'/%3e%3ccircle class='cls-2' cx='506.4' cy='972.4' r='1.1'/%3e%3ccircle class='cls-2' cx='511.6' cy='948.6' r='1.1'/%3e%3ccircle class='cls-2' cx='508.8' cy='936.2' r='.8'/%3e%3ccircle class='cls-2' cx='526.9' cy='924.2' r='.8'/%3e%3ccircle class='cls-2' cx='548.2' cy='901' r='.6'/%3e%3ccircle class='cls-2' cx='549.8' cy='933' r='.6'/%3e%3ccircle class='cls-2' cx='558.1' cy='970.8' r='1.5'/%3e%3ccircle class='cls-2' cx='562.2' cy='1010.7' r='.7'/%3e%3ccircle class='cls-2' cx='575.7' cy='1002.2' r='.6'/%3e%3ccircle class='cls-2' cx='596.6' cy='977.5' r='.5'/%3e%3ccircle class='cls-2' cx='604' cy='966.6' r='.8'/%3e%3ccircle class='cls-2' cx='626.4' cy='935.4' r='.7'/%3e%3ccircle class='cls-2' cx='658' cy='910.7' r='1.2'/%3e%3ccircle class='cls-2' cx='675.4' cy='876.8' r='1.4'/%3e%3ccircle class='cls-2' cx='706.1' cy='886.9' r='1.1'/%3e%3ccircle class='cls-2' cx='706.2' cy='894.3' r='.9'/%3e%3ccircle class='cls-2' cx='658.9' cy='853.8' r='1.1'/%3e%3ccircle class='cls-2' cx='652.5' cy='871.7' r='1.1'/%3e%3ccircle class='cls-2' cx='627.1' cy='897.5' r='1.4'/%3e%3ccircle class='cls-2' cx='625.1' cy='902.8' r='.6'/%3e%3ccircle class='cls-2' cx='617.4' cy='909.7' r='.9'/%3e%3ccircle class='cls-2' cx='598.1' cy='924.5' r='.7'/%3e%3ccircle class='cls-2' cx='573' cy='925.8' r='1.2'/%3e%3ccircle class='cls-2' cx='558' cy='925.9' r='.5'/%3e%3ccircle class='cls-2' cx='568.7' cy='901.9' r='.5'/%3e%3ccircle class='cls-2' cx='560' cy='879.5' r='1'/%3e%3ccircle class='cls-2' cx='560.6' cy='855.1' r='.6'/%3e%3ccircle class='cls-2' cx='557.1' cy='847.4' r='1.5'/%3e%3ccircle class='cls-2' cx='549.8' cy='873' r='1.2'/%3e%3ccircle class='cls-2' cx='540' cy='897.9' r='.5'/%3e%3ccircle class='cls-2' cx='845.6' cy='924.2' r='1'/%3e%3ccircle class='cls-2' cx='855.7' cy='883.8' r='1'/%3e%3ccircle class='cls-2' cx='868' cy='879.1' r='1.4'/%3e%3ccircle class='cls-2' cx='891' cy='849.3' r='.8'/%3e%3ccircle class='cls-2' cx='892.9' cy='827.7' r='1'/%3e%3ccircle class='cls-2' cx='888.7' cy='813.4' r='.7'/%3e%3ccircle class='cls-2' cx='876' cy='825.5' r='.5'/%3e%3ccircle class='cls-2' cx='854.9' cy='844.5' r='1.3'/%3e%3ccircle class='cls-2' cx='816.9' cy='866.9' r='1.4'/%3e%3ccircle class='cls-2' cx='798.7' cy='873.9' r='1.1'/%3e%3ccircle class='cls-2' cx='767.8' cy='892.1' r='1.1'/%3e%3ccircle class='cls-2' cx='755.9' cy='898.7' r='1'/%3e%3ccircle class='cls-2' cx='758.8' cy='889.1' r='1.1'/%3e%3ccircle class='cls-2' cx='777.7' cy='869.7' r='.5'/%3e%3ccircle class='cls-2' cx='791.8' cy='842.2' r='1'/%3e%3ccircle class='cls-2' cx='820.7' cy='826.1' r='1.4'/%3e%3ccircle class='cls-2' cx='821' cy='815' r='1.3'/%3e%3ccircle class='cls-2' cx='817.3' cy='811.6' r='1.3'/%3e%3ccircle class='cls-2' cx='795.8' cy='820.3' r='1.4'/%3e%3ccircle class='cls-2' cx='776.9' cy='837.7' r='1.1'/%3e%3ccircle class='cls-2' cx='772.5' cy='841.8' r='1.3'/%3e%3ccircle class='cls-2' cx='759.9' cy='848.2' r='.8'/%3e%3ccircle class='cls-2' cx='737' cy='866.8' r='1.5'/%3e%3ccircle class='cls-2' cx='712.4' cy='871.1' r='.6'/%3e%3ccircle class='cls-2' cx='713.9' cy='868.8' r='.5'/%3e%3ccircle class='cls-2' cx='719.1' cy='859.6' r='.9'/%3e%3ccircle class='cls-2' cx='744.1' cy='824.2' r='1.4'/%3e%3ccircle class='cls-2' cx='763.8' cy='786.3' r='.8'/%3e%3ccircle class='cls-2' cx='766' cy='782.2' r='.6'/%3e%3ccircle class='cls-2' cx='755.6' cy='801.3' r='.8'/%3e%3ccircle class='cls-2' cx='729.8' cy='833.4' r='1.2'/%3e%3ccircle class='cls-2' cx='721.3' cy='839.2' r='.9'/%3e%3ccircle class='cls-2' cx='1033' cy='1077.5' r='1.1'/%3e%3ccircle class='cls-2' cx='1037.9' cy='1067.2' r='.8'/%3e%3ccircle class='cls-2' cx='1048.2' cy='1045.7' r='1'/%3e%3ccircle class='cls-2' cx='1044.4' cy='1024.3' r='.9'/%3e%3ccircle class='cls-2' cx='1053.5' cy='1005' r='1.4'/%3e%3ccircle class='cls-2' cx='1053.7' cy='969.1' r='.6'/%3e%3ccircle class='cls-2' cx='1063.6' cy='954.6' r='1.4'/%3e%3ccircle class='cls-2' cx='1097' cy='942.7' r='1.1'/%3e%3ccircle class='cls-2' cx='1595.7' cy='374.3' r='.7'/%3e%3ccircle class='cls-2' cx='1585.3' cy='359.7' r='1.1'/%3e%3ccircle class='cls-2' cx='1558.8' cy='368.2' r='.9'/%3e%3ccircle class='cls-2' cx='1518.6' cy='370' r='1.3'/%3e%3ccircle class='cls-2' cx='1496.3' cy='378.6' r='.7'/%3e%3ccircle class='cls-2' cx='1457.4' cy='375.7' r='.8'/%3e%3ccircle class='cls-2' cx='1417.3' cy='384' r='1.4'/%3e%3ccircle class='cls-2' cx='1402.3' cy='392.5' r='1'/%3e%3ccircle class='cls-2' cx='1396.6' cy='406' r='.7'/%3e%3ccircle class='cls-2' cx='1375' cy='401.6' r='.6'/%3e%3ccircle class='cls-2' cx='1356.4' cy='418.8' r='1.2'/%3e%3ccircle class='cls-2' cx='1339.6' cy='419.3' r='1.5'/%3e%3ccircle class='cls-2' cx='1323.4' cy='426.4' r='.7'/%3e%3ccircle class='cls-2' cx='1303.7' cy='438.5' r='1.3'/%3e%3ccircle class='cls-2' cx='1270.1' cy='467.4' r='1'/%3e%3ccircle class='cls-2' cx='1256.8' cy='476.6' r='.8'/%3e%3ccircle class='cls-2' cx='1236.1' cy='491.9' r='1.2'/%3e%3ccircle class='cls-2' cx='1203.7' cy='504.9' r='.5'/%3e%3ccircle class='cls-2' cx='1177.9' cy='521.9' r='1.4'/%3e%3ccircle class='cls-2' cx='1167.5' cy='551.3' r='1.3'/%3e%3ccircle class='cls-2' cx='1154.3' cy='566.7' r='.7'/%3e%3ccircle class='cls-2' cx='1131.2' cy='591.1' r='1.4'/%3e%3ccircle class='cls-2' cx='1106.1' cy='624.2' r='.8'/%3e%3ccircle class='cls-2' cx='1088.8' cy='629.1' r='1.5'/%3e%3ccircle class='cls-2' cx='1073.2' cy='662.9' r='.5'/%3e%3ccircle class='cls-2' cx='1066.8' cy='697.5' r='.5'/%3e%3ccircle class='cls-2' cx='1052.7' cy='713.7' r='1.4'/%3e%3ccircle class='cls-2' cx='1045.2' cy='731.9' r='1.1'/%3e%3ccircle class='cls-2' cx='1041.3' cy='773.2' r='1.5'/%3e%3ccircle class='cls-2' cx='1037.8' cy='810.6' r='1'/%3e%3ccircle class='cls-2' cx='1052.4' cy='845.1' r='.6'/%3e%3ccircle class='cls-2' cx='1063.3' cy='862' r='1'/%3e%3ccircle class='cls-2' cx='1077' cy='874.6' r='1.2'/%3e%3ccircle class='cls-2' cx='1113.2' cy='890.1' r='.7'/%3e%3ccircle class='cls-2' cx='1137' cy='892.2' r='1.4'/%3e%3ccircle class='cls-2' cx='1153.6' cy='888.2' r='.6'/%3e%3ccircle class='cls-2' cx='1180.6' cy='896.7' r='1.5'/%3e%3ccircle class='cls-2' cx='1203.8' cy='895.8' r='.9'/%3e%3ccircle class='cls-2' cx='1241.3' cy='888.8' r='1.4'/%3e%3ccircle class='cls-2' cx='1262.8' cy='877.4' r='.8'/%3e%3ccircle class='cls-2' cx='1269.4' cy='875.3' r='1.3'/%3e%3ccircle class='cls-2' cx='1277.7' cy='878.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1298.5' cy='868.1' r='1.4'/%3e%3ccircle class='cls-2' cx='1321.5' cy='873.1' r='1.1'/%3e%3ccircle class='cls-2' cx='1360.2' cy='857.9' r='.7'/%3e%3ccircle class='cls-2' cx='1396.8' cy='849.6' r='1.3'/%3e%3ccircle class='cls-2' cx='1434.7' cy='829.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1459.6' cy='828' r='.9'/%3e%3ccircle class='cls-2' cx='1490.4' cy='828.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1515.6' cy='813.8' r='1.5'/%3e%3ccircle class='cls-2' cx='1532.7' cy='808.4' r='.6'/%3e%3ccircle class='cls-2' cx='1560' cy='803.8' r='.7'/%3e%3ccircle class='cls-2' cx='1601.1' cy='815.7' r='1.2'/%3e%3ccircle class='cls-2' cx='1600.2' cy='832.5' r='.5'/%3e%3ccircle class='cls-2' cx='1593.3' cy='871.6' r='.9'/%3e%3ccircle class='cls-2' cx='1587.9' cy='884.3' r='1.4'/%3e%3ccircle class='cls-2' cx='1581.9' cy='890.1' r='.5'/%3e%3ccircle class='cls-2' cx='1567.6' cy='929.1' r='1.2'/%3e%3ccircle class='cls-2' cx='1553.5' cy='943.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1547.7' cy='954.3' r='.6'/%3e%3ccircle class='cls-2' cx='1536.9' cy='990.9' r='.7'/%3e%3ccircle class='cls-2' cx='1533.4' cy='1000.7' r='.9'/%3e%3ccircle class='cls-2' cx='1525.2' cy='1039.3' r='.7'/%3e%3ccircle class='cls-2' cx='1507.8' cy='1052.6' r='1.1'/%3e%3ccircle class='cls-2' cx='1509' cy='1069' r='1'/%3e%3ccircle class='cls-2' cx='1545.1' cy='732.3' r='1.3'/%3e%3ccircle class='cls-2' cx='1557.8' cy='709.6' r='.8'/%3e%3ccircle class='cls-2' cx='1570.6' cy='695.1' r='1'/%3e%3ccircle class='cls-2' cx='1601.8' cy='678.1' r='.8'/%3e%3ccircle class='cls-2' cx='1626.4' cy='642.3' r='1.4'/%3e%3ccircle class='cls-2' cx='1640.5' cy='635.9' r='.6'/%3e%3ccircle class='cls-2' cx='1640.8' cy='620.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1646.8' cy='613.3' r='.5'/%3e%3ccircle class='cls-2' cx='1666.3' cy='596.8' r='.7'/%3e%3ccircle class='cls-2' cx='1675.1' cy='574.7' r='.5'/%3e%3ccircle class='cls-2' cx='1647.9' cy='568.7' r='1.1'/%3e%3ccircle class='cls-2' cx='1609.1' cy='587.8' r='1.3'/%3e%3ccircle class='cls-2' cx='1578.6' cy='612.6' r='1.1'/%3e%3ccircle class='cls-2' cx='1561' cy='620.1' r='1.3'/%3e%3ccircle class='cls-2' cx='1553.2' cy='630' r='.9'/%3e%3ccircle class='cls-2' cx='1522.7' cy='636.4' r='.6'/%3e%3ccircle class='cls-2' cx='1508.6' cy='645' r='1.4'/%3e%3ccircle class='cls-2' cx='1500.9' cy='657.8' r='1.2'/%3e%3ccircle class='cls-2' cx='1471.6' cy='667.2' r='1.3'/%3e%3ccircle class='cls-2' cx='1453.6' cy='676.7' r='1.4'/%3e%3ccircle class='cls-2' cx='1436.2' cy='699.7' r='1'/%3e%3ccircle class='cls-2' cx='1412.9' cy='700.4' r='.8'/%3e%3ccircle class='cls-2' cx='1396.7' cy='706.2' r='.5'/%3e%3ccircle class='cls-2' cx='1385.9' cy='721.6' r='.8'/%3e%3ccircle class='cls-2' cx='1369.2' cy='731.5' r='1.3'/%3e%3ccircle class='cls-2' cx='1326.8' cy='742.5' r='1'/%3e%3ccircle class='cls-2' cx='1322.2' cy='745.7' r='.7'/%3e%3ccircle class='cls-2' cx='1285.6' cy='742.4' r='.8'/%3e%3ccircle class='cls-2' cx='1285.8' cy='707.9' r='1.5'/%3e%3ccircle class='cls-2' cx='1285.6' cy='684.8' r='.9'/%3e%3ccircle class='cls-2' cx='1295.6' cy='671.2' r='1'/%3e%3ccircle class='cls-2' cx='1306.3' cy='655.1' r='.5'/%3e%3ccircle class='cls-2' cx='1304.4' cy='646' r='1.1'/%3e%3ccircle class='cls-2' cx='1331.9' cy='618.2' r='.9'/%3e%3ccircle class='cls-2' cx='1354' cy='594.6' r='1.3'/%3e%3ccircle class='cls-2' cx='1358.8' cy='590.1' r='1.4'/%3e%3ccircle class='cls-2' cx='1369' cy='576.2' r='.7'/%3e%3ccircle class='cls-2' cx='1388.5' cy='561.1' r='.8'/%3e%3ccircle class='cls-2' cx='1406.3' cy='545.1' r='1.1'/%3e%3ccircle class='cls-2' cx='1419.2' cy='536.2' r='1.4'/%3e%3ccircle class='cls-2' cx='1446' cy='510.3' r='.8'/%3e%3ccircle class='cls-2' cx='1465.3' cy='506.8' r='1'/%3e%3ccircle class='cls-2' cx='1484.9' cy='520.4' r='1'/%3e%3ccircle class='cls-2' cx='1496.1' cy='529' r='.9'/%3e%3ccircle class='cls-2' cx='1496.3' cy='539.3' r='.6'/%3e%3ccircle class='cls-2' cx='1478.3' cy='577.4' r='.9'/%3e%3ccircle class='cls-2' cx='1472.1' cy='596.6' r='1.4'/%3e%3ccircle class='cls-2' cx='1480.2' cy='639.1' r='1'/%3e%3ccircle class='cls-2' cx='1467.6' cy='653.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1471.3' cy='660.4' r='.5'/%3e%3ccircle class='cls-2' cx='1457.9' cy='694.3' r='.8'/%3e%3ccircle class='cls-2' cx='1467.1' cy='711' r='.9'/%3e%3ccircle class='cls-2' cx='1463.2' cy='730.3' r='1.3'/%3e%3ccircle class='cls-2' cx='1446.3' cy='756.4' r='1.3'/%3e%3ccircle class='cls-2' cx='1450.3' cy='799.4' r='1.2'/%3e%3ccircle class='cls-2' cx='1566.6' cy='600' r='.9'/%3e%3ccircle class='cls-2' cx='1577.9' cy='595.2' r='1.1'/%3e%3ccircle class='cls-2' cx='1582.5' cy='554.5' r='.8'/%3e%3ccircle class='cls-2' cx='1602.9' cy='539.9' r='.7'/%3e%3ccircle class='cls-2' cx='1618.1' cy='519' r='.8'/%3e%3ccircle class='cls-2' cx='1611.9' cy='492.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1597.5' cy='531' r='1.2'/%3e%3ccircle class='cls-2' cx='1571' cy='559.5' r='1'/%3e%3ccircle class='cls-2' cx='1557.8' cy='567.9' r='.9'/%3e%3ccircle class='cls-2' cx='1540.2' cy='595.9' r='.9'/%3e%3ccircle class='cls-2' cx='1520.3' cy='618.9' r='.7'/%3e%3ccircle class='cls-2' cx='1541.7' cy='604.2' r='1.4'/%3e%3ccircle class='cls-2' cx='1546.2' cy='586.2' r='.8'/%3e%3ccircle class='cls-2' cx='1560.4' cy='582.6' r='1.5'/%3e%3ccircle class='cls-2' cx='1582.2' cy='561.6' r='.6'/%3e%3ccircle class='cls-2' cx='1620.2' cy='542.6' r='1.3'/%3e%3ccircle class='cls-2' cx='1632.2' cy='521.6' r='1.3'/%3e%3ccircle class='cls-2' cx='1646.8' cy='527.4' r='1'/%3e%3ccircle class='cls-2' cx='1646.2' cy='525.4' r='1.4'/%3e%3ccircle class='cls-2' cx='1635.3' cy='533.8' r='1.4'/%3e%3ccircle class='cls-2' cx='1605.8' cy='559.2' r='1.4'/%3e%3ccircle class='cls-2' cx='1601.7' cy='582.4' r='.6'/%3e%3ccircle class='cls-2' cx='1590.5' cy='593.5' r='.8'/%3e%3ccircle class='cls-2' cx='1573.2' cy='593.9' r='1.1'/%3e%3ccircle class='cls-2' cx='1565.3' cy='617.9' r='.8'/%3e%3ccircle class='cls-2' cx='1581.7' cy='608.4' r='.6'/%3e%3ccircle class='cls-2' cx='1598.5' cy='598.6' r='1'/%3e%3ccircle class='cls-2' cx='1620' cy='568.4' r='1'/%3e%3ccircle class='cls-2' cx='1833.3' cy='663.8' r='.6'/%3e%3ccircle class='cls-2' cx='1818.9' cy='647.3' r='.8'/%3e%3ccircle class='cls-2' cx='1828.6' cy='631.7' r='1.3'/%3e%3ccircle class='cls-2' cx='1829.6' cy='610.4' r='.7'/%3e%3ccircle class='cls-2' cx='1816' cy='571.9' r='1.2'/%3e%3ccircle class='cls-2' cx='1823.4' cy='557.2' r='.8'/%3e%3ccircle class='cls-2' cx='1825.6' cy='534.6' r='.7'/%3e%3ccircle class='cls-2' cx='1830.5' cy='504.9' r='1.5'/%3e%3ccircle class='cls-2' cx='1831.2' cy='469.6' r='.9'/%3e%3ccircle class='cls-2' cx='1830.4' cy='452.9' r='.9'/%3e%3ccircle class='cls-2' cx='1835.9' cy='442.7' r='1.2'/%3e%3ccircle class='cls-2' cx='1826.2' cy='414.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1839.5' cy='381.9' r='.7'/%3e%3ccircle class='cls-2' cx='1826.7' cy='387.5' r='.5'/%3e%3ccircle class='cls-2' cx='1821.2' cy='409' r='.5'/%3e%3ccircle class='cls-2' cx='1828.4' cy='418.1' r='1.4'/%3e%3ccircle class='cls-2' cx='1814.9' cy='437.4' r='.8'/%3e%3ccircle class='cls-2' cx='1813.6' cy='463' r='1.5'/%3e%3ccircle class='cls-2' cx='1799.7' cy='462.4' r='.7'/%3e%3ccircle class='cls-2' cx='1802.2' cy='486.7' r='1.3'/%3e%3ccircle class='cls-2' cx='1778.5' cy='515.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1768.2' cy='515.7' r='1.3'/%3e%3ccircle class='cls-2' cx='1775.9' cy='500.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1773.8' cy='491' r='.9'/%3e%3ccircle class='cls-2' cx='1776.8' cy='471.3' r='1.4'/%3e%3ccircle class='cls-2' cx='1790.1' cy='436.8' r='.7'/%3e%3ccircle class='cls-2' cx='1797.8' cy='411.3' r='1.3'/%3e%3ccircle class='cls-2' cx='1800.8' cy='407.1' r='1.2'/%3e%3ccircle class='cls-2' cx='1812.6' cy='375.3' r='1.2'/%3e%3ccircle class='cls-2' cx='1795.7' cy='391.4' r='.7'/%3e%3ccircle class='cls-2' cx='1780.3' cy='407.9' r='.9'/%3e%3ccircle class='cls-2' cx='1784.5' cy='423.9' r='1.1'/%3e%3ccircle class='cls-2' cx='1769.4' cy='436.8' r='1.2'/%3e%3ccircle class='cls-2' cx='1749.8' cy='471.5' r='1.1'/%3e%3ccircle class='cls-2' cx='1727.1' cy='495.7' r='1.3'/%3e%3ccircle class='cls-2' cx='1703.6' cy='518.1' r='1.4'/%3e%3ccircle class='cls-2' cx='1692.1' cy='534.6' r='.9'/%3e%3ccircle class='cls-2' cx='1664.2' cy='510.1' r='.7'/%3e%3ccircle class='cls-2' cx='1683.5' cy='490.8' r='1.5'/%3e%3ccircle class='cls-2' cx='1705.2' cy='456.5' r='.6'/%3e%3ccircle class='cls-2' cx='813.2' cy='516.3' r='.5'/%3e%3ccircle class='cls-2' cx='846.6' cy='540.9' r='.6'/%3e%3ccircle class='cls-2' cx='850.4' cy='558.2' r='1.4'/%3e%3ccircle class='cls-2' cx='855.9' cy='571.9' r='.7'/%3e%3ccircle class='cls-2' cx='863.3' cy='585.2' r='1.3'/%3e%3ccircle class='cls-2' cx='895.8' cy='615.2' r='1.3'/%3e%3ccircle class='cls-2' cx='904.1' cy='619.4' r='1.1'/%3e%3ccircle class='cls-2' cx='916.6' cy='632.9' r='.7'/%3e%3ccircle class='cls-2' cx='929.1' cy='650.6' r='.7'/%3e%3ccircle class='cls-2' cx='937.1' cy='652.1' r='.6'/%3e%3ccircle class='cls-2' cx='946.7' cy='655.3' r='1'/%3e%3ccircle class='cls-2' cx='973.3' cy='674.7' r='1.5'/%3e%3ccircle class='cls-2' cx='982.5' cy='684.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1004' cy='701.3' r='.5'/%3e%3ccircle class='cls-2' cx='1022.5' cy='723.7' r='1.3'/%3e%3ccircle class='cls-2' cx='1033' cy='706.4' r='.8'/%3e%3ccircle class='cls-2' cx='1011.8' cy='688.9' r='1.2'/%3e%3ccircle class='cls-2' cx='1007.2' cy='662' r='1.1'/%3e%3ccircle class='cls-2' cx='996' cy='634.3' r='.8'/%3e%3ccircle class='cls-2' cx='994.6' cy='629' r='1.2'/%3e%3ccircle class='cls-2' cx='986.3' cy='620.9' r='.6'/%3e%3ccircle class='cls-2' cx='996.6' cy='615.4' r='.5'/%3e%3ccircle class='cls-2' cx='989.4' cy='602.7' r='1.1'/%3e%3ccircle class='cls-2' cx='1005.4' cy='580' r='.8'/%3e%3ccircle class='cls-2' cx='1002.1' cy='560.5' r='1.2'/%3e%3ccircle class='cls-2' cx='1032.3' cy='533.7' r='.6'/%3e%3ccircle class='cls-2' cx='1073.4' cy='526.8' r='.9'/%3e%3ccircle class='cls-2' cx='1116' cy='527' r='.8'/%3e%3ccircle class='cls-2' cx='1156.7' cy='536.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1177.2' cy='538.5' r='.7'/%3e%3ccircle class='cls-2' cx='1197.9' cy='537.9' r='1.3'/%3e%3ccircle class='cls-2' cx='1207.2' cy='551.7' r='.5'/%3e%3ccircle class='cls-2' cx='1219.8' cy='554.6' r='.6'/%3e%3ccircle class='cls-2' cx='1226.5' cy='554.3' r='1.4'/%3e%3ccircle class='cls-2' cx='1237.8' cy='552.4' r='1.5'/%3e%3ccircle class='cls-2' cx='1257.3' cy='575.6' r='1.3'/%3e%3ccircle class='cls-2' cx='1297.9' cy='591.6' r='.5'/%3e%3ccircle class='cls-2' cx='1324.9' cy='600.3' r='.8'/%3e%3ccircle class='cls-2' cx='1360.1' cy='611.3' r='1.4'/%3e%3ccircle class='cls-2' cx='1399.5' cy='625.9' r='1.3'/%3e%3ccircle class='cls-2' cx='1428.3' cy='638.2' r='1.5'/%3e%3ccircle class='cls-2' cx='1470.7' cy='639.7' r='1.4'/%3e%3ccircle class='cls-2' cx='1484.1' cy='637.7' r='.5'/%3e%3ccircle class='cls-2' cx='1510.4' cy='641.1' r='1.1'/%3e%3ccircle class='cls-2' cx='1517.8' cy='637' r='.7'/%3e%3ccircle class='cls-2' cx='1542' cy='620.2' r='1.5'/%3e%3ccircle class='cls-2' cx='1558.6' cy='584.1' r='.5'/%3e%3ccircle class='cls-2' cx='1574.3' cy='543' r='.7'/%3e%3ccircle class='cls-2' cx='1589.5' cy='548.4' r='1'/%3e%3ccircle class='cls-2' cx='1603.3' cy='530.8' r='1.3'/%3e%3ccircle class='cls-2' cx='1633.3' cy='527.1' r='1.4'/%3e%3ccircle class='cls-2' cx='1659.4' cy='534.5' r='.6'/%3e%3ccircle class='cls-2' cx='1665.4' cy='536' r='1'/%3e%3ccircle class='cls-2' cx='1684.4' cy='567.9' r='1'/%3e%3ccircle class='cls-2' cx='1694.6' cy='589.5' r='.6'/%3e%3ccircle class='cls-2' cx='1692.6' cy='612' r='1.2'/%3e%3ccircle class='cls-2' cx='1705.5' cy='638.9' r='1.5'/%3e%3ccircle class='cls-2' cx='1706.8' cy='675.4' r='.7'/%3e%3ccircle class='cls-2' cx='1739.2' cy='670' r='1.2'/%3e%3ccircle class='cls-2' cx='1751.2' cy='634.1' r='.6'/%3e%3ccircle class='cls-2' cx='1769.3' cy='596.8' r='.6'/%3e%3ccircle class='cls-2' cx='1786.8' cy='584.1' r='.9'/%3e%3ccircle class='cls-2' cx='1807.5' cy='564.1' r='.6'/%3e%3ccircle class='cls-2' cx='1819.4' cy='544.2' r='1.1'/%3e%3ccircle class='cls-2' cx='1807.4' cy='541.7' r='1'/%3e%3ccircle class='cls-2' cx='1802.8' cy='565.1' r='.7'/%3e%3ccircle class='cls-2' cx='1799.2' cy='591.1' r='.8'/%3e%3ccircle class='cls-2' cx='1785.7' cy='594.5' r='1.1'/%3e%3ccircle class='cls-2' cx='1786.2' cy='620.5' r='.7'/%3e%3ccircle class='cls-2' cx='1777' cy='643.1' r='1.3'/%3e%3ccircle class='cls-2' cx='1783.4' cy='667.3' r='1.2'/%3e%3ccircle class='cls-2' cx='1770.2' cy='679.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1769.1' cy='697.9' r='1.2'/%3e%3ccircle class='cls-2' cx='1776.3' cy='711.7' r='1'/%3e%3ccircle class='cls-2' cx='1771.7' cy='748.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1780' cy='772.8' r='1.4'/%3e%3ccircle class='cls-2' cx='1514.1' cy='450.9' r='.8'/%3e%3ccircle class='cls-2' cx='1495.3' cy='453.6' r='1.4'/%3e%3ccircle class='cls-2' cx='1467.3' cy='445.2' r='.6'/%3e%3ccircle class='cls-2' cx='1455.9' cy='439.6' r='.8'/%3e%3ccircle class='cls-2' cx='1415.1' cy='436.6' r='1.1'/%3e%3ccircle class='cls-2' cx='1388' cy='436.7' r='.7'/%3e%3ccircle class='cls-2' cx='1370.4' cy='437.2' r='.8'/%3e%3ccircle class='cls-2' cx='1338.2' cy='435.2' r='.6'/%3e%3ccircle class='cls-2' cx='1328.6' cy='446.6' r='.9'/%3e%3ccircle class='cls-2' cx='1300.2' cy='447.2' r='.6'/%3e%3ccircle class='cls-2' cx='1274.1' cy='432.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1265.4' cy='429.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1227.4' cy='424.3' r='.6'/%3e%3ccircle class='cls-2' cx='1204.1' cy='424.1' r='1.3'/%3e%3ccircle class='cls-2' cx='1180.1' cy='414.1' r='1.4'/%3e%3ccircle class='cls-2' cx='1195.1' cy='437.8' r='.8'/%3e%3ccircle class='cls-2' cx='1214.1' cy='430.4' r='.7'/%3e%3ccircle class='cls-2' cx='1217.5' cy='441.2' r='1'/%3e%3ccircle class='cls-2' cx='1225.8' cy='450.8' r='.8'/%3e%3ccircle class='cls-2' cx='1234.5' cy='453.8' r='1.3'/%3e%3ccircle class='cls-2' cx='1249.8' cy='454.8' r='1.3'/%3e%3ccircle class='cls-2' cx='1264.1' cy='476' r='.8'/%3e%3ccircle class='cls-2' cx='1273.1' cy='478' r='1.1'/%3e%3ccircle class='cls-2' cx='1308.8' cy='502.5' r='.7'/%3e%3ccircle class='cls-2' cx='1315.2' cy='507.2' r='1.3'/%3e%3ccircle class='cls-2' cx='1316.8' cy='514.3' r='1.4'/%3e%3ccircle class='cls-2' cx='1308.1' cy='513.7' r='.9'/%3e%3ccircle class='cls-2' cx='1278' cy='517' r='.7'/%3e%3ccircle class='cls-2' cx='1236.8' cy='507.4' r='1.2'/%3e%3ccircle class='cls-2' cx='1235.3' cy='492.1' r='1.1'/%3e%3ccircle class='cls-2' cx='1216' cy='497.3' r='1.4'/%3e%3ccircle class='cls-2' cx='1213.3' cy='482.7' r='1.2'/%3e%3ccircle class='cls-2' cx='1172.7' cy='470.5' r='.9'/%3e%3ccircle class='cls-2' cx='1168.4' cy='449.6' r='1.1'/%3e%3ccircle class='cls-2' cx='1141.7' cy='430.7' r='1.4'/%3e%3ccircle class='cls-2' cx='1113.5' cy='413.1' r='1.4'/%3e%3ccircle class='cls-2' cx='1099.7' cy='405.4' r='1.4'/%3e%3ccircle class='cls-2' cx='1069.1' cy='389.2' r='1.2'/%3e%3ccircle class='cls-2' cx='1033.1' cy='387.9' r='.9'/%3e%3ccircle class='cls-2' cx='1022' cy='404.9' r='1.4'/%3e%3ccircle class='cls-2' cx='1026.7' cy='412.8' r='.6'/%3e%3ccircle class='cls-2' cx='1040.8' cy='443.3' r='.8'/%3e%3ccircle class='cls-2' cx='1049.9' cy='449.7' r='.7'/%3e%3ccircle class='cls-2' cx='1064.1' cy='475.5' r='1'/%3e%3ccircle class='cls-2' cx='1086.9' cy='499' r='.6'/%3e%3ccircle class='cls-2' cx='1091.3' cy='513.4' r='.8'/%3e%3ccircle class='cls-2' cx='1086.6' cy='508.2' r='.9'/%3e%3ccircle class='cls-2' cx='1077.6' cy='510.5' r='.7'/%3e%3ccircle class='cls-2' cx='306' cy='902.6' r='2.2'/%3e%3ccircle class='cls-2' cx='335.2' cy='913.2' r='2.3'/%3e%3ccircle class='cls-2' cx='342.8' cy='917.4' r='2.2'/%3e%3ccircle class='cls-2' cx='354.3' cy='902.8' r='2.2'/%3e%3ccircle class='cls-2' cx='390.9' cy='873.5' r='2.5'/%3e%3ccircle class='cls-2' cx='430.6' cy='870.3' r='2.4'/%3e%3ccircle class='cls-2' cx='468' cy='870.8' r='2.5'/%3e%3ccircle class='cls-2' cx='489' cy='870.3' r='2.4'/%3e%3ccircle class='cls-2' cx='510.3' cy='827.4' r='2.4'/%3e%3ccircle class='cls-2' cx='552' cy='897.9' r='2.3'/%3e%3ccircle class='cls-2' cx='578.6' cy='903.9' r='2.2'/%3e%3ccircle class='cls-2' cx='572.1' cy='849.3' r='2.3'/%3e%3ccircle class='cls-2' cx='611.1' cy='828.7' r='2.4'/%3e%3ccircle class='cls-2' cx='648.1' cy='850.3' r='2.3'/%3e%3ccircle class='cls-2' cx='675.5' cy='837.4' r='2.4'/%3e%3ccircle class='cls-2' cx='716.4' cy='837.5' r='2.4'/%3e%3ccircle class='cls-2' cx='738.2' cy='890' r='2.4'/%3e%3ccircle class='cls-2' cx='752.3' cy='857.3' r='2.3'/%3e%3ccircle class='cls-2' cx='759' cy='870.1' r='2.4'/%3e%3ccircle class='cls-2' cx='803.4' cy='822.3' r='2.3'/%3e%3ccircle class='cls-2' cx='828.6' cy='862.9' r='2.2'/%3e%3ccircle class='cls-2' cx='874.7' cy='876.1' r='2.2'/%3e%3ccircle class='cls-2' cx='890.5' cy='898.8' r='2.3'/%3e%3ccircle class='cls-2' cx='891.3' cy='928.9' r='2.5'/%3e%3ccircle class='cls-2' cx='945.1' cy='917.5' r='2.2'/%3e%3ccircle class='cls-2' cx='1005.2' cy='917.3' r='2.5'/%3e%3ccircle class='cls-2' cx='1040.7' cy='950.7' r='2.3'/%3e%3ccircle class='cls-2' cx='1051.4' cy='988.9' r='2.2'/%3e%3ccircle class='cls-2' cx='1058.8' cy='1050.2' r='2.4'/%3e%3ccircle class='cls-2' cx='1125.6' cy='1029.5' r='2.4'/%3e%3ccircle class='cls-2' cx='1177.9' cy='1055.3' r='2.4'/%3e%3ccircle class='cls-2' cx='1192.6' cy='1055.9' r='2.3'/%3e%3ccircle class='cls-2' cx='1227.5' cy='1050.8' r='2.3'/%3e%3ccircle class='cls-2' cx='1266' cy='1057.3' r='2.3'/%3e%3ccircle class='cls-2' cx='1310.4' cy='1062.3' r='2.3'/%3e%3ccircle class='cls-2' cx='1351.3' cy='1066.2' r='2.2'/%3e%3ccircle class='cls-2' cx='1412' cy='1071' r='2.3'/%3e%3ccircle class='cls-2' cx='1454.3' cy='1045.2' r='2.4'/%3e%3ccircle class='cls-2' cx='1470.1' cy='1022.1' r='2.5'/%3e%3ccircle class='cls-2' cx='1486' cy='1024' r='2.4'/%3e%3ccircle class='cls-2' cx='1513.6' cy='1023.6' r='2.3'/%3e%3ccircle class='cls-2' cx='1548.3' cy='1053.3' r='2.2'/%3e%3ccircle class='cls-2' cx='1564.2' cy='1024.9' r='2.2'/%3e%3ccircle class='cls-2' cx='1588.4' cy='1012.1' r='2.3'/%3e%3ccircle class='cls-2' cx='1602.3' cy='973' r='2.3'/%3e%3ccircle class='cls-2' cx='1650.7' cy='990.6' r='2.3'/%3e%3ccircle class='cls-2' cx='1689.8' cy='958.5' r='2.3'/%3e%3ccircle class='cls-2' cx='1704.7' cy='954.4' r='2.3'/%3e%3ccircle class='cls-2' cx='1733.7' cy='968.4' r='2.4'/%3e%3ccircle class='cls-2' cx='1733.2' cy='935.9' r='2.2'/%3e%3ccircle class='cls-2' cx='1780.3' cy='971.9' r='2.3'/%3e%3ccircle class='cls-2' cx='1807.3' cy='1009.9' r='2.4'/%3e%3ccircle class='cls-2' cx='1806' cy='970' r='2.2'/%3e%3ccircle class='cls-2' cx='1826.6' cy='1001.5' r='2.3'/%3e%3ccircle class='cls-2' cx='1843.3' cy='1020.7' r='2.4'/%3e%3ccircle class='cls-2' cx='1756' cy='1072.9' r='2.5'/%3e%3ccircle class='cls-2' cx='224.4' cy='294.6' r='2.3'/%3e%3ccircle class='cls-2' cx='50.4' cy='272.2' r='2.4'/%3e%3ccircle class='cls-2' cx='54.6' cy='390.5' r='2.5'/%3e%3ccircle class='cls-2' cx='57.3' cy='392.1' r='2.4'/%3e%3ccircle class='cls-2' cx='89.8' cy='409.2' r='2.4'/%3e%3ccircle class='cls-2' cx='81.3' cy='438.6' r='2.2'/%3e%3ccircle class='cls-2' cx='55.4' cy='479.1' r='2.3'/%3e%3ccircle class='cls-2' cx='102.1' cy='456.9' r='2.4'/%3e%3ccircle class='cls-2' cx='123.6' cy='467.8' r='2.3'/%3e%3ccircle class='cls-2' cx='182.4' cy='92.4' r='2.3'/%3e%3ccircle class='cls-2' cx='135.5' cy='104' r='2.3'/%3e%3ccircle class='cls-2' cx='658' cy='522' r='2.4'/%3e%3ccircle class='cls-2' cx='97.3' cy='110.3' r='2.2'/%3e%3ccircle class='cls-2' cx='606.3' cy='489.8' r='2.4'/%3e%3ccircle class='cls-2' cx='1479.5' cy='269.8' r='2.3'/%3e%3ccircle class='cls-2' cx='1508.2' cy='279.3' r='2.4'/%3e%3ccircle class='cls-2' cx='1516.2' cy='251.4' r='2.4'/%3e%3ccircle class='cls-2' cx='1520.8' cy='245.6' r='2.3'/%3e%3ccircle class='cls-2' cx='1524.5' cy='180.4' r='2.4'/%3e%3ccircle class='cls-2' cx='1565.1' cy='250' r='2.3'/%3e%3ccircle class='cls-2' cx='1582.8' cy='201.8' r='2.3'/%3e%3ccircle class='cls-2' cx='1598.6' cy='223.4' r='2.4'/%3e%3ccircle class='cls-2' cx='1604.5' cy='165.3' r='2.4'/%3e%3ccircle class='cls-2' cx='1646.9' cy='194.6' r='2.3'/%3e%3ccircle class='cls-2' cx='1637' cy='144.5' r='2.5'/%3e%3ccircle class='cls-2' cx='1656.7' cy='185.8' r='2.2'/%3e%3ccircle class='cls-2' cx='1160' cy='325.7' r='2.4'/%3e%3ccircle class='cls-2' cx='1199.9' cy='276.7' r='2.3'/%3e%3ccircle class='cls-2' cx='1195.7' cy='353.1' r='2.4'/%3e%3ccircle class='cls-2' cx='1234.1' cy='325.1' r='2.3'/%3e%3ccircle class='cls-2' cx='1248.8' cy='367.6' r='2.4'/%3e%3ccircle class='cls-2' cx='1258.5' cy='399.3' r='2.2'/%3e%3ccircle class='cls-2' cx='1301.6' cy='366.4' r='2.2'/%3e%3ccircle class='cls-2' cx='1323.7' cy='371.4' r='2.4'/%3e%3ccircle class='cls-2' cx='1321.2' cy='425' r='2.2'/%3e%3ccircle class='cls-2' cx='1345.8' cy='401' r='2.2'/%3e%3ccircle class='cls-2' cx='1362.5' cy='415.3' r='2.3'/%3e%3ccircle class='cls-2' cx='1366' cy='280' r='2.3'/%3e%3ccircle class='cls-2' cx='1361.8' cy='260' r='2.3'/%3e%3ccircle class='cls-2' cx='1358.6' cy='229.5' r='2.3'/%3e%3ccircle class='cls-2' cx='1311.6' cy='222.7' r='2.2'/%3e%3ccircle class='cls-2' cx='1268.5' cy='273.9' r='2.2'/%3e%3ccircle class='cls-2' cx='1259' cy='201' r='2.4'/%3e%3ccircle class='cls-2' cx='1227.1' cy='207.3' r='2.3'/%3e%3ccircle class='cls-2' cx='1224.8' cy='248.7' r='2.4'/%3e%3ccircle class='cls-2' cx='1185' cy='235.7' r='2.2'/%3e%3ccircle class='cls-2' cx='1167.3' cy='257.1' r='2.3'/%3e%3ccircle class='cls-2' cx='1146.2' cy='300.4' r='2.4'/%3e%3ccircle class='cls-2' cx='1183.3' cy='246.1' r='2.4'/%3e%3ccircle class='cls-2' cx='1218.2' cy='285.8' r='2.2'/%3e%3ccircle class='cls-2' cx='1259.4' cy='293.2' r='2.3'/%3e%3ccircle class='cls-2' cx='1266.8' cy='303.9' r='2.3'/%3e%3ccircle class='cls-2' cx='1294.3' cy='293.4' r='2.3'/%3e%3ccircle class='cls-2' cx='1302.6' cy='300.2' r='2.2'/%3e%3ccircle class='cls-2' cx='1341.1' cy='276.5' r='2.3'/%3e%3ccircle class='cls-2' cx='1372.2' cy='284.4' r='2.2'/%3e%3ccircle class='cls-2' cx='1375.4' cy='252.6' r='2.4'/%3e%3ccircle class='cls-2' cx='1383.7' cy='247.9' r='2.3'/%3e%3ccircle class='cls-2' cx='1389.5' cy='213.1' r='2.2'/%3e%3ccircle class='cls-2' cx='1428.1' cy='209.3' r='2.3'/%3e%3ccircle class='cls-2' cx='1491.2' cy='238.6' r='2.4'/%3e%3ccircle class='cls-2' cx='205.8' cy='350.6' r='2.3'/%3e%3ccircle class='cls-2' cx='226.9' cy='310.8' r='2.4'/%3e%3ccircle class='cls-2' cx='255.8' cy='350.6' r='2.2'/%3e%3ccircle class='cls-2' cx='280.8' cy='333.2' r='2.2'/%3e%3ccircle class='cls-2' cx='295.4' cy='326.9' r='2.2'/%3e%3ccircle class='cls-2' cx='331.3' cy='313.3' r='2.2'/%3e%3ccircle class='cls-2' cx='371.5' cy='303.3' r='2.4'/%3e%3ccircle class='cls-2' cx='411.4' cy='337.7' r='2.4'/%3e%3ccircle class='cls-2' cx='437.8' cy='304.6' r='2.2'/%3e%3ccircle class='cls-2' cx='448.1' cy='290.5' r='2.2'/%3e%3ccircle class='cls-2' cx='495.3' cy='308.2' r='2.5'/%3e%3ccircle class='cls-2' cx='511.2' cy='340.6' r='2.2'/%3e%3ccircle class='cls-2' cx='540.3' cy='318.4' r='2.3'/%3e%3ccircle class='cls-2' cx='556.3' cy='344.5' r='2.4'/%3e%3ccircle class='cls-2' cx='590' cy='270.2' r='2.2'/%3e%3ccircle class='cls-2' cx='636' cy='332.3' r='2.2'/%3e%3ccircle class='cls-2' cx='677.6' cy='296.4' r='2.4'/%3e%3ccircle class='cls-2' cx='707.2' cy='283.4' r='2.2'/%3e%3ccircle class='cls-2' cx='745.9' cy='283.8' r='2.5'/%3e%3ccircle class='cls-2' cx='793.2' cy='259' r='2.3'/%3e%3ccircle class='cls-2' cx='828.7' cy='246.2' r='2.5'/%3e%3ccircle class='cls-2' cx='852.9' cy='281.2' r='2.3'/%3e%3ccircle class='cls-2' cx='874.8' cy='314.4' r='2.5'/%3e%3ccircle class='cls-2' cx='643.4' cy='268.2' r='2.2'/%3e%3ccircle class='cls-2' cx='621' cy='241.7' r='2.2'/%3e%3ccircle class='cls-2' cx='637.5' cy='170.5' r='2.3'/%3e%3ccircle class='cls-2' cx='576.8' cy='240.6' r='2.2'/%3e%3ccircle class='cls-2' cx='559.5' cy='205.1' r='2.2'/%3e%3ccircle class='cls-2' cx='550' cy='141.8' r='2.5'/%3e%3ccircle class='cls-2' cx='538.3' cy='169.7' r='2.2'/%3e%3ccircle class='cls-2' cx='506.4' cy='208.8' r='2.3'/%3e%3ccircle class='cls-2' cx='461.5' cy='157.7' r='2.2'/%3e%3ccircle class='cls-2' cx='465' cy='201.6' r='2.3'/%3e%3ccircle class='cls-2' cx='440.2' cy='234.6' r='2.3'/%3e%3ccircle class='cls-2' cx='416.6' cy='160.1' r='2.2'/%3e%3ccircle class='cls-2' cx='385.4' cy='233.2' r='2.2'/%3e%3ccircle class='cls-2' cx='328.1' cy='198.4' r='2.4'/%3e%3ccircle class='cls-2' cx='292.1' cy='227.1' r='2.3'/%3e%3ccircle class='cls-2' cx='924.5' cy='274.9' r='2.3'/%3e%3ccircle class='cls-2' cx='921.1' cy='199.4' r='2.4'/%3e%3ccircle class='cls-2' cx='859.7' cy='242.2' r='2.2'/%3e%3ccircle class='cls-2' cx='850.6' cy='203.3' r='2.2'/%3e%3ccircle class='cls-2' cx='861.2' cy='176.5' r='2.2'/%3e%3ccircle class='cls-2' cx='826.8' cy='198.9' r='2.3'/%3e%3ccircle class='cls-2' cx='815.4' cy='215.6' r='2.2'/%3e%3ccircle class='cls-2' cx='807.6' cy='196' r='2.4'/%3e%3ccircle class='cls-2' cx='813.4' cy='208.3' r='2.3'/%3e%3ccircle class='cls-2' cx='780.7' cy='215.1' r='2.3'/%3e%3ccircle class='cls-2' cx='1147.2' cy='168.7' r='2.2'/%3e%3ccircle class='cls-2' cx='1110.8' cy='165.6' r='2.4'/%3e%3ccircle class='cls-2' cx='1093' cy='160.6' r='2.2'/%3e%3ccircle class='cls-2' cx='1074.6' cy='135.5' r='2.4'/%3e%3ccircle class='cls-2' cx='1060.3' cy='144.4' r='2.4'/%3e%3ccircle class='cls-2' cx='1043' cy='172.6' r='2.4'/%3e%3ccircle class='cls-2' cx='1334.5' cy='170.8' r='2.2'/%3e%3ccircle class='cls-2' cx='1304.7' cy='204.8' r='2.2'/%3e%3ccircle class='cls-2' cx='1262.8' cy='219.6' r='2.3'/%3e%3ccircle class='cls-2' cx='1228.8' cy='216' r='2.4'/%3e%3ccircle class='cls-2' cx='1535.5' cy='505.4' r='2.2'/%3e%3ccircle class='cls-2' cx='1534.8' cy='440.7' r='2.3'/%3e%3ccircle class='cls-2' cx='1535.9' cy='415.2' r='2.3'/%3e%3ccircle class='cls-2' cx='1548.4' cy='397.9' r='2.2'/%3e%3ccircle class='cls-2' cx='1524.3' cy='364.3' r='2.3'/%3e%3ccircle class='cls-2' cx='1512.4' cy='361.6' r='2.4'/%3e%3ccircle class='cls-2' cx='1454.3' cy='420.5' r='2.2'/%3e%3ccircle class='cls-2' cx='1440.5' cy='361.1' r='2.2'/%3e%3ccircle class='cls-2' cx='1410.6' cy='333.8' r='2.3'/%3e%3ccircle class='cls-2' cx='1408.2' cy='398.3' r='2.2'/%3e%3ccircle class='cls-2' cx='1768.1' cy='711.5' r='2.4'/%3e%3ccircle class='cls-2' cx='1736.5' cy='717.5' r='2.2'/%3e%3ccircle class='cls-2' cx='1704.5' cy='655.6' r='2.4'/%3e%3ccircle class='cls-2' cx='1676.3' cy='641.1' r='2.5'/%3e%3ccircle class='cls-2' cx='1674' cy='672.6' r='2.4'/%3e%3ccircle class='cls-2' cx='1648.8' cy='722' r='2.3'/%3e%3ccircle class='cls-2' cx='1615.8' cy='702.7' r='2.2'/%3e%3ccircle class='cls-2' cx='1589.6' cy='693.5' r='2.4'/%3e%3ccircle class='cls-2' cx='1583.6' cy='713.9' r='2.4'/%3e%3ccircle class='cls-2' cx='1558.2' cy='677.3' r='2.3'/%3e%3ccircle class='cls-2' cx='1862.9' cy='480.6' r='2.3'/%3e%3ccircle class='cls-2' cx='1865.1' cy='444.2' r='2.3'/%3e%3ccircle class='cls-2' cx='1839.2' cy='410.1' r='2.3'/%3e%3ccircle class='cls-2' cx='1815' cy='494.7' r='2.3'/%3e%3ccircle class='cls-2' cx='1773.5' cy='448.8' r='2.2'/%3e%3ccircle class='cls-2' cx='1495.7' cy='593.5' r='2.2'/%3e%3ccircle class='cls-2' cx='1433.3' cy='576.3' r='2.3'/%3e%3ccircle class='cls-2' cx='1422.9' cy='659.5' r='2.5'/%3e%3ccircle class='cls-2' cx='1421' cy='582.1' r='2.2'/%3e%3ccircle class='cls-2' cx='1383.9' cy='629.6' r='2.3'/%3e%3ccircle class='cls-2' cx='1376.2' cy='633.8' r='2.3'/%3e%3ccircle class='cls-2' cx='1346.9' cy='602.1' r='2.2'/%3e%3ccircle class='cls-2' cx='1506.3' cy='584.1' r='2.4'/%3e%3ccircle class='cls-2' cx='1449' cy='533.1' r='2.4'/%3e%3ccircle class='cls-2' cx='1491.4' cy='470.4' r='2.4'/%3e%3ccircle class='cls-2' cx='1458.5' cy='529' r='2.2'/%3e%3ccircle class='cls-2' cx='1430.7' cy='508.5' r='2.5'/%3e%3ccircle class='cls-2' cx='1424.6' cy='499.1' r='2.2'/%3e%3ccircle class='cls-2' cx='1384.1' cy='499.1' r='2.4'/%3e%3ccircle class='cls-2' cx='1363.7' cy='513.2' r='2.4'/%3e%3ccircle class='cls-2' cx='1380.2' cy='568.4' r='2.4'/%3e%3ccircle class='cls-2' cx='1342.5' cy='703.4' r='2.4'/%3e%3ccircle class='cls-2' cx='1393.6' cy='688' r='2.2'/%3e%3ccircle class='cls-2' cx='1408.3' cy='670.4' r='2.3'/%3e%3ccircle class='cls-2' cx='1409.4' cy='621.2' r='2.4'/%3e%3ccircle class='cls-2' cx='1329.7' cy='633.1' r='2.3'/%3e%3ccircle class='cls-2' cx='1373.1' cy='560' r='2.2'/%3e%3ccircle class='cls-2' cx='1325.5' cy='617.8' r='2.3'/%3e%3ccircle class='cls-2' cx='1313.5' cy='601.9' r='2.3'/%3e%3ccircle class='cls-2' cx='1277.1' cy='588.7' r='2.4'/%3e%3ccircle class='cls-2' cx='1262.7' cy='550.3' r='2.3'/%3e%3ccircle class='cls-2' cx='1213.5' cy='548.8' r='2.3'/%3e%3ccircle class='cls-2' cx='1189.5' cy='543.9' r='2.3'/%3e%3ccircle class='cls-2' cx='1169.3' cy='586.5' r='2.2'/%3e%3ccircle class='cls-2' cx='1119' cy='589.3' r='2.4'/%3e%3ccircle class='cls-2' cx='1163.8' cy='635.2' r='2.5'/%3e%3ccircle class='cls-2' cx='809.4' cy='616.2' r='2.3'/%3e%3ccircle class='cls-2' cx='841.4' cy='639.6' r='2.2'/%3e%3ccircle class='cls-2' cx='866.6' cy='628.9' r='2.3'/%3e%3ccircle class='cls-2' cx='877.9' cy='669.7' r='2.3'/%3e%3ccircle class='cls-2' cx='880.6' cy='623.3' r='2.3'/%3e%3ccircle class='cls-2' cx='914' cy='643.7' r='2.2'/%3e%3ccircle class='cls-2' cx='943.1' cy='664.1' r='2.4'/%3e%3ccircle class='cls-2' cx='978.7' cy='622' r='2.2'/%3e%3ccircle class='cls-2' cx='989' cy='603.2' r='2.3'/%3e%3ccircle class='cls-2' cx='989.5' cy='637' r='2.2'/%3e%3ccircle class='cls-2' cx='1025.2' cy='689.5' r='2.2'/%3e%3ccircle class='cls-2' cx='1073' cy='645.8' r='2.2'/%3e%3ccircle class='cls-2' cx='1115.1' cy='631.9' r='2.3'/%3e%3ccircle class='cls-2' cx='1102.1' cy='709.3' r='2.3'/%3e%3ccircle class='cls-2' cx='1130' cy='669.2' r='2.2'/%3e%3ccircle class='cls-2' cx='1161.8' cy='701.4' r='2.4'/%3e%3ccircle class='cls-2' cx='1194.4' cy='715.1' r='2.2'/%3e%3ccircle class='cls-2' cx='1197.5' cy='736.6' r='2.4'/%3e%3ccircle class='cls-2' cx='1215.1' cy='752.8' r='2.3'/%3e%3ccircle class='cls-2' cx='367.6' cy='544.5' r='2.4'/%3e%3ccircle class='cls-2' cx='406.5' cy='528.4' r='2.2'/%3e%3ccircle class='cls-2' cx='424.8' cy='544.7' r='2.3'/%3e%3ccircle class='cls-2' cx='428.5' cy='514.9' r='2.4'/%3e%3ccircle class='cls-2' cx='440.2' cy='495.2' r='2.3'/%3e%3ccircle class='cls-2' cx='446.5' cy='500.7' r='2.2'/%3e%3ccircle class='cls-2' cx='484.1' cy='558.7' r='2.2'/%3e%3ccircle class='cls-2' cx='520.7' cy='502.3' r='2.2'/%3e%3ccircle class='cls-2' cx='537.5' cy='509.6' r='2.4'/%3e%3ccircle class='cls-2' cx='539.7' cy='555.3' r='2.4'/%3e%3ccircle class='cls-2' cx='573.2' cy='565.6' r='2.4'/%3e%3ccircle class='cls-2' cx='596.3' cy='567.4' r='2.3'/%3e%3ccircle class='cls-2' cx='612.5' cy='566.5' r='2.2'/%3e%3ccircle class='cls-2' cx='661.2' cy='563.3' r='2.4'/%3e%3ccircle class='cls-2' cx='710.9' cy='496.9' r='2.3'/%3e%3ccircle class='cls-2' cx='709.1' cy='549.6' r='2.4'/%3e%3ccircle class='cls-2' cx='730.1' cy='510.1' r='2.2'/%3e%3ccircle class='cls-2' cx='749.3' cy='536.7' r='2.4'/%3e%3ccircle class='cls-2' cx='763' cy='547' r='2.3'/%3e%3ccircle class='cls-2' cx='786.1' cy='548.8' r='2.2'/%3e%3ccircle class='cls-2' cx='794.5' cy='600.2' r='2.3'/%3e%3ccircle class='cls-2' cx='844' cy='582.3' r='2.2'/%3e%3ccircle class='cls-2' cx='355.3' cy='964.3' r='2.3'/%3e%3ccircle class='cls-2' cx='321.7' cy='941.6' r='2.4'/%3e%3ccircle class='cls-2' cx='328.4' cy='1004.1' r='2.2'/%3e%3ccircle class='cls-2' cx='277.6' cy='997.1' r='2.3'/%3e%3ccircle class='cls-2' cx='247.6' cy='1028.4' r='2.3'/%3e%3ccircle class='cls-2' cx='444.5' cy='1061.7' r='2.4'/%3e%3ccircle class='cls-2' cx='217.3' cy='1039.9' r='2.4'/%3e%3ccircle class='cls-2' cx='199.8' cy='1028.3' r='2.4'/%3e%3ccircle class='cls-2' cx='228.7' cy='1006.2' r='2.3'/%3e%3ccircle class='cls-2' cx='613.3' cy='451.3' r='.8'/%3e%3ccircle class='cls-2' cx='595.4' cy='460.5' r='.6'/%3e%3c/svg%3e";
+var img$d = "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1920 1080'%3e%3cdefs%3e%3cstyle%3e.cls-2%7bfill:white%7d%3c/style%3e%3c/defs%3e%3cpath style='fill:%23004b73' d='M0 0h1920v1080H0z'/%3e%3ccircle class='cls-2' cx='628.2' cy='513.3' r='1.4'/%3e%3ccircle class='cls-2' cx='623.1' cy='509.4' r='.8'/%3e%3ccircle class='cls-2' cx='616.6' cy='517.6' r='.7'/%3e%3ccircle class='cls-2' cx='612.3' cy='512.1' r='1.3'/%3e%3ccircle class='cls-2' cx='595.1' cy='514.7' r='.5'/%3e%3ccircle class='cls-2' cx='38.7' cy='140' r='.7'/%3e%3ccircle class='cls-2' cx='39.9' cy='113.2' r='1.1'/%3e%3ccircle class='cls-2' cx='42' cy='80.7' r='.8'/%3e%3ccircle class='cls-2' cx='38.9' cy='48.8' r='1.3'/%3e%3ccircle class='cls-2' cx='381.6' cy='229.3' r='.6'/%3e%3ccircle class='cls-2' cx='359.8' cy='213.7' r='.6'/%3e%3ccircle class='cls-2' cx='337' cy='209.4' r='1.4'/%3e%3ccircle class='cls-2' cx='328.6' cy='215.1' r='1.3'/%3e%3ccircle class='cls-2' cx='323' cy='210.8' r='.6'/%3e%3ccircle class='cls-2' cx='311.2' cy='205.9' r='.7'/%3e%3ccircle class='cls-2' cx='289.9' cy='193.3' r='1.1'/%3e%3ccircle class='cls-2' cx='274.9' cy='166.8' r='1.4'/%3e%3ccircle class='cls-2' cx='251.9' cy='154.1' r='1.4'/%3e%3ccircle class='cls-2' cx='249.9' cy='146.9' r='.8'/%3e%3ccircle class='cls-2' cx='246.8' cy='138.1' r='1.3'/%3e%3ccircle class='cls-2' cx='214.8' cy='130.3' r='1.4'/%3e%3ccircle class='cls-2' cx='187.1' cy='133' r='.6'/%3e%3ccircle class='cls-2' cx='683.8' cy='508.3' r='1.1'/%3e%3ccircle class='cls-2' cx='671.1' cy='538.2' r='1.4'/%3e%3ccircle class='cls-2' cx='271.7' cy='379' r='.7'/%3e%3ccircle class='cls-2' cx='236.6' cy='376.1' r='.8'/%3e%3ccircle class='cls-2' cx='231.6' cy='369.6' r='.9'/%3e%3ccircle class='cls-2' cx='214' cy='365.6' r='1.4'/%3e%3ccircle class='cls-2' cx='209' cy='361.3' r='1'/%3e%3ccircle class='cls-2' cx='176.2' cy='371.2' r='1.4'/%3e%3ccircle class='cls-2' cx='148.7' cy='375.6' r='.9'/%3e%3ccircle class='cls-2' cx='133.7' cy='365.9' r='1'/%3e%3ccircle class='cls-2' cx='127.3' cy='367.1' r='.6'/%3e%3ccircle class='cls-2' cx='93.2' cy='388' r='.5'/%3e%3ccircle class='cls-2' cx='62.2' cy='391.8' r='1.3'/%3e%3ccircle class='cls-2' cx='46.3' cy='406.4' r='.8'/%3e%3ccircle class='cls-2' cx='828.5' cy='432.2' r='1.1'/%3e%3ccircle class='cls-2' cx='788.1' cy='444.2' r='.8'/%3e%3ccircle class='cls-2' cx='758.9' cy='446.4' r='1'/%3e%3ccircle class='cls-2' cx='746.2' cy='95.8' r='1.4'/%3e%3ccircle class='cls-2' cx='734' cy='98.5' r='1.1'/%3e%3ccircle class='cls-2' cx='669.4' cy='157' r='.5'/%3e%3ccircle class='cls-2' cx='649.8' cy='146.6' r='.5'/%3e%3ccircle class='cls-2' cx='625' cy='136.9' r='.7'/%3e%3ccircle class='cls-2' cx='591.5' cy='129.8' r='.7'/%3e%3ccircle class='cls-2' cx='574.9' cy='115.4' r='1.2'/%3e%3ccircle class='cls-2' cx='534.6' cy='111' r='1.2'/%3e%3ccircle class='cls-2' cx='1236.7' cy='94.9' r='1.4'/%3e%3ccircle class='cls-2' cx='1213.9' cy='92.1' r='1.2'/%3e%3ccircle class='cls-2' cx='1181.1' cy='155.7' r='.6'/%3e%3ccircle class='cls-2' cx='1156.1' cy='150.5' r='.5'/%3e%3ccircle class='cls-2' cx='1130.3' cy='126.3' r='1.4'/%3e%3ccircle class='cls-2' cx='1103.3' cy='101.1' r='1.2'/%3e%3ccircle class='cls-2' cx='1098.6' cy='90.5' r='.7'/%3e%3ccircle class='cls-2' cx='1069.7' cy='83.7' r='.5'/%3e%3ccircle class='cls-2' cx='1068.2' cy='74' r='.9'/%3e%3ccircle class='cls-2' cx='1059.3' cy='72.3' r='1.2'/%3e%3ccircle class='cls-2' cx='1032.7' cy='47.6' r='1.5'/%3e%3ccircle class='cls-2' cx='1010.8' cy='33.5' r='1.3'/%3e%3ccircle class='cls-2' cx='1010.8' cy='20.2' r='1.1'/%3e%3ccircle class='cls-2' cx='988.1' cy='15.2' r='.8'/%3e%3ccircle class='cls-2' cx='970.6' cy='1.6' r='1.5'/%3e%3ccircle class='cls-2' cx='932.7' cy='11.8' r='1.3'/%3e%3ccircle class='cls-2' cx='1759.2' cy='300.6' r='1.3'/%3e%3ccircle class='cls-2' cx='1740.6' cy='324' r='.7'/%3e%3ccircle class='cls-2' cx='1716' cy='349.6' r='1.4'/%3e%3ccircle class='cls-2' cx='1680.4' cy='359' r='.9'/%3e%3ccircle class='cls-2' cx='1661' cy='373' r='1.5'/%3e%3ccircle class='cls-2' cx='1642.6' cy='373.3' r='1.4'/%3e%3ccircle class='cls-2' cx='1601.5' cy='363.6' r='1.4'/%3e%3ccircle class='cls-2' cx='1584.6' cy='352.2' r='1'/%3e%3ccircle class='cls-2' cx='1578.2' cy='346.4' r='.8'/%3e%3ccircle class='cls-2' cx='1555.7' cy='322.8' r='1.4'/%3e%3ccircle class='cls-2' cx='1421.1' cy='310.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1446.5' cy='292.1' r='1.4'/%3e%3ccircle class='cls-2' cx='1464.4' cy='269.3' r='.9'/%3e%3ccircle class='cls-2' cx='1480.4' cy='258.5' r='.7'/%3e%3ccircle class='cls-2' cx='1493' cy='244.1' r='.7'/%3e%3ccircle class='cls-2' cx='1496' cy='222.8' r='.9'/%3e%3ccircle class='cls-2' cx='1525.7' cy='206.6' r='.9'/%3e%3ccircle class='cls-2' cx='1559.6' cy='182.8' r='.8'/%3e%3ccircle class='cls-2' cx='1583.5' cy='154.2' r='.5'/%3e%3ccircle class='cls-2' cx='1608.7' cy='131' r='1'/%3e%3ccircle class='cls-2' cx='1646.2' cy='111.7' r='1.4'/%3e%3ccircle class='cls-2' cx='1648.2' cy='105.2' r='.8'/%3e%3ccircle class='cls-2' cx='1683.6' cy='85.5' r='1.3'/%3e%3ccircle class='cls-2' cx='1717.1' cy='77.3' r='1.5'/%3e%3ccircle class='cls-2' cx='1719.6' cy='64.7' r='.9'/%3e%3ccircle class='cls-2' cx='1739.7' cy='67.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1291.6' cy='158.7' r='.9'/%3e%3ccircle class='cls-2' cx='1303.5' cy='143' r='1.5'/%3e%3ccircle class='cls-2' cx='1326.8' cy='119' r='1.3'/%3e%3ccircle class='cls-2' cx='1354' cy='84.4' r='1.5'/%3e%3ccircle class='cls-2' cx='1385.3' cy='75.9' r='.8'/%3e%3ccircle class='cls-2' cx='1421.3' cy='50.6' r='.9'/%3e%3ccircle class='cls-2' cx='789.6' cy='230.2' r='.7'/%3e%3ccircle class='cls-2' cx='806.9' cy='215.2' r='.6'/%3e%3ccircle class='cls-2' cx='828.4' cy='191.3' r='.8'/%3e%3ccircle class='cls-2' cx='851.3' cy='185' r='1.2'/%3e%3ccircle class='cls-2' cx='878' cy='159.7' r='1.4'/%3e%3ccircle class='cls-2' cx='887.6' cy='162.6' r='.9'/%3e%3ccircle class='cls-2' cx='912.5' cy='150.4' r='.6'/%3e%3ccircle class='cls-2' cx='925.8' cy='161.7' r='.8'/%3e%3ccircle class='cls-2' cx='940.1' cy='152.4' r='1.4'/%3e%3ccircle class='cls-2' cx='952.3' cy='151.7' r='1'/%3e%3ccircle class='cls-2' cx='987.6' cy='165.5' r='.6'/%3e%3ccircle class='cls-2' cx='1019.6' cy='163' r='1.1'/%3e%3ccircle class='cls-2' cx='1045.3' cy='166.8' r='1.2'/%3e%3ccircle class='cls-2' cx='1072.3' cy='184.7' r='.5'/%3e%3ccircle class='cls-2' cx='543.9' cy='503.6' r='1.3'/%3e%3ccircle class='cls-2' cx='531' cy='509.9' r='1.4'/%3e%3ccircle class='cls-2' cx='491.8' cy='486.2' r='1.2'/%3e%3ccircle class='cls-2' cx='464.1' cy='482.5' r='1'/%3e%3ccircle class='cls-2' cx='452.5' cy='492.2' r='.6'/%3e%3ccircle class='cls-2' cx='446.8' cy='485.7' r='1'/%3e%3ccircle class='cls-2' cx='407.9' cy='486.5' r='1.5'/%3e%3ccircle class='cls-2' cx='392.9' cy='492.7' r='1'/%3e%3ccircle class='cls-2' cx='1491.8' cy='867.3' r='1.2'/%3e%3ccircle class='cls-2' cx='1461.8' cy='883.7' r='1.3'/%3e%3ccircle class='cls-2' cx='1436.4' cy='884.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1420.7' cy='894.1' r='.6'/%3e%3ccircle class='cls-2' cx='1391.9' cy='900' r='1'/%3e%3ccircle class='cls-2' cx='1385.6' cy='896.3' r='.9'/%3e%3ccircle class='cls-2' cx='1367.4' cy='898.9' r='.6'/%3e%3ccircle class='cls-2' cx='1347.2' cy='897' r='.6'/%3e%3ccircle class='cls-2' cx='1329.6' cy='895' r='.7'/%3e%3ccircle class='cls-2' cx='1323.5' cy='891.7' r='.8'/%3e%3ccircle class='cls-2' cx='1316' cy='889.1' r='1'/%3e%3ccircle class='cls-2' cx='1289.1' cy='878.5' r='1.1'/%3e%3ccircle class='cls-2' cx='1275.5' cy='880.1' r='.7'/%3e%3ccircle class='cls-2' cx='1269.6' cy='880.4' r='1.4'/%3e%3ccircle class='cls-2' cx='1242.9' cy='867.5' r='1.4'/%3e%3ccircle class='cls-2' cx='1209.3' cy='871.3' r='.7'/%3e%3ccircle class='cls-2' cx='1195.2' cy='867.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1171.5' cy='851.4' r='.8'/%3e%3ccircle class='cls-2' cx='1140.6' cy='851.9' r='.8'/%3e%3ccircle class='cls-2' cx='1133.9' cy='851.9' r='.9'/%3e%3ccircle class='cls-2' cx='1109.2' cy='845.6' r='1.1'/%3e%3ccircle class='cls-2' cx='1080.5' cy='848.3' r='.6'/%3e%3ccircle class='cls-2' cx='1069.3' cy='852.5' r='.8'/%3e%3ccircle class='cls-2' cx='1038.8' cy='838.4' r='1.2'/%3e%3ccircle class='cls-2' cx='1012.7' cy='844.1' r='1.4'/%3e%3ccircle class='cls-2' cx='993.2' cy='842' r='.6'/%3e%3ccircle class='cls-2' cx='955.4' cy='821.9' r='1.4'/%3e%3ccircle class='cls-2' cx='945.7' cy='827.2' r='1.4'/%3e%3ccircle class='cls-2' cx='925.5' cy='823.9' r='1.2'/%3e%3ccircle class='cls-2' cx='904.3' cy='819.1' r='1.1'/%3e%3ccircle class='cls-2' cx='882' cy='793.5' r='1.3'/%3e%3ccircle class='cls-2' cx='871.7' cy='786.6' r='1.3'/%3e%3ccircle class='cls-2' cx='858.9' cy='794' r='1.1'/%3e%3ccircle class='cls-2' cx='856.4' cy='777.4' r='1'/%3e%3ccircle class='cls-2' cx='846.3' cy='770.7' r='.8'/%3e%3ccircle class='cls-2' cx='1671.1' cy='231.4' r='1.3'/%3e%3ccircle class='cls-2' cx='1689.2' cy='213.8' r='1'/%3e%3ccircle class='cls-2' cx='1707' cy='201.9' r='.6'/%3e%3ccircle class='cls-2' cx='1720.6' cy='191.4' r='1.1'/%3e%3ccircle class='cls-2' cx='679.1' cy='572.4' r='1.1'/%3e%3ccircle class='cls-2' cx='710.6' cy='550.9' r='1.3'/%3e%3ccircle class='cls-2' cx='740.6' cy='540.8' r='1.1'/%3e%3ccircle class='cls-2' cx='765.9' cy='527' r='1.4'/%3e%3ccircle class='cls-2' cx='797.6' cy='525.3' r='1.2'/%3e%3ccircle class='cls-2' cx='801.7' cy='513.8' r='.8'/%3e%3ccircle class='cls-2' cx='842.6' cy='498.1' r='.9'/%3e%3ccircle class='cls-2' cx='863.8' cy='485.2' r='1.2'/%3e%3ccircle class='cls-2' cx='900.2' cy='468.9' r='1.5'/%3e%3ccircle class='cls-2' cx='909.3' cy='457.4' r='1'/%3e%3ccircle class='cls-2' cx='933.1' cy='446.8' r='1.4'/%3e%3ccircle class='cls-2' cx='952.1' cy='441.7' r='1.1'/%3e%3ccircle class='cls-2' cx='961.5' cy='444.9' r='1.2'/%3e%3ccircle class='cls-2' cx='978.7' cy='430.5' r='1.4'/%3e%3ccircle class='cls-2' cx='1002.8' cy='431.1' r='1.2'/%3e%3ccircle class='cls-2' cx='1021.6' cy='431' r='.9'/%3e%3ccircle class='cls-2' cx='1034' cy='425.9' r='.7'/%3e%3ccircle class='cls-2' cx='1070.7' cy='422.9' r='1.3'/%3e%3ccircle class='cls-2' cx='1078' cy='427.3' r='1'/%3e%3ccircle class='cls-2' cx='1103.1' cy='426.2' r='1.4'/%3e%3ccircle class='cls-2' cx='1138' cy='438.7' r='.6'/%3e%3ccircle class='cls-2' cx='1157.2' cy='456.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1167' cy='449.6' r='.9'/%3e%3ccircle class='cls-2' cx='1178.9' cy='460.3' r='.7'/%3e%3ccircle class='cls-2' cx='1199' cy='478.4' r='1.3'/%3e%3ccircle class='cls-2' cx='1229.6' cy='482.6' r='1.3'/%3e%3ccircle class='cls-2' cx='1256' cy='517.6' r='.6'/%3e%3ccircle class='cls-2' cx='1292.1' cy='531.7' r='1.2'/%3e%3ccircle class='cls-2' cx='148.8' cy='918.3' r='1.1'/%3e%3ccircle class='cls-2' cx='137.2' cy='917.7' r='1.3'/%3e%3ccircle class='cls-2' cx='139' cy='933.3' r='1.4'/%3e%3ccircle class='cls-2' cx='127.2' cy='946.1' r='.9'/%3e%3ccircle class='cls-2' cx='104.7' cy='978.9' r='.7'/%3e%3ccircle class='cls-2' cx='82.8' cy='1005.5' r='1.2'/%3e%3ccircle class='cls-2' cx='80.2' cy='1017' r='.6'/%3e%3ccircle class='cls-2' cx='268.6' cy='611.8' r='.5'/%3e%3ccircle class='cls-2' cx='233.4' cy='609.5' r='1.4'/%3e%3ccircle class='cls-2' cx='211.5' cy='612.4' r='1.1'/%3e%3ccircle class='cls-2' cx='179.3' cy='618.8' r='.8'/%3e%3ccircle class='cls-2' cx='267.1' cy='672.8' r='1.2'/%3e%3ccircle class='cls-2' cx='261.4' cy='688.7' r='.5'/%3e%3ccircle class='cls-2' cx='349.6' cy='559.6' r='.8'/%3e%3ccircle class='cls-2' cx='375.9' cy='570.4' r='.9'/%3e%3ccircle class='cls-2' cx='172.1' cy='491.9' r='.8'/%3e%3ccircle class='cls-2' cx='214.2' cy='853' r='1.1'/%3e%3ccircle class='cls-2' cx='220.8' cy='839.4' r='1'/%3e%3ccircle class='cls-2' cx='200.6' cy='822.8' r='.8'/%3e%3ccircle class='cls-2' cx='188.5' cy='811.4' r='1.3'/%3e%3ccircle class='cls-2' cx='439' cy='1061.2' r='.6'/%3e%3ccircle class='cls-2' cx='435.4' cy='1022.5' r='.9'/%3e%3ccircle class='cls-2' cx='433.7' cy='983.3' r='1.1'/%3e%3ccircle class='cls-2' cx='826.1' cy='1074.4' r='1'/%3e%3ccircle class='cls-2' cx='795.8' cy='1066.7' r='.8'/%3e%3ccircle class='cls-2' cx='753.6' cy='1053.4' r='.8'/%3e%3ccircle class='cls-2' cx='716.5' cy='1037.7' r='1.3'/%3e%3ccircle class='cls-2' cx='711.1' cy='1036.9' r='1.5'/%3e%3ccircle class='cls-2' cx='692.9' cy='1040' r='1'/%3e%3ccircle class='cls-2' cx='684' cy='1036.7' r='1.2'/%3e%3ccircle class='cls-2' cx='663' cy='1029.5' r='1.3'/%3e%3ccircle class='cls-2' cx='625.2' cy='1034.1' r='1.4'/%3e%3ccircle class='cls-2' cx='617' cy='1033.1' r='1.1'/%3e%3ccircle class='cls-2' cx='1157.8' cy='1067.7' r='.8'/%3e%3ccircle class='cls-2' cx='1182.2' cy='1067.3' r='1.2'/%3e%3ccircle class='cls-2' cx='1221.3' cy='1065.4' r='.7'/%3e%3ccircle class='cls-2' cx='1249.6' cy='1068.1' r='.7'/%3e%3ccircle class='cls-2' cx='1275.7' cy='1071.3' r='1.5'/%3e%3ccircle class='cls-2' cx='678.5' cy='906.6' r='.7'/%3e%3ccircle class='cls-2' cx='708.8' cy='916.2' r='1.1'/%3e%3ccircle class='cls-2' cx='736' cy='928.5' r='.6'/%3e%3ccircle class='cls-2' cx='748.1' cy='922.8' r='.7'/%3e%3ccircle class='cls-2' cx='783.6' cy='948.3' r='.5'/%3e%3ccircle class='cls-2' cx='806.8' cy='946.1' r='.7'/%3e%3ccircle class='cls-2' cx='829.8' cy='952.3' r='.6'/%3e%3ccircle class='cls-2' cx='868.7' cy='969.5' r='1.3'/%3e%3ccircle class='cls-2' cx='895.5' cy='978.6' r='1'/%3e%3ccircle class='cls-2' cx='1063.4' cy='748.7' r='.9'/%3e%3ccircle class='cls-2' cx='1020.2' cy='751.7' r='1.3'/%3e%3ccircle class='cls-2' cx='1010.3' cy='751.5' r='.7'/%3e%3ccircle class='cls-2' cx='978.9' cy='749.4' r='1.1'/%3e%3ccircle class='cls-2' cx='969.6' cy='754.1' r='1.4'/%3e%3ccircle class='cls-2' cx='944' cy='749' r='.9'/%3e%3ccircle class='cls-2' cx='926.9' cy='743.1' r='1.4'/%3e%3ccircle class='cls-2' cx='920.7' cy='732.7' r='1.5'/%3e%3ccircle class='cls-2' cx='1295.5' cy='678.5' r='.8'/%3e%3ccircle class='cls-2' cx='1272.1' cy='653.7' r='1.1'/%3e%3ccircle class='cls-2' cx='1244.4' cy='634.9' r='.9'/%3e%3ccircle class='cls-2' cx='1205' cy='648.9' r='.9'/%3e%3ccircle class='cls-2' cx='1203.9' cy='661.9' r='1'/%3e%3ccircle class='cls-2' cx='1186.8' cy='657.6' r='.9'/%3e%3ccircle class='cls-2' cx='1173.8' cy='675.4' r='1.3'/%3e%3ccircle class='cls-2' cx='1135.3' cy='690.2' r='1.1'/%3e%3ccircle class='cls-2' cx='1116.9' cy='657.5' r='.8'/%3e%3ccircle class='cls-2' cx='1100.7' cy='631.3' r='1.4'/%3e%3ccircle class='cls-2' cx='1061.7' cy='618.5' r='1'/%3e%3ccircle class='cls-2' cx='1040' cy='619.3' r='.7'/%3e%3ccircle class='cls-2' cx='1028.1' cy='631.3' r='.8'/%3e%3ccircle class='cls-2' cx='1021.8' cy='638.1' r='.6'/%3e%3ccircle class='cls-2' cx='989.3' cy='667.2' r='.8'/%3e%3ccircle class='cls-2' cx='1136.7' cy='739.2' r='.5'/%3e%3ccircle class='cls-2' cx='1157.8' cy='729.7' r='1.4'/%3e%3ccircle class='cls-2' cx='1186.9' cy='732.5' r='1.3'/%3e%3ccircle class='cls-2' cx='1207.6' cy='724.3' r='.6'/%3e%3ccircle class='cls-2' cx='1214.3' cy='722' r='.6'/%3e%3ccircle class='cls-2' cx='1224.5' cy='719.8' r='1.4'/%3e%3ccircle class='cls-2' cx='1242.3' cy='720.1' r='1.4'/%3e%3ccircle class='cls-2' cx='1270.1' cy='724.3' r='.8'/%3e%3ccircle class='cls-2' cx='1253.6' cy='722' r='.8'/%3e%3ccircle class='cls-2' cx='1225.9' cy='708.9' r='1.4'/%3e%3ccircle class='cls-2' cx='1213.7' cy='697.5' r='1.1'/%3e%3ccircle class='cls-2' cx='1192.5' cy='693.5' r='1.1'/%3e%3ccircle class='cls-2' cx='1173.7' cy='723.1' r='1.5'/%3e%3ccircle class='cls-2' cx='1144.2' cy='711.8' r='.5'/%3e%3ccircle class='cls-2' cx='1131.9' cy='701.6' r='1.3'/%3e%3ccircle class='cls-2' cx='1094.9' cy='694.6' r='1.3'/%3e%3ccircle class='cls-2' cx='1060' cy='672.3' r='1'/%3e%3ccircle class='cls-2' cx='869.5' cy='686.8' r='.7'/%3e%3ccircle class='cls-2' cx='881.5' cy='652.7' r='1.4'/%3e%3ccircle class='cls-2' cx='891.1' cy='644.8' r='.6'/%3e%3ccircle class='cls-2' cx='902.4' cy='628.5' r='.5'/%3e%3ccircle class='cls-2' cx='912' cy='620.2' r='1'/%3e%3ccircle class='cls-2' cx='936.3' cy='587.8' r='1.2'/%3e%3ccircle class='cls-2' cx='954' cy='579.5' r='1.2'/%3e%3ccircle class='cls-2' cx='979.8' cy='552.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1015.9' cy='534' r='1.1'/%3e%3ccircle class='cls-2' cx='1053.6' cy='514.3' r='.8'/%3e%3ccircle class='cls-2' cx='1095.1' cy='526.5' r='1.1'/%3e%3ccircle class='cls-2' cx='1105.4' cy='533.8' r='.5'/%3e%3ccircle class='cls-2' cx='681.6' cy='634.2' r='.9'/%3e%3ccircle class='cls-2' cx='701.4' cy='625.6' r='.6'/%3e%3ccircle class='cls-2' cx='739.9' cy='612.6' r='1.4'/%3e%3ccircle class='cls-2' cx='765.3' cy='624.8' r='1.3'/%3e%3ccircle class='cls-2' cx='769.7' cy='633.2' r='1.4'/%3e%3ccircle class='cls-2' cx='754.1' cy='659.2' r='1.3'/%3e%3ccircle class='cls-2' cx='714.7' cy='670.8' r='.6'/%3e%3ccircle class='cls-2' cx='676.7' cy='661.8' r='.7'/%3e%3ccircle class='cls-2' cx='662.9' cy='662.4' r='1.2'/%3e%3ccircle class='cls-2' cx='653.5' cy='664.9' r='1.4'/%3e%3ccircle class='cls-2' cx='649.6' cy='682.7' r='1.3'/%3e%3ccircle class='cls-2' cx='630.5' cy='694.3' r='.7'/%3e%3ccircle class='cls-2' cx='624' cy='718.9' r='.6'/%3e%3ccircle class='cls-2' cx='589.2' cy='644.9' r='1.1'/%3e%3ccircle class='cls-2' cx='563.8' cy='636.9' r='1.3'/%3e%3ccircle class='cls-2' cx='543.1' cy='625.5' r='1.4'/%3e%3ccircle class='cls-2' cx='517.4' cy='617.6' r='1.4'/%3e%3ccircle class='cls-2' cx='497' cy='623.7' r='.7'/%3e%3ccircle class='cls-2' cx='483' cy='628.2' r='1.2'/%3e%3ccircle class='cls-2' cx='471' cy='649.4' r='.6'/%3e%3ccircle class='cls-2' cx='440.7' cy='672' r='.7'/%3e%3ccircle class='cls-2' cx='430.7' cy='688.5' r='1'/%3e%3ccircle class='cls-2' cx='610.8' cy='612.7' r='.6'/%3e%3ccircle class='cls-2' cx='602.1' cy='599.7' r='1'/%3e%3ccircle class='cls-2' cx='586' cy='589.7' r='1'/%3e%3ccircle class='cls-2' cx='563.5' cy='567.2' r='1'/%3e%3ccircle class='cls-2' cx='604' cy='556.5' r='.7'/%3e%3ccircle class='cls-2' cx='576.5' cy='684.8' r='.7'/%3e%3ccircle class='cls-2' cx='564.1' cy='718.3' r='1'/%3e%3ccircle class='cls-2' cx='569.1' cy='724.4' r='1.2'/%3e%3ccircle class='cls-2' cx='562.5' cy='734.5' r='.8'/%3e%3ccircle class='cls-2' cx='581.4' cy='771.3' r='1.1'/%3e%3ccircle class='cls-2' cx='531.4' cy='615.4' r='1.2'/%3e%3ccircle class='cls-2' cx='528.9' cy='626.5' r='1.2'/%3e%3ccircle class='cls-2' cx='522.1' cy='666.8' r='.6'/%3e%3ccircle class='cls-2' cx='526.5' cy='695.6' r='1.3'/%3e%3ccircle class='cls-2' cx='528.3' cy='706.4' r='1.3'/%3e%3ccircle class='cls-2' cx='508.6' cy='663.1' r='.9'/%3e%3ccircle class='cls-2' cx='504.5' cy='630.9' r='.5'/%3e%3ccircle class='cls-2' cx='498.3' cy='599.7' r='.5'/%3e%3ccircle class='cls-2' cx='509.2' cy='589.4' r='.7'/%3e%3ccircle class='cls-2' cx='497.4' cy='582.3' r='1.4'/%3e%3ccircle class='cls-2' cx='516.1' cy='744.3' r='1.4'/%3e%3ccircle class='cls-2' cx='508.4' cy='700' r='1.2'/%3e%3ccircle class='cls-2' cx='497.7' cy='673.6' r='1.3'/%3e%3ccircle class='cls-2' cx='474.1' cy='649' r='1.1'/%3e%3ccircle class='cls-2' cx='447.3' cy='613.6' r='1.4'/%3e%3ccircle class='cls-2' cx='432.5' cy='607.3' r='1.1'/%3e%3ccircle class='cls-2' cx='521.4' cy='620.8' r='.8'/%3e%3ccircle class='cls-2' cx='490' cy='614.5' r='1.2'/%3e%3ccircle class='cls-2' cx='478.4' cy='617.4' r='.5'/%3e%3ccircle class='cls-2' cx='438.7' cy='630.7' r='1.1'/%3e%3ccircle class='cls-2' cx='407.9' cy='641.3' r='1.4'/%3e%3ccircle class='cls-2' cx='372.1' cy='665.9' r='1.4'/%3e%3ccircle class='cls-2' cx='358.6' cy='674.6' r='.5'/%3e%3ccircle class='cls-2' cx='338.4' cy='687.5' r='.8'/%3e%3ccircle class='cls-2' cx='326.6' cy='693.2' r='1.2'/%3e%3ccircle class='cls-2' cx='618.8' cy='645.1' r='1.4'/%3e%3ccircle class='cls-2' cx='597.6' cy='634.3' r='1.4'/%3e%3ccircle class='cls-2' cx='586.5' cy='632.4' r='.9'/%3e%3ccircle class='cls-2' cx='569.5' cy='616.4' r='.9'/%3e%3ccircle class='cls-2' cx='553.5' cy='620.1' r='1.3'/%3e%3ccircle class='cls-2' cx='543' cy='619.5' r='1.4'/%3e%3ccircle class='cls-2' cx='533.6' cy='624.3' r='.9'/%3e%3ccircle class='cls-2' cx='524' cy='624.8' r='1.3'/%3e%3ccircle class='cls-2' cx='482.3' cy='628.7' r='.8'/%3e%3ccircle class='cls-2' cx='456.9' cy='623.1' r='1.1'/%3e%3ccircle class='cls-2' cx='432.7' cy='651.4' r='.7'/%3e%3ccircle class='cls-2' cx='435' cy='683.4' r='1.1'/%3e%3ccircle class='cls-2' cx='451.6' cy='712.9' r='.8'/%3e%3ccircle class='cls-2' cx='480.9' cy='741' r='.8'/%3e%3ccircle class='cls-2' cx='515' cy='745.8' r='.9'/%3e%3ccircle class='cls-2' cx='516.4' cy='716.1' r='1.4'/%3e%3ccircle class='cls-2' cx='509.8' cy='685.9' r='.7'/%3e%3ccircle class='cls-2' cx='515.6' cy='667.5' r='.5'/%3e%3ccircle class='cls-2' cx='478.3' cy='646.8' r='.7'/%3e%3ccircle class='cls-2' cx='437.3' cy='641.1' r='.7'/%3e%3ccircle class='cls-2' cx='413' cy='645.7' r='1.5'/%3e%3ccircle class='cls-2' cx='396.2' cy='662.2' r='.9'/%3e%3ccircle class='cls-2' cx='381.2' cy='664.6' r='1.5'/%3e%3ccircle class='cls-2' cx='383.4' cy='681.4' r='1'/%3e%3ccircle class='cls-2' cx='374' cy='701.5' r='.6'/%3e%3ccircle class='cls-2' cx='361.6' cy='727.9' r='.9'/%3e%3ccircle class='cls-2' cx='772.3' cy='832.7' r='.9'/%3e%3ccircle class='cls-2' cx='756.1' cy='794.4' r='1.3'/%3e%3ccircle class='cls-2' cx='751.2' cy='752.9' r='1.2'/%3e%3ccircle class='cls-2' cx='731.5' cy='740.6' r='.7'/%3e%3ccircle class='cls-2' cx='698' cy='743.1' r='.6'/%3e%3ccircle class='cls-2' cx='690.5' cy='767.3' r='.9'/%3e%3ccircle class='cls-2' cx='692.3' cy='779.2' r='.8'/%3e%3ccircle class='cls-2' cx='877.2' cy='845.1' r='.6'/%3e%3ccircle class='cls-2' cx='855.4' cy='830' r='.9'/%3e%3ccircle class='cls-2' cx='880.9' cy='561.5' r='1.3'/%3e%3ccircle class='cls-2' cx='843.5' cy='587.2' r='.8'/%3e%3ccircle class='cls-2' cx='843.7' cy='609.4' r='.7'/%3e%3ccircle class='cls-2' cx='838.6' cy='620.7' r='1'/%3e%3ccircle class='cls-2' cx='810' cy='644.7' r='.5'/%3e%3ccircle class='cls-2' cx='76.4' cy='113.2' r='.5'/%3e%3ccircle class='cls-2' cx='89.9' cy='110.8' r='.5'/%3e%3ccircle class='cls-2' cx='100.8' cy='98.8' r='.7'/%3e%3ccircle class='cls-2' cx='116.9' cy='97.6' r='.8'/%3e%3ccircle class='cls-2' cx='144.3' cy='88.5' r='1.2'/%3e%3ccircle class='cls-2' cx='163.6' cy='97.6' r='.7'/%3e%3ccircle class='cls-2' cx='181.4' cy='87.3' r='1'/%3e%3ccircle class='cls-2' cx='203.1' cy='83.6' r='.8'/%3e%3ccircle class='cls-2' cx='218.1' cy='89.3' r='1'/%3e%3ccircle class='cls-2' cx='249.9' cy='98.3' r='1.2'/%3e%3ccircle class='cls-2' cx='257.8' cy='126.5' r='1.2'/%3e%3ccircle class='cls-2' cx='273.3' cy='136.2' r='.8'/%3e%3ccircle class='cls-2' cx='127.5' cy='97.9' r='.9'/%3e%3ccircle class='cls-2' cx='102.7' cy='64.3' r='1.5'/%3e%3ccircle class='cls-2' cx='77' cy='42.4' r='1.3'/%3e%3ccircle class='cls-2' cx='53' cy='72.5' r='.6'/%3e%3ccircle class='cls-2' cx='175.7' cy='61' r='.5'/%3e%3ccircle class='cls-2' cx='179.2' cy='58.6' r='.6'/%3e%3ccircle class='cls-2' cx='153.5' cy='49.3' r='1.3'/%3e%3ccircle class='cls-2' cx='183.3' cy='100.7' r='.6'/%3e%3ccircle class='cls-2' cx='190.2' cy='67.7' r='.8'/%3e%3ccircle class='cls-2' cx='168.2' cy='45.1' r='.6'/%3e%3ccircle class='cls-2' cx='146' cy='58.5' r='.6'/%3e%3ccircle class='cls-2' cx='133' cy='89.7' r='1.4'/%3e%3ccircle class='cls-2' cx='313.8' cy='85.3' r='.6'/%3e%3ccircle class='cls-2' cx='306.1' cy='44.9' r='1'/%3e%3ccircle class='cls-2' cx='280' cy='31.4' r='.7'/%3e%3ccircle class='cls-2' cx='256.8' cy='48.1' r='.9'/%3e%3ccircle class='cls-2' cx='252.1' cy='53.8' r='.7'/%3e%3ccircle class='cls-2' cx='242.3' cy='61.9' r='1.3'/%3e%3ccircle class='cls-2' cx='232.1' cy='72.5' r='.6'/%3e%3ccircle class='cls-2' cx='215' cy='83.2' r='.8'/%3e%3ccircle class='cls-2' cx='222.3' cy='95.4' r='1'/%3e%3ccircle class='cls-2' cx='219.6' cy='116.7' r='1.4'/%3e%3ccircle class='cls-2' cx='238.1' cy='125.8' r='.7'/%3e%3ccircle class='cls-2' cx='260.1' cy='96.7' r='.7'/%3e%3ccircle class='cls-2' cx='272.4' cy='80.8' r='1.1'/%3e%3ccircle class='cls-2' cx='250' cy='38.6' r='1.2'/%3e%3ccircle class='cls-2' cx='229.8' cy='30.5' r='1.2'/%3e%3ccircle class='cls-2' cx='191.5' cy='35.4' r='.8'/%3e%3ccircle class='cls-2' cx='64.6' cy='15.4' r='1.4'/%3e%3ccircle class='cls-2' cx='354.2' cy='49' r='1.1'/%3e%3ccircle class='cls-2' cx='343.4' cy='41.2' r='1.4'/%3e%3ccircle class='cls-2' cx='337.1' cy='38.7' r='.7'/%3e%3ccircle class='cls-2' cx='330.6' cy='29.1' r='1'/%3e%3ccircle class='cls-2' cx='308.7' cy='32.8' r='1.1'/%3e%3ccircle class='cls-2' cx='293.3' cy='42.7' r='.7'/%3e%3ccircle class='cls-2' cx='187.2' cy='111.5' r='.9'/%3e%3ccircle class='cls-2' cx='210.4' cy='90.9' r='1.3'/%3e%3ccircle class='cls-2' cx='240.1' cy='69' r='.6'/%3e%3ccircle class='cls-2' cx='245.6' cy='65.9' r='1.3'/%3e%3ccircle class='cls-2' cx='266.2' cy='56.2' r='1'/%3e%3ccircle class='cls-2' cx='292.8' cy='38.7' r='1'/%3e%3ccircle class='cls-2' cx='307.9' cy='19.8' r='1.4'/%3e%3ccircle class='cls-2' cx='312.9' cy='51.3' r='.8'/%3e%3ccircle class='cls-2' cx='322.6' cy='63' r='1.3'/%3e%3ccircle class='cls-2' cx='322.3' cy='92' r='1.2'/%3e%3ccircle class='cls-2' cx='327.1' cy='102.3' r='.6'/%3e%3ccircle class='cls-2' cx='80.4' cy='216.1' r='.8'/%3e%3ccircle class='cls-2' cx='630.8' cy='533.2' r='.6'/%3e%3ccircle class='cls-2' cx='639.2' cy='522.9' r='1.4'/%3e%3ccircle class='cls-2' cx='635' cy='514.6' r='1.3'/%3e%3ccircle class='cls-2' cx='99.5' cy='126.6' r='.9'/%3e%3ccircle class='cls-2' cx='100' cy='105.5' r='.8'/%3e%3ccircle class='cls-2' cx='84.8' cy='106.6' r='.6'/%3e%3ccircle class='cls-2' cx='71.3' cy='115.3' r='.8'/%3e%3ccircle class='cls-2' cx='77.6' cy='127.8' r='.8'/%3e%3ccircle class='cls-2' cx='616.7' cy='503.6' r='.5'/%3e%3ccircle class='cls-2' cx='71.7' cy='264.4' r='1'/%3e%3ccircle class='cls-2' cx='56.3' cy='251.1' r='.6'/%3e%3ccircle class='cls-2' cx='55.4' cy='222.1' r='.8'/%3e%3ccircle class='cls-2' cx='49.9' cy='200.9' r='.8'/%3e%3ccircle class='cls-2' cx='41.1' cy='169.8' r='.9'/%3e%3ccircle class='cls-2' cx='33.2' cy='160.2' r='.7'/%3e%3ccircle class='cls-2' cx='168.9' cy='207.8' r='1.4'/%3e%3ccircle class='cls-2' cx='32.6' cy='258.2' r='1.2'/%3e%3ccircle class='cls-2' cx='49.7' cy='294.4' r='1.2'/%3e%3ccircle class='cls-2' cx='67.2' cy='312.2' r='.8'/%3e%3ccircle class='cls-2' cx='79.2' cy='311.9' r='.7'/%3e%3ccircle class='cls-2' cx='92.5' cy='301' r='1.3'/%3e%3ccircle class='cls-2' cx='106.1' cy='301.6' r='1.4'/%3e%3ccircle class='cls-2' cx='109.9' cy='262.7' r='1.1'/%3e%3ccircle class='cls-2' cx='77.7' cy='240.1' r='1.4'/%3e%3ccircle class='cls-2' cx='68.4' cy='243.3' r='1.4'/%3e%3ccircle class='cls-2' cx='129.4' cy='396.3' r='.7'/%3e%3ccircle class='cls-2' cx='128' cy='408.8' r='.7'/%3e%3ccircle class='cls-2' cx='103.9' cy='420' r='.8'/%3e%3ccircle class='cls-2' cx='61.3' cy='428.9' r='1.4'/%3e%3ccircle class='cls-2' cx='49.4' cy='424.1' r='.8'/%3e%3ccircle class='cls-2' cx='70.9' cy='400.4' r='.8'/%3e%3ccircle class='cls-2' cx='78.1' cy='369.2' r='1.4'/%3e%3ccircle class='cls-2' cx='88' cy='336.1' r='.8'/%3e%3ccircle class='cls-2' cx='95' cy='302.3' r='.8'/%3e%3ccircle class='cls-2' cx='88.6' cy='296.2' r='.6'/%3e%3ccircle class='cls-2' cx='81.7' cy='267.4' r='.6'/%3e%3ccircle class='cls-2' cx='58.9' cy='233.6' r='1'/%3e%3ccircle class='cls-2' cx='42.1' cy='240.1' r='.6'/%3e%3ccircle class='cls-2' cx='49.1' cy='416' r='1.4'/%3e%3ccircle class='cls-2' cx='67.2' cy='400.6' r='1.5'/%3e%3ccircle class='cls-2' cx='72.2' cy='374' r='.7'/%3e%3ccircle class='cls-2' cx='76.2' cy='355.2' r='.9'/%3e%3ccircle class='cls-2' cx='72.7' cy='325.5' r='1'/%3e%3ccircle class='cls-2' cx='68.1' cy='321.6' r='.6'/%3e%3ccircle class='cls-2' cx='35.2' cy='320' r='.9'/%3e%3ccircle class='cls-2' cx='111.7' cy='489.3' r='1.1'/%3e%3ccircle class='cls-2' cx='87.9' cy='517.7' r='1.3'/%3e%3ccircle class='cls-2' cx='78.8' cy='531.1' r='.9'/%3e%3ccircle class='cls-2' cx='63' cy='524.9' r='1.5'/%3e%3ccircle class='cls-2' cx='135.8' cy='239.7' r='1.5'/%3e%3ccircle class='cls-2' cx='107.7' cy='264.4' r='.5'/%3e%3ccircle class='cls-2' cx='94.2' cy='292.8' r='.9'/%3e%3ccircle class='cls-2' cx='92.8' cy='316.7' r='1.5'/%3e%3ccircle class='cls-2' cx='81.3' cy='359.8' r='1'/%3e%3ccircle class='cls-2' cx='77.4' cy='376.4' r='.6'/%3e%3ccircle class='cls-2' cx='83.2' cy='410.9' r='.9'/%3e%3ccircle class='cls-2' cx='135.3' cy='352' r='.5'/%3e%3ccircle class='cls-2' cx='141.7' cy='351.1' r='1.2'/%3e%3ccircle class='cls-2' cx='149.7' cy='312.1' r='.9'/%3e%3ccircle class='cls-2' cx='152.8' cy='293.6' r='1'/%3e%3ccircle class='cls-2' cx='161.2' cy='259.9' r='.6'/%3e%3ccircle class='cls-2' cx='161.7' cy='252.2' r='1.3'/%3e%3ccircle class='cls-2' cx='303.1' cy='381.9' r='1.1'/%3e%3ccircle class='cls-2' cx='281.7' cy='365.4' r='1.4'/%3e%3ccircle class='cls-2' cx='249.5' cy='345.2' r='.5'/%3e%3ccircle class='cls-2' cx='245' cy='325.9' r='1'/%3e%3ccircle class='cls-2' cx='225.6' cy='292.7' r='1.3'/%3e%3ccircle class='cls-2' cx='229' cy='275.8' r='1.4'/%3e%3ccircle class='cls-2' cx='224' cy='265.6' r='1.1'/%3e%3ccircle class='cls-2' cx='230.1' cy='250.4' r='.8'/%3e%3ccircle class='cls-2' cx='302.8' cy='743.4' r='1.4'/%3e%3ccircle class='cls-2' cx='311.4' cy='704.7' r='1'/%3e%3ccircle class='cls-2' cx='318.7' cy='676.5' r='1'/%3e%3ccircle class='cls-2' cx='327.2' cy='637.7' r='.5'/%3e%3ccircle class='cls-2' cx='321' cy='600.7' r='.5'/%3e%3ccircle class='cls-2' cx='327.2' cy='576.2' r='.8'/%3e%3ccircle class='cls-2' cx='271.2' cy='918.9' r='1.1'/%3e%3ccircle class='cls-2' cx='283.9' cy='904.4' r='1.3'/%3e%3ccircle class='cls-2' cx='188.6' cy='823.6' r='1.3'/%3e%3ccircle class='cls-2' cx='183.5' cy='784.7' r='.6'/%3e%3ccircle class='cls-2' cx='285.2' cy='801.8' r='1'/%3e%3ccircle class='cls-2' cx='280.6' cy='791.3' r='1.3'/%3e%3ccircle class='cls-2' cx='250.4' cy='784.7' r='1.3'/%3e%3ccircle class='cls-2' cx='235.4' cy='773.6' r='.7'/%3e%3ccircle class='cls-2' cx='221.5' cy='781.5' r='1.1'/%3e%3ccircle class='cls-2' cx='213.1' cy='810.1' r='.9'/%3e%3ccircle class='cls-2' cx='202.1' cy='852.6' r='1'/%3e%3ccircle class='cls-2' cx='207.1' cy='888.4' r='.8'/%3e%3ccircle class='cls-2' cx='211.6' cy='918.2' r='.7'/%3e%3ccircle class='cls-2' cx='210.4' cy='945.3' r='1'/%3e%3ccircle class='cls-2' cx='94.8' cy='920.4' r='.8'/%3e%3ccircle class='cls-2' cx='107.9' cy='929.4' r='.7'/%3e%3ccircle class='cls-2' cx='175.7' cy='794.3' r='.5'/%3e%3ccircle class='cls-2' cx='157.7' cy='782' r='1'/%3e%3ccircle class='cls-2' cx='164.9' cy='823' r='.6'/%3e%3ccircle class='cls-2' cx='147.3' cy='832.4' r='1'/%3e%3ccircle class='cls-2' cx='119.8' cy='782' r='1.2'/%3e%3ccircle class='cls-2' cx='111.1' cy='765' r='1.5'/%3e%3ccircle class='cls-2' cx='118.4' cy='721.9' r='1.1'/%3e%3ccircle class='cls-2' cx='108.3' cy='702.9' r='.8'/%3e%3ccircle class='cls-2' cx='116.7' cy='687.6' r='1.5'/%3e%3ccircle class='cls-2' cx='122.3' cy='664.1' r='.7'/%3e%3ccircle class='cls-2' cx='140' cy='668.8' r='1.2'/%3e%3ccircle class='cls-2' cx='155.9' cy='678.1' r='1.4'/%3e%3ccircle class='cls-2' cx='158.7' cy='684.2' r='.8'/%3e%3ccircle class='cls-2' cx='193.8' cy='772.3' r='1.4'/%3e%3ccircle class='cls-2' cx='165.6' cy='746.9' r='.6'/%3e%3ccircle class='cls-2' cx='162.8' cy='735.5' r='1.3'/%3e%3ccircle class='cls-2' cx='145.1' cy='732.1' r='1'/%3e%3ccircle class='cls-2' cx='137.5' cy='726.5' r='.5'/%3e%3ccircle class='cls-2' cx='136.9' cy='716.4' r='.6'/%3e%3ccircle class='cls-2' cx='122.8' cy='713.1' r='1.4'/%3e%3ccircle class='cls-2' cx='295.9' cy='738.5' r='1.2'/%3e%3ccircle class='cls-2' cx='87.6' cy='744.8' r='1.3'/%3e%3ccircle class='cls-2' cx='117.7' cy='775' r='1.3'/%3e%3ccircle class='cls-2' cx='113.6' cy='792.3' r='1.4'/%3e%3ccircle class='cls-2' cx='192.8' cy='851.6' r='1.3'/%3e%3ccircle class='cls-2' cx='171.9' cy='877.3' r='1'/%3e%3ccircle class='cls-2' cx='140.2' cy='896.3' r='.8'/%3e%3ccircle class='cls-2' cx='48.8' cy='1031.8' r='1'/%3e%3ccircle class='cls-2' cx='46.4' cy='1016.5' r='1.1'/%3e%3ccircle class='cls-2' cx='48.3' cy='1001.2' r='.6'/%3e%3ccircle class='cls-2' cx='35.2' cy='912.5' r='1.4'/%3e%3ccircle class='cls-2' cx='143' cy='850.3' r='.6'/%3e%3ccircle class='cls-2' cx='132.2' cy='864.3' r='1.1'/%3e%3ccircle class='cls-2' cx='125.7' cy='842.8' r='1.2'/%3e%3ccircle class='cls-2' cx='110.7' cy='888.1' r='.5'/%3e%3ccircle class='cls-2' cx='158.7' cy='866.4' r='.7'/%3e%3ccircle class='cls-2' cx='37.1' cy='1068.1' r='.8'/%3e%3ccircle class='cls-2' cx='32' cy='1027.1' r='.8'/%3e%3ccircle class='cls-2' cx='123' cy='897.4' r='1'/%3e%3ccircle class='cls-2' cx='116.1' cy='873.6' r='.6'/%3e%3ccircle class='cls-2' cx='107.2' cy='885.3' r='.8'/%3e%3ccircle class='cls-2' cx='98.1' cy='907.3' r='.8'/%3e%3ccircle class='cls-2' cx='144.5' cy='638.3' r='1.3'/%3e%3ccircle class='cls-2' cx='146.9' cy='651.8' r='1.3'/%3e%3ccircle class='cls-2' cx='176.4' cy='681.4' r='1.4'/%3e%3ccircle class='cls-2' cx='207' cy='693.9' r='.8'/%3e%3ccircle class='cls-2' cx='228.1' cy='726.9' r='.8'/%3e%3ccircle class='cls-2' cx='286.9' cy='610.7' r='1.4'/%3e%3ccircle class='cls-2' cx='295.9' cy='283.3' r='1.2'/%3e%3ccircle class='cls-2' cx='157.9' cy='188.4' r='1.4'/%3e%3ccircle class='cls-2' cx='239.5' cy='227.3' r='1.1'/%3e%3ccircle class='cls-2' cx='619.6' cy='531.1' r='1.2'/%3e%3ccircle class='cls-2' cx='603.4' cy='515.6' r='1.4'/%3e%3ccircle class='cls-2' cx='61.6' cy='143.5' r='.6'/%3e%3ccircle class='cls-2' cx='55.1' cy='132.2' r='.8'/%3e%3ccircle class='cls-2' cx='86.2' cy='897.5' r='.9'/%3e%3ccircle class='cls-2' cx='83.6' cy='859.6' r='1.1'/%3e%3ccircle class='cls-2' cx='92.5' cy='845.6' r='1'/%3e%3ccircle class='cls-2' cx='87.1' cy='836.3' r='1.2'/%3e%3ccircle class='cls-2' cx='99.9' cy='827.1' r='1'/%3e%3ccircle class='cls-2' cx='109' cy='791.5' r='1.4'/%3e%3ccircle class='cls-2' cx='117.6' cy='767.9' r='1.5'/%3e%3ccircle class='cls-2' cx='126.5' cy='724.9' r='.8'/%3e%3ccircle class='cls-2' cx='130.3' cy='691.5' r='1.4'/%3e%3ccircle class='cls-2' cx='122.7' cy='680.1' r='.7'/%3e%3ccircle class='cls-2' cx='116.6' cy='672.6' r='1.2'/%3e%3ccircle class='cls-2' cx='292.4' cy='689.8' r='.7'/%3e%3ccircle class='cls-2' cx='263.4' cy='690' r='1.2'/%3e%3ccircle class='cls-2' cx='56.6' cy='875.3' r='.9'/%3e%3ccircle class='cls-2' cx='33.1' cy='996' r='.8'/%3e%3ccircle class='cls-2' cx='111.2' cy='903.6' r='1.4'/%3e%3ccircle class='cls-2' cx='114.3' cy='870.3' r='.9'/%3e%3ccircle class='cls-2' cx='96.6' cy='845.3' r='1.1'/%3e%3ccircle class='cls-2' cx='97.1' cy='802.8' r='.6'/%3e%3ccircle class='cls-2' cx='90.4' cy='792.6' r='1'/%3e%3ccircle class='cls-2' cx='77.4' cy='779.1' r='.8'/%3e%3ccircle class='cls-2' cx='90.9' cy='885.9' r='.5'/%3e%3ccircle class='cls-2' cx='100.9' cy='848.1' r='.8'/%3e%3ccircle class='cls-2' cx='98.4' cy='832.9' r='1.3'/%3e%3ccircle class='cls-2' cx='106.3' cy='821.2' r='.8'/%3e%3ccircle class='cls-2' cx='796.6' cy='888.4' r='.8'/%3e%3ccircle class='cls-2' cx='771.9' cy='893.3' r='1.2'/%3e%3ccircle class='cls-2' cx='757.6' cy='893.6' r='1.1'/%3e%3ccircle class='cls-2' cx='742' cy='891.7' r='1'/%3e%3ccircle class='cls-2' cx='722' cy='876.3' r='.9'/%3e%3ccircle class='cls-2' cx='691' cy='863.9' r='.6'/%3e%3ccircle class='cls-2' cx='661.3' cy='840.7' r='1.2'/%3e%3ccircle class='cls-2' cx='635.1' cy='822.7' r='.9'/%3e%3ccircle class='cls-2' cx='623.9' cy='834.5' r='.5'/%3e%3ccircle class='cls-2' cx='599.4' cy='840.4' r='.5'/%3e%3ccircle class='cls-2' cx='566.9' cy='847.1' r='.6'/%3e%3ccircle class='cls-2' cx='556.6' cy='834.1' r='1.1'/%3e%3ccircle class='cls-2' cx='544.4' cy='796.9' r='1.1'/%3e%3ccircle class='cls-2' cx='531.9' cy='775.8' r='.6'/%3e%3ccircle class='cls-2' cx='525.1' cy='766.7' r='1.1'/%3e%3ccircle class='cls-2' cx='495.2' cy='768.7' r='1'/%3e%3ccircle class='cls-2' cx='463.6' cy='786.4' r='.7'/%3e%3ccircle class='cls-2' cx='457.7' cy='803.3' r='1.2'/%3e%3ccircle class='cls-2' cx='436.7' cy='835.4' r='1.4'/%3e%3ccircle class='cls-2' cx='165' cy='1061.2' r='.5'/%3e%3ccircle class='cls-2' cx='148.1' cy='1077.2' r='.7'/%3e%3ccircle class='cls-2' cx='377.2' cy='706.6' r='.8'/%3e%3ccircle class='cls-2' cx='371.4' cy='710.9' r='1'/%3e%3ccircle class='cls-2' cx='354.1' cy='717.5' r='1'/%3e%3ccircle class='cls-2' cx='345.2' cy='731.9' r='.9'/%3e%3ccircle class='cls-2' cx='314.9' cy='746.4' r='1.4'/%3e%3ccircle class='cls-2' cx='309.5' cy='735.4' r='1.4'/%3e%3ccircle class='cls-2' cx='297.5' cy='765.4' r='.6'/%3e%3ccircle class='cls-2' cx='275.8' cy='785.4' r='1.1'/%3e%3ccircle class='cls-2' cx='266.5' cy='798.5' r='.8'/%3e%3ccircle class='cls-2' cx='246.4' cy='822.6' r='.8'/%3e%3ccircle class='cls-2' cx='238.3' cy='833.3' r='1.1'/%3e%3ccircle class='cls-2' cx='233.6' cy='873.4' r='1.3'/%3e%3ccircle class='cls-2' cx='227.9' cy='913.9' r='.8'/%3e%3ccircle class='cls-2' cx='232.2' cy='952.6' r='.6'/%3e%3ccircle class='cls-2' cx='231' cy='962.4' r='.8'/%3e%3ccircle class='cls-2' cx='246.7' cy='971.7' r='.8'/%3e%3ccircle class='cls-2' cx='248.8' cy='983.6' r='.6'/%3e%3ccircle class='cls-2' cx='246.2' cy='1007.4' r='.6'/%3e%3ccircle class='cls-2' cx='253.8' cy='1011' r='.5'/%3e%3ccircle class='cls-2' cx='263.4' cy='1044.1' r='1.3'/%3e%3ccircle class='cls-2' cx='266.3' cy='1060.8' r='1'/%3e%3ccircle class='cls-2' cx='279.7' cy='1066.6' r='1.1'/%3e%3ccircle class='cls-2' cx='280.2' cy='1074.4' r='.6'/%3e%3ccircle class='cls-2' cx='388.4' cy='1079' r='.9'/%3e%3ccircle class='cls-2' cx='389.3' cy='1049.2' r='1.1'/%3e%3ccircle class='cls-2' cx='392.9' cy='1032.4' r='1.1'/%3e%3ccircle class='cls-2' cx='373.1' cy='1009.7' r='1.3'/%3e%3ccircle class='cls-2' cx='358.1' cy='1004.1' r='1.5'/%3e%3ccircle class='cls-2' cx='348.3' cy='998.5' r='1.2'/%3e%3ccircle class='cls-2' cx='333.8' cy='995.4' r='.8'/%3e%3ccircle class='cls-2' cx='327.3' cy='987.1' r='1.2'/%3e%3ccircle class='cls-2' cx='317.9' cy='980.7' r='.6'/%3e%3ccircle class='cls-2' cx='291' cy='977' r='1.3'/%3e%3ccircle class='cls-2' cx='262.6' cy='976' r='1.3'/%3e%3ccircle class='cls-2' cx='252.9' cy='972.6' r='.9'/%3e%3ccircle class='cls-2' cx='243.4' cy='968.7' r='1.4'/%3e%3ccircle class='cls-2' cx='231.7' cy='973.3' r='1.3'/%3e%3ccircle class='cls-2' cx='197.2' cy='979.3' r='.7'/%3e%3ccircle class='cls-2' cx='182' cy='967.6' r='1.1'/%3e%3ccircle class='cls-2' cx='162.6' cy='967.2' r='1.4'/%3e%3ccircle class='cls-2' cx='135.9' cy='975' r='.7'/%3e%3ccircle class='cls-2' cx='131.1' cy='962.7' r='1.2'/%3e%3ccircle class='cls-2' cx='91.8' cy='974.5' r='1.1'/%3e%3ccircle class='cls-2' cx='52.8' cy='968.4' r='1.2'/%3e%3ccircle class='cls-2' cx='292.8' cy='631.2' r='1'/%3e%3ccircle class='cls-2' cx='294.8' cy='627.3' r='1.1'/%3e%3ccircle class='cls-2' cx='39.5' cy='543.1' r='.8'/%3e%3ccircle class='cls-2' cx='64.2' cy='575.7' r='1.3'/%3e%3ccircle class='cls-2' cx='183.3' cy='650.1' r='.6'/%3e%3ccircle class='cls-2' cx='190.4' cy='659.3' r='1'/%3e%3ccircle class='cls-2' cx='203.6' cy='663.5' r='.9'/%3e%3ccircle class='cls-2' cx='236.1' cy='687.3' r='1.4'/%3e%3ccircle class='cls-2' cx='188.7' cy='888.8' r='.6'/%3e%3ccircle class='cls-2' cx='173.9' cy='906.6' r='.6'/%3e%3ccircle class='cls-2' cx='152.1' cy='926.8' r='1.1'/%3e%3ccircle class='cls-2' cx='94' cy='905.7' r='.9'/%3e%3ccircle class='cls-2' cx='89.1' cy='893.7' r='.7'/%3e%3ccircle class='cls-2' cx='88.3' cy='859.6' r='1.3'/%3e%3ccircle class='cls-2' cx='77.3' cy='841' r='1.1'/%3e%3ccircle class='cls-2' cx='88.9' cy='805.1' r='1.4'/%3e%3ccircle class='cls-2' cx='87' cy='798' r='1.3'/%3e%3ccircle class='cls-2' cx='292.4' cy='755.8' r='1.4'/%3e%3ccircle class='cls-2' cx='283.9' cy='748' r='.7'/%3e%3ccircle class='cls-2' cx='284.6' cy='727' r='1.3'/%3e%3ccircle class='cls-2' cx='279.7' cy='691.2' r='1.4'/%3e%3ccircle class='cls-2' cx='282.8' cy='674' r='1.1'/%3e%3ccircle class='cls-2' cx='279.9' cy='646.9' r='1'/%3e%3ccircle class='cls-2' cx='272.5' cy='632.3' r='.6'/%3e%3ccircle class='cls-2' cx='275.5' cy='620.2' r='1.4'/%3e%3ccircle class='cls-2' cx='97.1' cy='653.4' r='1.1'/%3e%3ccircle class='cls-2' cx='92.1' cy='671.6' r='.5'/%3e%3ccircle class='cls-2' cx='90.1' cy='686.2' r='1'/%3e%3ccircle class='cls-2' cx='90.5' cy='698.8' r='1.4'/%3e%3ccircle class='cls-2' cx='290' cy='755.4' r='.9'/%3e%3ccircle class='cls-2' cx='65.7' cy='759.2' r='1.2'/%3e%3ccircle class='cls-2' cx='42.8' cy='778.9' r='1.1'/%3e%3ccircle class='cls-2' cx='255' cy='716.4' r='.6'/%3e%3ccircle class='cls-2' cx='256.8' cy='640.1' r='1.4'/%3e%3ccircle class='cls-2' cx='268.3' cy='614.4' r='.5'/%3e%3ccircle class='cls-2' cx='33.1' cy='792.2' r='.6'/%3e%3ccircle class='cls-2' cx='55.2' cy='708.4' r='1.1'/%3e%3ccircle class='cls-2' cx='66.1' cy='1067.2' r='.9'/%3e%3ccircle class='cls-2' cx='61.4' cy='1059.2' r='.9'/%3e%3ccircle class='cls-2' cx='55.7' cy='1036.9' r='.6'/%3e%3ccircle class='cls-2' cx='58.1' cy='1003.6' r='1.4'/%3e%3ccircle class='cls-2' cx='53.4' cy='991.8' r='1'/%3e%3ccircle class='cls-2' cx='42.7' cy='968.6' r='.8'/%3e%3ccircle class='cls-2' cx='38.1' cy='948.3' r='1'/%3e%3ccircle class='cls-2' cx='51.6' cy='639.5' r='.7'/%3e%3ccircle class='cls-2' cx='66.1' cy='947' r='1'/%3e%3ccircle class='cls-2' cx='101.2' cy='906.5' r='.8'/%3e%3ccircle class='cls-2' cx='116.5' cy='886.3' r='1.4'/%3e%3ccircle class='cls-2' cx='134.5' cy='870.4' r='1.3'/%3e%3ccircle class='cls-2' cx='117.7' cy='823.6' r='1.1'/%3e%3ccircle class='cls-2' cx='161.1' cy='814.2' r='1.1'/%3e%3ccircle class='cls-2' cx='157.7' cy='793.2' r='.6'/%3e%3ccircle class='cls-2' cx='134.4' cy='795.3' r='.7'/%3e%3ccircle class='cls-2' cx='108.2' cy='796' r='.7'/%3e%3ccircle class='cls-2' cx='81.3' cy='805' r='.9'/%3e%3ccircle class='cls-2' cx='61.8' cy='816.9' r='.8'/%3e%3ccircle class='cls-2' cx='57.5' cy='826.3' r='.8'/%3e%3ccircle class='cls-2' cx='56.7' cy='816.9' r='1.3'/%3e%3ccircle class='cls-2' cx='69.9' cy='801' r='1.4'/%3e%3ccircle class='cls-2' cx='103.1' cy='773.3' r='1.4'/%3e%3ccircle class='cls-2' cx='108.3' cy='749.5' r='.8'/%3e%3ccircle class='cls-2' cx='112.8' cy='740.3' r='1.4'/%3e%3ccircle class='cls-2' cx='112.4' cy='725' r='.8'/%3e%3ccircle class='cls-2' cx='106.7' cy='704.9' r='1.4'/%3e%3ccircle class='cls-2' cx='92.4' cy='695.9' r='1.2'/%3e%3ccircle class='cls-2' cx='288.5' cy='723.3' r='.5'/%3e%3ccircle class='cls-2' cx='269.2' cy='714.1' r='1.1'/%3e%3ccircle class='cls-2' cx='266.4' cy='700.4' r='.7'/%3e%3ccircle class='cls-2' cx='1527.6' cy='139.5' r='.8'/%3e%3ccircle class='cls-2' cx='1361.5' cy='1018' r='1.5'/%3e%3ccircle class='cls-2' cx='1297.8' cy='1013.4' r='.7'/%3e%3ccircle class='cls-2' cx='1333' cy='989.7' r='1.4'/%3e%3ccircle class='cls-2' cx='404.4' cy='574.3' r='1.1'/%3e%3ccircle class='cls-2' cx='402.5' cy='540.3' r='.5'/%3e%3ccircle class='cls-2' cx='365.3' cy='539.9' r='.9'/%3e%3ccircle class='cls-2' cx='346.6' cy='535.8' r='1.1'/%3e%3ccircle class='cls-2' cx='333.9' cy='552.3' r='.9'/%3e%3ccircle class='cls-2' cx='312.8' cy='567.7' r='1.2'/%3e%3ccircle class='cls-2' cx='299.6' cy='567.3' r='1.2'/%3e%3ccircle class='cls-2' cx='279.4' cy='582.2' r='.8'/%3e%3ccircle class='cls-2' cx='370.5' cy='489.4' r='1'/%3e%3ccircle class='cls-2' cx='360.1' cy='487.7' r='1.5'/%3e%3ccircle class='cls-2' cx='347.4' cy='485.8' r='.9'/%3e%3ccircle class='cls-2' cx='317.9' cy='498.1' r='.5'/%3e%3ccircle class='cls-2' cx='301.6' cy='495.3' r='.6'/%3e%3ccircle class='cls-2' cx='286.9' cy='473.1' r='1'/%3e%3ccircle class='cls-2' cx='251' cy='458.6' r='1.4'/%3e%3ccircle class='cls-2' cx='224.2' cy='472.7' r='1.1'/%3e%3ccircle class='cls-2' cx='193.2' cy='487.2' r='1.3'/%3e%3ccircle class='cls-2' cx='177.1' cy='497.9' r='1.3'/%3e%3ccircle class='cls-2' cx='161.9' cy='513.1' r='.9'/%3e%3ccircle class='cls-2' cx='139.9' cy='536.3' r='.6'/%3e%3ccircle class='cls-2' cx='133' cy='547.9' r='1.3'/%3e%3ccircle class='cls-2' cx='116.9' cy='557.4' r='.9'/%3e%3ccircle class='cls-2' cx='116' cy='568.4' r='.8'/%3e%3ccircle class='cls-2' cx='109.6' cy='572.8' r='.6'/%3e%3ccircle class='cls-2' cx='528.1' cy='241.1' r='1.5'/%3e%3ccircle class='cls-2' cx='517.8' cy='245.6' r='1.1'/%3e%3ccircle class='cls-2' cx='516.1' cy='261.4' r='1.2'/%3e%3ccircle class='cls-2' cx='499.6' cy='262.8' r='.9'/%3e%3ccircle class='cls-2' cx='502' cy='275.4' r='.5'/%3e%3ccircle class='cls-2' cx='472.3' cy='295' r='1.3'/%3e%3ccircle class='cls-2' cx='435' cy='311.8' r='1.2'/%3e%3ccircle class='cls-2' cx='396.3' cy='324' r='1.1'/%3e%3ccircle class='cls-2' cx='381.9' cy='323.8' r='.5'/%3e%3ccircle class='cls-2' cx='586.6' cy='219.1' r='.6'/%3e%3ccircle class='cls-2' cx='568.3' cy='204.1' r='1.4'/%3e%3ccircle class='cls-2' cx='553.3' cy='167.1' r='1.1'/%3e%3ccircle class='cls-2' cx='547.6' cy='138.6' r='1'/%3e%3ccircle class='cls-2' cx='547.6' cy='124.8' r='.8'/%3e%3ccircle class='cls-2' cx='515.8' cy='103.4' r='.7'/%3e%3ccircle class='cls-2' cx='488' cy='113' r='1'/%3e%3ccircle class='cls-2' cx='463.2' cy='106.4' r='1'/%3e%3ccircle class='cls-2' cx='422.9' cy='112.2' r='.6'/%3e%3ccircle class='cls-2' cx='388.7' cy='118' r='.9'/%3e%3ccircle class='cls-2' cx='376.5' cy='127.2' r='.8'/%3e%3ccircle class='cls-2' cx='370.4' cy='132.7' r='.7'/%3e%3ccircle class='cls-2' cx='357.8' cy='135.1' r='1.4'/%3e%3ccircle class='cls-2' cx='343.7' cy='141.5' r='.9'/%3e%3ccircle class='cls-2' cx='334.6' cy='135.3' r='.6'/%3e%3ccircle class='cls-2' cx='953.1' cy='125.2' r='.7'/%3e%3ccircle class='cls-2' cx='939.5' cy='96.2' r='1.3'/%3e%3ccircle class='cls-2' cx='907.3' cy='83.6' r='.5'/%3e%3ccircle class='cls-2' cx='881.4' cy='82.6' r='.7'/%3e%3ccircle class='cls-2' cx='837.8' cy='92.5' r='.9'/%3e%3ccircle class='cls-2' cx='824.6' cy='90.4' r='.6'/%3e%3ccircle class='cls-2' cx='808.6' cy='96.4' r='1.1'/%3e%3ccircle class='cls-2' cx='776.5' cy='96.1' r='1.2'/%3e%3ccircle class='cls-2' cx='742.4' cy='103' r='1.4'/%3e%3ccircle class='cls-2' cx='677.5' cy='162.3' r='.9'/%3e%3ccircle class='cls-2' cx='673.2' cy='107.7' r='1.1'/%3e%3ccircle class='cls-2' cx='647.9' cy='98.3' r='1.1'/%3e%3ccircle class='cls-2' cx='636.1' cy='103.5' r='.9'/%3e%3ccircle class='cls-2' cx='624.1' cy='100.5' r='1.4'/%3e%3ccircle class='cls-2' cx='574.5' cy='125.1' r='1'/%3e%3ccircle class='cls-2' cx='555' cy='119.3' r='1'/%3e%3ccircle class='cls-2' cx='554.5' cy='108.3' r='1.1'/%3e%3ccircle class='cls-2' cx='546.5' cy='103.8' r='.8'/%3e%3ccircle class='cls-2' cx='571' cy='127.1' r='.7'/%3e%3ccircle class='cls-2' cx='594.1' cy='96.8' r='1'/%3e%3ccircle class='cls-2' cx='627.2' cy='100.8' r='.6'/%3e%3ccircle class='cls-2' cx='644.2' cy='110.3' r='1'/%3e%3ccircle class='cls-2' cx='639.4' cy='96.5' r='1.3'/%3e%3ccircle class='cls-2' cx='578.6' cy='126.1' r='.8'/%3e%3ccircle class='cls-2' cx='568.7' cy='118.7' r='.6'/%3e%3ccircle class='cls-2' cx='554.1' cy='105.7' r='.6'/%3e%3ccircle class='cls-2' cx='544.2' cy='95.6' r='1.3'/%3e%3ccircle class='cls-2' cx='510.6' cy='82.2' r='1.1'/%3e%3ccircle class='cls-2' cx='508.2' cy='70.7' r='.7'/%3e%3ccircle class='cls-2' cx='484.1' cy='76' r='1.2'/%3e%3ccircle class='cls-2' cx='466.3' cy='69' r='1.2'/%3e%3ccircle class='cls-2' cx='435.9' cy='66.3' r='.6'/%3e%3ccircle class='cls-2' cx='420.3' cy='76' r='1.1'/%3e%3ccircle class='cls-2' cx='383.5' cy='85.5' r='.6'/%3e%3ccircle class='cls-2' cx='369.8' cy='91.4' r='1.3'/%3e%3ccircle class='cls-2' cx='361.5' cy='111.2' r='1.3'/%3e%3ccircle class='cls-2' cx='1764.2' cy='114.5' r='1.3'/%3e%3ccircle class='cls-2' cx='1756.7' cy='100.8' r='1.2'/%3e%3ccircle class='cls-2' cx='1749.2' cy='97.9' r='1.4'/%3e%3ccircle class='cls-2' cx='1722.4' cy='70.1' r='.7'/%3e%3ccircle class='cls-2' cx='1702.5' cy='63.4' r='.5'/%3e%3ccircle class='cls-2' cx='1628.6' cy='33' r='1.2'/%3e%3ccircle class='cls-2' cx='1610.9' cy='19.4' r='.6'/%3e%3ccircle class='cls-2' cx='1602.6' cy='23.3' r='1.2'/%3e%3ccircle class='cls-2' cx='1587.1' cy='24.4' r='1.3'/%3e%3ccircle class='cls-2' cx='1552' cy='35' r='1.4'/%3e%3ccircle class='cls-2' cx='1516.1' cy='46.2' r='.6'/%3e%3ccircle class='cls-2' cx='1508.9' cy='47.1' r='1.2'/%3e%3ccircle class='cls-2' cx='1482.3' cy='62.2' r='.8'/%3e%3ccircle class='cls-2' cx='1474.7' cy='82.4' r='1.3'/%3e%3ccircle class='cls-2' cx='1461.5' cy='108.1' r='1'/%3e%3ccircle class='cls-2' cx='1450.7' cy='124.6' r='.5'/%3e%3ccircle class='cls-2' cx='1443.5' cy='141.4' r='1.4'/%3e%3ccircle class='cls-2' cx='1449.5' cy='163.7' r='.6'/%3e%3ccircle class='cls-2' cx='1463.1' cy='202' r='.8'/%3e%3ccircle class='cls-2' cx='1471.5' cy='216.1' r='.5'/%3e%3ccircle class='cls-2' cx='1487.6' cy='216.7' r='1.1'/%3e%3ccircle class='cls-2' cx='1493.2' cy='228.9' r='.6'/%3e%3ccircle class='cls-2' cx='1512.4' cy='220.8' r='1.3'/%3e%3ccircle class='cls-2' cx='1530.8' cy='217.2' r='1.3'/%3e%3ccircle class='cls-2' cx='1575.9' cy='222.3' r='1'/%3e%3ccircle class='cls-2' cx='1590.3' cy='210.8' r='.9'/%3e%3ccircle class='cls-2' cx='1598.3' cy='216.8' r='.9'/%3e%3ccircle class='cls-2' cx='1608' cy='203.4' r='.6'/%3e%3ccircle class='cls-2' cx='1645' cy='205.2' r='1'/%3e%3ccircle class='cls-2' cx='1678.9' cy='187.7' r='.8'/%3e%3ccircle class='cls-2' cx='1691.4' cy='178.2' r='.7'/%3e%3ccircle class='cls-2' cx='1728.8' cy='161' r='.5'/%3e%3ccircle class='cls-2' cx='1797.2' cy='110' r='1.4'/%3e%3ccircle class='cls-2' cx='1809.8' cy='44.9' r='.7'/%3e%3ccircle class='cls-2' cx='1744.7' cy='1.1' r='1'/%3e%3ccircle class='cls-2' cx='1740.6' cy='53.4' r='.7'/%3e%3ccircle class='cls-2' cx='1699.8' cy='69.1' r='1.3'/%3e%3ccircle class='cls-2' cx='1665.9' cy='75.7' r='.8'/%3e%3ccircle class='cls-2' cx='1624.3' cy='77.7' r='1.1'/%3e%3ccircle class='cls-2' cx='1614.7' cy='76.9' r='1'/%3e%3ccircle class='cls-2' cx='1590.4' cy='85.1' r='.7'/%3e%3ccircle class='cls-2' cx='1578.4' cy='76.9' r='.9'/%3e%3ccircle class='cls-2' cx='1561.2' cy='89.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1532.7' cy='89.4' r='.6'/%3e%3ccircle class='cls-2' cx='1528' cy='97' r='.5'/%3e%3ccircle class='cls-2' cx='1517.6' cy='89.5' r='1.3'/%3e%3ccircle class='cls-2' cx='1492.8' cy='100.1' r='1'/%3e%3ccircle class='cls-2' cx='1515.5' cy='92.3' r='1.4'/%3e%3ccircle class='cls-2' cx='1522.3' cy='71.1' r='1.4'/%3e%3ccircle class='cls-2' cx='1538' cy='60.5' r='1.2'/%3e%3ccircle class='cls-2' cx='1883.9' cy='199.1' r='1.3'/%3e%3ccircle class='cls-2' cx='1883.5' cy='166.5' r='1.2'/%3e%3ccircle class='cls-2' cx='1874.1' cy='134.7' r='.9'/%3e%3ccircle class='cls-2' cx='1891' cy='124.2' r='1.4'/%3e%3ccircle class='cls-2' cx='1814' cy='155' r='.6'/%3e%3ccircle class='cls-2' cx='1804.1' cy='257.9' r='1'/%3e%3ccircle class='cls-2' cx='1853.4' cy='754.7' r='.8'/%3e%3ccircle class='cls-2' cx='1832' cy='767.6' r='1.5'/%3e%3ccircle class='cls-2' cx='1825.5' cy='789.8' r='1.2'/%3e%3ccircle class='cls-2' cx='1823.5' cy='803.7' r='.6'/%3e%3ccircle class='cls-2' cx='1828.5' cy='811.8' r='1.2'/%3e%3ccircle class='cls-2' cx='1833.3' cy='788.6' r='.6'/%3e%3ccircle class='cls-2' cx='1855.3' cy='774.3' r='.8'/%3e%3ccircle class='cls-2' cx='1863.9' cy='749' r='1.1'/%3e%3ccircle class='cls-2' cx='1226.1' cy='851.3' r='1'/%3e%3ccircle class='cls-2' cx='1234' cy='817' r='.9'/%3e%3ccircle class='cls-2' cx='1231.5' cy='781.5' r='.8'/%3e%3ccircle class='cls-2' cx='1877.8' cy='567.6' r='1.5'/%3e%3ccircle class='cls-2' cx='1852.2' cy='600.5' r='1.2'/%3e%3ccircle class='cls-2' cx='1844.8' cy='611' r='.5'/%3e%3ccircle class='cls-2' cx='1846' cy='640.7' r='.7'/%3e%3ccircle class='cls-2' cx='1871.7' cy='649.1' r='1.3'/%3e%3ccircle class='cls-2' cx='1214.1' cy='834.1' r='.8'/%3e%3ccircle class='cls-2' cx='1236.7' cy='796.6' r='.9'/%3e%3ccircle class='cls-2' cx='1257.2' cy='778.4' r='.8'/%3e%3ccircle class='cls-2' cx='1872.5' cy='433.6' r='1.2'/%3e%3ccircle class='cls-2' cx='1861.3' cy='450.9' r='1.2'/%3e%3ccircle class='cls-2' cx='1850.3' cy='462.8' r='1.3'/%3e%3ccircle class='cls-2' cx='1854.7' cy='475.2' r='.8'/%3e%3ccircle class='cls-2' cx='1834.9' cy='478.7' r='.9'/%3e%3ccircle class='cls-2' cx='1842.5' cy='489.8' r='1.2'/%3e%3ccircle class='cls-2' cx='1839.1' cy='463.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1858.2' cy='427.5' r='1.1'/%3e%3ccircle class='cls-2' cx='1851.6' cy='399.5' r='.7'/%3e%3ccircle class='cls-2' cx='1864.1' cy='381.8' r='.6'/%3e%3ccircle class='cls-2' cx='1875.9' cy='341.8' r='1.5'/%3e%3ccircle class='cls-2' cx='1888.3' cy='290.6' r='.5'/%3e%3ccircle class='cls-2' cx='1890.7' cy='277.9' r='.8'/%3e%3ccircle class='cls-2' cx='1876.3' cy='195.2' r='1.4'/%3e%3ccircle class='cls-2' cx='1837.8' cy='239.9' r='1.4'/%3e%3ccircle class='cls-2' cx='1823.3' cy='277' r='1'/%3e%3ccircle class='cls-2' cx='1817.2' cy='290.4' r='.7'/%3e%3ccircle class='cls-2' cx='1824.2' cy='311.6' r='1.4'/%3e%3ccircle class='cls-2' cx='1866.3' cy='982.1' r='1.1'/%3e%3ccircle class='cls-2' cx='1874.5' cy='978.3' r='.6'/%3e%3ccircle class='cls-2' cx='1865.2' cy='999.4' r='1.3'/%3e%3ccircle class='cls-2' cx='1850.3' cy='1022.9' r='.7'/%3e%3ccircle class='cls-2' cx='1852.9' cy='1033.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1852.5' cy='1059.2' r='1.4'/%3e%3ccircle class='cls-2' cx='1882.3' cy='1075.9' r='1'/%3e%3ccircle class='cls-2' cx='1883.8' cy='500.5' r='.8'/%3e%3ccircle class='cls-2' cx='1867.1' cy='512.4' r='1.5'/%3e%3ccircle class='cls-2' cx='1844.7' cy='547.6' r='.8'/%3e%3ccircle class='cls-2' cx='1835.5' cy='587' r='1.2'/%3e%3ccircle class='cls-2' cx='1856.5' cy='613.2' r='1.4'/%3e%3ccircle class='cls-2' cx='1858.8' cy='619.5' r='.6'/%3e%3ccircle class='cls-2' cx='1205.4' cy='804.5' r='.6'/%3e%3ccircle class='cls-2' cx='1235.2' cy='768' r='.8'/%3e%3ccircle class='cls-2' cx='1289.7' cy='775.2' r='.5'/%3e%3ccircle class='cls-2' cx='1251.4' cy='780.9' r='1'/%3e%3ccircle class='cls-2' cx='1239.6' cy='811.7' r='.5'/%3e%3ccircle class='cls-2' cx='1226' cy='842.6' r='.8'/%3e%3ccircle class='cls-2' cx='1221.9' cy='848.2' r='1.3'/%3e%3ccircle class='cls-2' cx='1208.8' cy='869' r='1.4'/%3e%3ccircle class='cls-2' cx='1874.2' cy='744.7' r='.8'/%3e%3ccircle class='cls-2' cx='1876.8' cy='776.5' r='.6'/%3e%3ccircle class='cls-2' cx='1876' cy='799.7' r='1'/%3e%3ccircle class='cls-2' cx='1885' cy='556.9' r='.5'/%3e%3ccircle class='cls-2' cx='1880.7' cy='550.5' r='.8'/%3e%3ccircle class='cls-2' cx='1843.3' cy='546.3' r='.6'/%3e%3ccircle class='cls-2' cx='1822.8' cy='542.7' r='1.1'/%3e%3ccircle class='cls-2' cx='1815.5' cy='544.4' r='1.2'/%3e%3ccircle class='cls-2' cx='1804.9' cy='540.4' r='.8'/%3e%3ccircle class='cls-2' cx='1811.1' cy='554.4' r='1'/%3e%3ccircle class='cls-2' cx='1813.3' cy='562.8' r='1.5'/%3e%3ccircle class='cls-2' cx='1830' cy='583.3' r='.9'/%3e%3ccircle class='cls-2' cx='1859.2' cy='612.3' r='1.2'/%3e%3ccircle class='cls-2' cx='1199.6' cy='840.9' r='.9'/%3e%3ccircle class='cls-2' cx='1318.5' cy='796.1' r='1.1'/%3e%3ccircle class='cls-2' cx='1245.9' cy='833.4' r='1.4'/%3e%3ccircle class='cls-2' cx='1258.4' cy='796.3' r='1.2'/%3e%3ccircle class='cls-2' cx='1881.7' cy='479.6' r='1.2'/%3e%3ccircle class='cls-2' cx='1879.2' cy='517.3' r='1.4'/%3e%3ccircle class='cls-2' cx='1216' cy='790.6' r='.6'/%3e%3ccircle class='cls-2' cx='1218.2' cy='796.1' r='.6'/%3e%3ccircle class='cls-2' cx='1223.9' cy='805.7' r='1.4'/%3e%3ccircle class='cls-2' cx='1239.9' cy='815.4' r='1.2'/%3e%3ccircle class='cls-2' cx='1257.9' cy='834.5' r='1.3'/%3e%3ccircle class='cls-2' cx='1877.9' cy='475.8' r='1.3'/%3e%3ccircle class='cls-2' cx='1861' cy='493' r='1.2'/%3e%3ccircle class='cls-2' cx='1830.6' cy='520.6' r='.6'/%3e%3ccircle class='cls-2' cx='1850' cy='537.5' r='1.4'/%3e%3ccircle class='cls-2' cx='1879.4' cy='375.8' r='1.3'/%3e%3ccircle class='cls-2' cx='1852.5' cy='390.3' r='1.3'/%3e%3ccircle class='cls-2' cx='1831.4' cy='405.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1850.4' cy='423.3' r='1'/%3e%3ccircle class='cls-2' cx='1360.4' cy='352.8' r='1.3'/%3e%3ccircle class='cls-2' cx='1321.6' cy='356.1' r='1.3'/%3e%3ccircle class='cls-2' cx='1296' cy='384' r='1.3'/%3e%3ccircle class='cls-2' cx='1272.8' cy='412.5' r='1.3'/%3e%3ccircle class='cls-2' cx='1263.6' cy='429.9' r='1.3'/%3e%3ccircle class='cls-2' cx='1253.1' cy='450' r='1.2'/%3e%3ccircle class='cls-2' cx='1253' cy='479.3' r='.8'/%3e%3ccircle class='cls-2' cx='1255.7' cy='513.1' r='.9'/%3e%3ccircle class='cls-2' cx='1267.4' cy='529.8' r='.7'/%3e%3ccircle class='cls-2' cx='1285.1' cy='547.6' r='1.4'/%3e%3ccircle class='cls-2' cx='1300.1' cy='548.9' r='.6'/%3e%3ccircle class='cls-2' cx='1321' cy='549.6' r='1'/%3e%3ccircle class='cls-2' cx='1345.2' cy='550.6' r='1.4'/%3e%3ccircle class='cls-2' cx='1369.9' cy='553.3' r='1'/%3e%3ccircle class='cls-2' cx='1406.2' cy='554.9' r='1'/%3e%3ccircle class='cls-2' cx='1429.5' cy='533.7' r='1.3'/%3e%3ccircle class='cls-2' cx='1436.8' cy='531.9' r='1.2'/%3e%3ccircle class='cls-2' cx='1477.2' cy='524.7' r='.9'/%3e%3ccircle class='cls-2' cx='1486.5' cy='511.9' r='.6'/%3e%3ccircle class='cls-2' cx='1499.6' cy='497.2' r='1.4'/%3e%3ccircle class='cls-2' cx='1524.7' cy='477.6' r='1.3'/%3e%3ccircle class='cls-2' cx='1528.3' cy='470' r='1.4'/%3e%3ccircle class='cls-2' cx='1552.8' cy='456.7' r='1.4'/%3e%3ccircle class='cls-2' cx='1550.1' cy='442.2' r='1.2'/%3e%3ccircle class='cls-2' cx='1568.3' cy='431.1' r='1.2'/%3e%3ccircle class='cls-2' cx='1528.7' cy='446.9' r='.8'/%3e%3ccircle class='cls-2' cx='1509' cy='449.4' r='.6'/%3e%3ccircle class='cls-2' cx='1632.4' cy='427' r='1.3'/%3e%3ccircle class='cls-2' cx='1644.7' cy='404.7' r='.5'/%3e%3ccircle class='cls-2' cx='1637.8' cy='387.5' r='1'/%3e%3ccircle class='cls-2' cx='1643.5' cy='372.1' r='.6'/%3e%3ccircle class='cls-2' cx='1644.7' cy='373.7' r='.8'/%3e%3ccircle class='cls-2' cx='1656.3' cy='386.7' r='.6'/%3e%3ccircle class='cls-2' cx='1667.8' cy='428.1' r='.8'/%3e%3ccircle class='cls-2' cx='1675.3' cy='450.5' r='.7'/%3e%3ccircle class='cls-2' cx='1681.1' cy='473.3' r='1.5'/%3e%3ccircle class='cls-2' cx='1685' cy='488.7' r='1.1'/%3e%3ccircle class='cls-2' cx='1717.1' cy='521.8' r='1'/%3e%3ccircle class='cls-2' cx='1731.9' cy='485.3' r='.6'/%3e%3ccircle class='cls-2' cx='1740.9' cy='470.7' r='1.5'/%3e%3ccircle class='cls-2' cx='1715' cy='441.1' r='.5'/%3e%3ccircle class='cls-2' cx='1688.8' cy='455.6' r='.5'/%3e%3ccircle class='cls-2' cx='1680.8' cy='456.7' r='.8'/%3e%3ccircle class='cls-2' cx='1656' cy='465.6' r='.9'/%3e%3ccircle class='cls-2' cx='1641.6' cy='469.7' r='1.4'/%3e%3ccircle class='cls-2' cx='1613.5' cy='466.8' r='.5'/%3e%3ccircle class='cls-2' cx='1588.5' cy='469.9' r='1.2'/%3e%3ccircle class='cls-2' cx='1577.3' cy='483.8' r='1.2'/%3e%3ccircle class='cls-2' cx='1567.8' cy='478.6' r='1.4'/%3e%3ccircle class='cls-2' cx='1550.3' cy='485.9' r='1.1'/%3e%3ccircle class='cls-2' cx='1544.7' cy='489' r='1'/%3e%3ccircle class='cls-2' cx='1537' cy='487.7' r='.5'/%3e%3ccircle class='cls-2' cx='1513' cy='495.5' r='.6'/%3e%3ccircle class='cls-2' cx='1120.8' cy='343.8' r='1.4'/%3e%3ccircle class='cls-2' cx='1133.8' cy='349.4' r='.9'/%3e%3ccircle class='cls-2' cx='1140.9' cy='370.2' r='1'/%3e%3ccircle class='cls-2' cx='1152.3' cy='367.8' r='.6'/%3e%3ccircle class='cls-2' cx='1169.7' cy='381.5' r='1'/%3e%3ccircle class='cls-2' cx='1209.7' cy='386.6' r='1'/%3e%3ccircle class='cls-2' cx='1229.4' cy='377.9' r='.6'/%3e%3ccircle class='cls-2' cx='1247' cy='377' r='1.4'/%3e%3ccircle class='cls-2' cx='1290.7' cy='374.8' r='.8'/%3e%3ccircle class='cls-2' cx='1312.3' cy='372.8' r='1.2'/%3e%3ccircle class='cls-2' cx='1330.7' cy='384.2' r='.9'/%3e%3ccircle class='cls-2' cx='1350.3' cy='377.8' r='.9'/%3e%3ccircle class='cls-2' cx='1353.8' cy='390.3' r='.8'/%3e%3ccircle class='cls-2' cx='1371.9' cy='389.5' r='1.3'/%3e%3ccircle class='cls-2' cx='1387.7' cy='396.4' r='.9'/%3e%3ccircle class='cls-2' cx='1419.6' cy='395.8' r='1.2'/%3e%3ccircle class='cls-2' cx='1438.4' cy='430.5' r='1'/%3e%3ccircle class='cls-2' cx='1433.5' cy='455.6' r='.7'/%3e%3ccircle class='cls-2' cx='1423.9' cy='477.9' r='1.3'/%3e%3ccircle class='cls-2' cx='1472.5' cy='484.1' r='1.1'/%3e%3ccircle class='cls-2' cx='1507.3' cy='479.3' r='.8'/%3e%3ccircle class='cls-2' cx='1545.9' cy='455.5' r='1.2'/%3e%3ccircle class='cls-2' cx='1588.1' cy='452.5' r='1.4'/%3e%3ccircle class='cls-2' cx='1623.3' cy='429.2' r='1.2'/%3e%3ccircle class='cls-2' cx='1630.6' cy='431.1' r='.6'/%3e%3ccircle class='cls-2' cx='1651.5' cy='415.2' r='1.1'/%3e%3ccircle class='cls-2' cx='1661.1' cy='409.3' r='1.2'/%3e%3ccircle class='cls-2' cx='1697.8' cy='398.2' r='1.4'/%3e%3ccircle class='cls-2' cx='1715.2' cy='398.1' r='.8'/%3e%3ccircle class='cls-2' cx='1702.8' cy='428.5' r='.7'/%3e%3ccircle class='cls-2' cx='1696.8' cy='463.3' r='1'/%3e%3ccircle class='cls-2' cx='1695.3' cy='476.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1683.1' cy='490.4' r='1'/%3e%3ccircle class='cls-2' cx='1682.2' cy='505' r='.6'/%3e%3ccircle class='cls-2' cx='984.3' cy='309.5' r='.8'/%3e%3ccircle class='cls-2' cx='1010.8' cy='307.3' r='.8'/%3e%3ccircle class='cls-2' cx='1047.7' cy='292.9' r='.8'/%3e%3ccircle class='cls-2' cx='396.4' cy='282' r='.9'/%3e%3ccircle class='cls-2' cx='380.5' cy='271.1' r='.5'/%3e%3ccircle class='cls-2' cx='361.6' cy='272.7' r='.6'/%3e%3ccircle class='cls-2' cx='362.5' cy='258.7' r='.7'/%3e%3ccircle class='cls-2' cx='403.1' cy='249.8' r='.7'/%3e%3ccircle class='cls-2' cx='424.5' cy='266.7' r='.7'/%3e%3ccircle class='cls-2' cx='436' cy='289.9' r='1.3'/%3e%3ccircle class='cls-2' cx='464.8' cy='297.5' r='.7'/%3e%3ccircle class='cls-2' cx='476.6' cy='291.5' r='1'/%3e%3ccircle class='cls-2' cx='511.8' cy='285.6' r='1.2'/%3e%3ccircle class='cls-2' cx='550.3' cy='265.9' r='.8'/%3e%3ccircle class='cls-2' cx='589.3' cy='251.4' r='1.2'/%3e%3ccircle class='cls-2' cx='610.3' cy='253.9' r='.7'/%3e%3ccircle class='cls-2' cx='636.1' cy='247.4' r='1.2'/%3e%3ccircle class='cls-2' cx='651.1' cy='241.7' r='.6'/%3e%3ccircle class='cls-2' cx='667.7' cy='226.8' r='.9'/%3e%3ccircle class='cls-2' cx='703.5' cy='219.1' r='1.2'/%3e%3ccircle class='cls-2' cx='744.7' cy='219.6' r='.5'/%3e%3ccircle class='cls-2' cx='767.8' cy='252.3' r='.8'/%3e%3ccircle class='cls-2' cx='771.4' cy='262.2' r='.6'/%3e%3ccircle class='cls-2' cx='802.6' cy='268' r='1.4'/%3e%3ccircle class='cls-2' cx='825.4' cy='268.6' r='1'/%3e%3ccircle class='cls-2' cx='860.6' cy='269.5' r='1.3'/%3e%3ccircle class='cls-2' cx='868.5' cy='269.7' r='.7'/%3e%3ccircle class='cls-2' cx='890.8' cy='255.4' r='.6'/%3e%3ccircle class='cls-2' cx='915.8' cy='259.5' r='1.2'/%3e%3ccircle class='cls-2' cx='994.9' cy='364.9' r='.8'/%3e%3ccircle class='cls-2' cx='978.9' cy='370.4' r='.8'/%3e%3ccircle class='cls-2' cx='951.9' cy='376' r='1.3'/%3e%3ccircle class='cls-2' cx='943' cy='378.7' r='1.1'/%3e%3ccircle class='cls-2' cx='932.6' cy='381.5' r='.9'/%3e%3ccircle class='cls-2' cx='923.1' cy='376.2' r='1.3'/%3e%3ccircle class='cls-2' cx='896.2' cy='380.9' r='1'/%3e%3ccircle class='cls-2' cx='884.4' cy='388.8' r='1.1'/%3e%3ccircle class='cls-2' cx='845.9' cy='391.7' r='1.2'/%3e%3ccircle class='cls-2' cx='833' cy='381.6' r='.9'/%3e%3ccircle class='cls-2' cx='829.6' cy='367.9' r='.7'/%3e%3ccircle class='cls-2' cx='832.9' cy='333.3' r='.8'/%3e%3ccircle class='cls-2' cx='830.8' cy='303.7' r='.8'/%3e%3ccircle class='cls-2' cx='805.5' cy='280.4' r='.8'/%3e%3ccircle class='cls-2' cx='796.5' cy='269.1' r='1'/%3e%3ccircle class='cls-2' cx='765.6' cy='267.1' r='1.1'/%3e%3ccircle class='cls-2' cx='736.9' cy='269.7' r='1.1'/%3e%3ccircle class='cls-2' cx='709.8' cy='279.7' r='1.1'/%3e%3ccircle class='cls-2' cx='694.6' cy='299.9' r='.6'/%3e%3ccircle class='cls-2' cx='665.8' cy='300.9' r='1.3'/%3e%3ccircle class='cls-2' cx='651.2' cy='316.6' r='.6'/%3e%3ccircle class='cls-2' cx='642.5' cy='318.9' r='1.4'/%3e%3ccircle class='cls-2' cx='613.4' cy='345.6' r='.7'/%3e%3ccircle class='cls-2' cx='602.4' cy='341.6' r='.7'/%3e%3ccircle class='cls-2' cx='587.6' cy='372.9' r='1.1'/%3e%3ccircle class='cls-2' cx='568.2' cy='379.6' r='.5'/%3e%3ccircle class='cls-2' cx='563.6' cy='384.9' r='1.3'/%3e%3ccircle class='cls-2' cx='1750.7' cy='1037.6' r='.8'/%3e%3ccircle class='cls-2' cx='1750.4' cy='1045.4' r='1.4'/%3e%3ccircle class='cls-2' cx='1841.1' cy='1036' r='.8'/%3e%3ccircle class='cls-2' cx='1842.4' cy='1065.7' r='1.2'/%3e%3ccircle class='cls-2' cx='1762.3' cy='1042.7' r='.7'/%3e%3ccircle class='cls-2' cx='1891.1' cy='844.7' r='.5'/%3e%3ccircle class='cls-2' cx='1884.3' cy='881.3' r='.8'/%3e%3ccircle class='cls-2' cx='1877.5' cy='893.3' r='.5'/%3e%3ccircle class='cls-2' cx='1878.4' cy='918.6' r='.9'/%3e%3ccircle class='cls-2' cx='1728.4' cy='915.8' r='1.2'/%3e%3ccircle class='cls-2' cx='1732.7' cy='903.3' r='1.2'/%3e%3ccircle class='cls-2' cx='1748.8' cy='895.7' r='1'/%3e%3ccircle class='cls-2' cx='1776.7' cy='901.8' r='.6'/%3e%3ccircle class='cls-2' cx='1790.7' cy='940.7' r='1.1'/%3e%3ccircle class='cls-2' cx='1820.2' cy='939.3' r='.7'/%3e%3ccircle class='cls-2' cx='1858' cy='931.5' r='1.4'/%3e%3ccircle class='cls-2' cx='1878.5' cy='922' r='.9'/%3e%3ccircle class='cls-2' cx='1831.1' cy='879.6' r='1.4'/%3e%3ccircle class='cls-2' cx='1833.4' cy='918.2' r='.9'/%3e%3ccircle class='cls-2' cx='1843.2' cy='942.9' r='.5'/%3e%3ccircle class='cls-2' cx='1843' cy='948.8' r='1.2'/%3e%3ccircle class='cls-2' cx='1852.6' cy='991' r='.9'/%3e%3ccircle class='cls-2' cx='1868.4' cy='979.8' r='.6'/%3e%3ccircle class='cls-2' cx='1858.4' cy='987.5' r='.8'/%3e%3ccircle class='cls-2' cx='1798.9' cy='781.9' r='1.4'/%3e%3ccircle class='cls-2' cx='1789.7' cy='787.2' r='.9'/%3e%3ccircle class='cls-2' cx='1788.4' cy='767.5' r='1.3'/%3e%3ccircle class='cls-2' cx='1746.7' cy='778.9' r='1.3'/%3e%3ccircle class='cls-2' cx='1722.9' cy='786.4' r='.9'/%3e%3ccircle class='cls-2' cx='1708.2' cy='818.2' r='.7'/%3e%3ccircle class='cls-2' cx='1704.6' cy='857.6' r='.6'/%3e%3ccircle class='cls-2' cx='1701.4' cy='893.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1709.1' cy='936.2' r='1.1'/%3e%3ccircle class='cls-2' cx='1716.7' cy='962.3' r='1.4'/%3e%3ccircle class='cls-2' cx='1879' cy='684.1' r='.9'/%3e%3ccircle class='cls-2' cx='1869.2' cy='690.8' r='1.4'/%3e%3ccircle class='cls-2' cx='1866.3' cy='704.2' r='.5'/%3e%3ccircle class='cls-2' cx='1858.2' cy='706.4' r='.9'/%3e%3ccircle class='cls-2' cx='1831' cy='764' r='.6'/%3e%3ccircle class='cls-2' cx='1820.4' cy='775.9' r='1.5'/%3e%3ccircle class='cls-2' cx='1816.3' cy='797.6' r='1.3'/%3e%3ccircle class='cls-2' cx='1809.5' cy='822.4' r='1.4'/%3e%3ccircle class='cls-2' cx='1814.3' cy='813' r='.7'/%3e%3ccircle class='cls-2' cx='1839.8' cy='793.1' r='.9'/%3e%3ccircle class='cls-2' cx='1847.1' cy='778' r='.9'/%3e%3ccircle class='cls-2' cx='1842.7' cy='811.4' r='1.2'/%3e%3ccircle class='cls-2' cx='1846' cy='827' r='.9'/%3e%3ccircle class='cls-2' cx='1845.7' cy='860.3' r='1.3'/%3e%3ccircle class='cls-2' cx='1847.1' cy='879.2' r='.8'/%3e%3ccircle class='cls-2' cx='1267.4' cy='864.2' r='.8'/%3e%3ccircle class='cls-2' cx='1256.1' cy='863.1' r='.7'/%3e%3ccircle class='cls-2' cx='1268.1' cy='827.4' r='1.3'/%3e%3ccircle class='cls-2' cx='1266.2' cy='830.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1262.7' cy='861.2' r='1'/%3e%3ccircle class='cls-2' cx='1690.5' cy='876.8' r='1.4'/%3e%3ccircle class='cls-2' cx='1733.2' cy='867.5' r='1'/%3e%3ccircle class='cls-2' cx='1754.7' cy='840.5' r='1.4'/%3e%3ccircle class='cls-2' cx='1784.7' cy='810.1' r='1.3'/%3e%3ccircle class='cls-2' cx='1783.8' cy='795.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1759.3' cy='771.6' r='.7'/%3e%3ccircle class='cls-2' cx='1749.9' cy='757.1' r='1.2'/%3e%3ccircle class='cls-2' cx='1741.6' cy='751.3' r='1.2'/%3e%3ccircle class='cls-2' cx='1727.2' cy='708.8' r='1'/%3e%3ccircle class='cls-2' cx='1732.1' cy='687.8' r='1.4'/%3e%3ccircle class='cls-2' cx='1773.1' cy='702.9' r='.6'/%3e%3ccircle class='cls-2' cx='1791' cy='695.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1596.2' cy='1006.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1589.7' cy='999.8' r='1.4'/%3e%3ccircle class='cls-2' cx='1569.9' cy='995.2' r='1'/%3e%3ccircle class='cls-2' cx='1546.3' cy='1002.3' r='.9'/%3e%3ccircle class='cls-2' cx='1534.6' cy='996.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1279' cy='785.1' r='.7'/%3e%3ccircle class='cls-2' cx='1289.8' cy='818' r='.5'/%3e%3ccircle class='cls-2' cx='1279.4' cy='857.5' r='1.5'/%3e%3ccircle class='cls-2' cx='1287.2' cy='871.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1740.4' cy='254.7' r='.9'/%3e%3ccircle class='cls-2' cx='1715.4' cy='248.9' r='1.3'/%3e%3ccircle class='cls-2' cx='1694.8' cy='222.6' r='1.1'/%3e%3ccircle class='cls-2' cx='1673.9' cy='237.6' r='1.3'/%3e%3ccircle class='cls-2' cx='1674.3' cy='259.7' r='.7'/%3e%3ccircle class='cls-2' cx='1679.6' cy='271.5' r='.8'/%3e%3ccircle class='cls-2' cx='1671' cy='292.1' r='1'/%3e%3ccircle class='cls-2' cx='1665.9' cy='276' r='1.4'/%3e%3ccircle class='cls-2' cx='1683.2' cy='244.1' r='.8'/%3e%3ccircle class='cls-2' cx='1695' cy='229.9' r='.8'/%3e%3ccircle class='cls-2' cx='1709.8' cy='218.5' r='1.4'/%3e%3ccircle class='cls-2' cx='1708.5' cy='227.9' r='1.1'/%3e%3ccircle class='cls-2' cx='1703.4' cy='236.6' r='1.1'/%3e%3ccircle class='cls-2' cx='1709' cy='261.4' r='1.4'/%3e%3ccircle class='cls-2' cx='1716.1' cy='270' r='1.3'/%3e%3ccircle class='cls-2' cx='1745.3' cy='197.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1724.2' cy='222.6' r='.8'/%3e%3ccircle class='cls-2' cx='1723.9' cy='250.8' r='.8'/%3e%3ccircle class='cls-2' cx='1714' cy='284.2' r='.6'/%3e%3ccircle class='cls-2' cx='1607.3' cy='298.9' r='1.1'/%3e%3ccircle class='cls-2' cx='1862.4' cy='39.9' r='.7'/%3e%3ccircle class='cls-2' cx='1765.8' cy='227.4' r='1.2'/%3e%3ccircle class='cls-2' cx='1176' cy='1010.8' r='1.2'/%3e%3ccircle class='cls-2' cx='1773.6' cy='96.1' r='1.4'/%3e%3ccircle class='cls-2' cx='1799.3' cy='88.5' r='.6'/%3e%3ccircle class='cls-2' cx='1189.8' cy='30.7' r='.6'/%3e%3ccircle class='cls-2' cx='1836.8' cy='238.2' r='1.4'/%3e%3ccircle class='cls-2' cx='1635.9' cy='802.3' r='.5'/%3e%3ccircle class='cls-2' cx='1627' cy='308.9' r='1.3'/%3e%3ccircle class='cls-2' cx='1804.5' cy='256.2' r='.8'/%3e%3ccircle class='cls-2' cx='1841.3' cy='211.8' r='.6'/%3e%3ccircle class='cls-2' cx='1828.8' cy='189.9' r='.6'/%3e%3ccircle class='cls-2' cx='1501.1' cy='66.4' r='.6'/%3e%3ccircle class='cls-2' cx='1504.7' cy='65.2' r='.7'/%3e%3ccircle class='cls-2' cx='1521.9' cy='57.4' r='.8'/%3e%3ccircle class='cls-2' cx='1530.5' cy='57.5' r='.7'/%3e%3ccircle class='cls-2' cx='1575.1' cy='58.9' r='1.3'/%3e%3ccircle class='cls-2' cx='1611.1' cy='45.8' r='1.4'/%3e%3ccircle class='cls-2' cx='1629.9' cy='42.8' r='1.2'/%3e%3ccircle class='cls-2' cx='1147.4' cy='111' r='1.2'/%3e%3ccircle class='cls-2' cx='1169.2' cy='119.2' r='.9'/%3e%3ccircle class='cls-2' cx='1185.5' cy='140.3' r='.5'/%3e%3ccircle class='cls-2' cx='1228.7' cy='137' r='1'/%3e%3ccircle class='cls-2' cx='1231.5' cy='149.7' r='1'/%3e%3ccircle class='cls-2' cx='1263.1' cy='155.3' r='.9'/%3e%3ccircle class='cls-2' cx='1281.8' cy='155.4' r='1'/%3e%3ccircle class='cls-2' cx='1287.6' cy='171.7' r='.8'/%3e%3ccircle class='cls-2' cx='1325' cy='84.3' r='1.3'/%3e%3ccircle class='cls-2' cx='1339.2' cy='87.6' r='1.3'/%3e%3ccircle class='cls-2' cx='1348.5' cy='80.5' r='.6'/%3e%3ccircle class='cls-2' cx='1360.4' cy='80.2' r='.8'/%3e%3ccircle class='cls-2' cx='1368.5' cy='70.8' r='1.5'/%3e%3ccircle class='cls-2' cx='1382' cy='63.8' r='.9'/%3e%3ccircle class='cls-2' cx='1398.2' cy='67.2' r='.8'/%3e%3ccircle class='cls-2' cx='1406' cy='61.1' r='1.1'/%3e%3ccircle class='cls-2' cx='1429.7' cy='44.1' r='.9'/%3e%3ccircle class='cls-2' cx='1462.9' cy='17.3' r='1.3'/%3e%3ccircle class='cls-2' cx='1484.3' cy='10.5' r='.6'/%3e%3ccircle class='cls-2' cx='1365.1' cy='15.9' r='.7'/%3e%3ccircle class='cls-2' cx='1293.6' cy='130.4' r='.6'/%3e%3ccircle class='cls-2' cx='1278.5' cy='133.6' r='.6'/%3e%3ccircle class='cls-2' cx='1250.6' cy='133.6' r='1.1'/%3e%3ccircle class='cls-2' cx='1222.1' cy='121.7' r='1.3'/%3e%3ccircle class='cls-2' cx='1222.5' cy='107.9' r='1'/%3e%3ccircle class='cls-2' cx='1205.8' cy='106.8' r='1.3'/%3e%3ccircle class='cls-2' cx='1191' cy='92' r='1.3'/%3e%3ccircle class='cls-2' cx='1180.6' cy='89.2' r='1.4'/%3e%3ccircle class='cls-2' cx='1192.4' cy='84.5' r='.8'/%3e%3ccircle class='cls-2' cx='1221' cy='87.6' r='1.4'/%3e%3ccircle class='cls-2' cx='1239.7' cy='100' r='.6'/%3e%3ccircle class='cls-2' cx='1035.6' cy='58.2' r='.9'/%3e%3ccircle class='cls-2' cx='1052.5' cy='27.7' r='.6'/%3e%3ccircle class='cls-2' cx='1074.5' cy='107.9' r='.7'/%3e%3ccircle class='cls-2' cx='1086.8' cy='81.7' r='.8'/%3e%3ccircle class='cls-2' cx='1099.4' cy='77' r='.9'/%3e%3ccircle class='cls-2' cx='1101.7' cy='61.8' r='.6'/%3e%3ccircle class='cls-2' cx='1114.8' cy='43.2' r='.5'/%3e%3ccircle class='cls-2' cx='1106.1' cy='63.6' r='1.5'/%3e%3ccircle class='cls-2' cx='1123.4' cy='89.2' r='.9'/%3e%3ccircle class='cls-2' cx='1138.4' cy='91.1' r='.7'/%3e%3ccircle class='cls-2' cx='1160.3' cy='81.7' r='1'/%3e%3ccircle class='cls-2' cx='1169.5' cy='91.2' r='1.2'/%3e%3ccircle class='cls-2' cx='1189.5' cy='80.2' r='1.3'/%3e%3ccircle class='cls-2' cx='1168.3' cy='73.9' r='.9'/%3e%3ccircle class='cls-2' cx='1128' cy='68.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1115.7' cy='68.8' r='1.3'/%3e%3ccircle class='cls-2' cx='1108.6' cy='68.1' r='1.1'/%3e%3ccircle class='cls-2' cx='1080.5' cy='73.1' r='.8'/%3e%3ccircle class='cls-2' cx='1034.4' cy='71.4' r='.7'/%3e%3ccircle class='cls-2' cx='1011.3' cy='96.1' r='.5'/%3e%3ccircle class='cls-2' cx='1002.4' cy='114.4' r='.8'/%3e%3ccircle class='cls-2' cx='992' cy='121.2' r='.8'/%3e%3ccircle class='cls-2' cx='991.3' cy='130.7' r='.5'/%3e%3ccircle class='cls-2' cx='998.4' cy='99.2' r='1.3'/%3e%3ccircle class='cls-2' cx='1015.6' cy='64.7' r='1.5'/%3e%3ccircle class='cls-2' cx='1056.5' cy='49.1' r='.9'/%3e%3ccircle class='cls-2' cx='505.6' cy='78.4' r='.9'/%3e%3ccircle class='cls-2' cx='517.3' cy='82.4' r='.8'/%3e%3ccircle class='cls-2' cx='520.6' cy='66.6' r='.6'/%3e%3ccircle class='cls-2' cx='530.8' cy='75.2' r='.5'/%3e%3ccircle class='cls-2' cx='548.4' cy='83.5' r='.6'/%3e%3ccircle class='cls-2' cx='555.5' cy='90.5' r='1.1'/%3e%3ccircle class='cls-2' cx='567.3' cy='96.9' r='.9'/%3e%3ccircle class='cls-2' cx='572.1' cy='102.3' r='1.3'/%3e%3ccircle class='cls-2' cx='579.1' cy='121.8' r='1.3'/%3e%3ccircle class='cls-2' cx='613.9' cy='106.3' r='1.1'/%3e%3ccircle class='cls-2' cx='607.6' cy='132.7' r='.8'/%3e%3ccircle class='cls-2' cx='608.9' cy='122.2' r='1'/%3e%3ccircle class='cls-2' cx='646.6' cy='98.6' r='1.1'/%3e%3ccircle class='cls-2' cx='649.5' cy='85.4' r='.7'/%3e%3ccircle class='cls-2' cx='642.5' cy='101.4' r='1.4'/%3e%3ccircle class='cls-2' cx='456.4' cy='40.2' r='1.2'/%3e%3ccircle class='cls-2' cx='461.7' cy='25.6' r='1'/%3e%3ccircle class='cls-2' cx='438.6' cy='20.2' r='.9'/%3e%3ccircle class='cls-2' cx='396.3' cy='.8' r='.6'/%3e%3ccircle class='cls-2' cx='361.2' cy='26.6' r='1.2'/%3e%3ccircle class='cls-2' cx='368.6' cy='41' r='.8'/%3e%3ccircle class='cls-2' cx='375.5' cy='51.7' r='1.5'/%3e%3ccircle class='cls-2' cx='397.1' cy='46.7' r='.7'/%3e%3ccircle class='cls-2' cx='412.6' cy='57.2' r='1.4'/%3e%3ccircle class='cls-2' cx='434.2' cy='43.7' r='.7'/%3e%3ccircle class='cls-2' cx='412.4' cy='37' r='1.4'/%3e%3ccircle class='cls-2' cx='623.5' cy='108.6' r='1.4'/%3e%3ccircle class='cls-2' cx='613.3' cy='91.8' r='.5'/%3e%3ccircle class='cls-2' cx='601.7' cy='47.7' r='.6'/%3e%3ccircle class='cls-2' cx='573.9' cy='48.5' r='1'/%3e%3ccircle class='cls-2' cx='566.6' cy='50.7' r='1.3'/%3e%3ccircle class='cls-2' cx='538.3' cy='65.1' r='.8'/%3e%3ccircle class='cls-2' cx='564.6' cy='81.4' r='.9'/%3e%3ccircle class='cls-2' cx='573.5' cy='79.9' r='.9'/%3e%3ccircle class='cls-2' cx='561.7' cy='53.8' r='.7'/%3e%3ccircle class='cls-2' cx='526.9' cy='49.8' r='.8'/%3e%3ccircle class='cls-2' cx='511.6' cy='44' r='.8'/%3e%3ccircle class='cls-2' cx='505.8' cy='35.9' r='1.5'/%3e%3ccircle class='cls-2' cx='474.3' cy='27.3' r='.7'/%3e%3ccircle class='cls-2' cx='447.8' cy='35.6' r='1.1'/%3e%3ccircle class='cls-2' cx='432.6' cy='27.7' r='1'/%3e%3ccircle class='cls-2' cx='698.9' cy='144.4' r='1.1'/%3e%3ccircle class='cls-2' cx='708.6' cy='101.3' r='.7'/%3e%3ccircle class='cls-2' cx='691.8' cy='92.9' r='.7'/%3e%3ccircle class='cls-2' cx='659.8' cy='111' r='1'/%3e%3ccircle class='cls-2' cx='659.1' cy='128.8' r='1.1'/%3e%3ccircle class='cls-2' cx='678.6' cy='93.3' r='.9'/%3e%3ccircle class='cls-2' cx='685.5' cy='93.8' r='.8'/%3e%3ccircle class='cls-2' cx='738.4' cy='52.5' r='1.1'/%3e%3ccircle class='cls-2' cx='755.5' cy='39.1' r='1.4'/%3e%3ccircle class='cls-2' cx='769.1' cy='30.2' r='.9'/%3e%3ccircle class='cls-2' cx='842.7' cy='29' r='.9'/%3e%3ccircle class='cls-2' cx='866.6' cy='34.7' r='1.1'/%3e%3ccircle class='cls-2' cx='839.3' cy='29.6' r='.5'/%3e%3ccircle class='cls-2' cx='817' cy='36.6' r='.8'/%3e%3ccircle class='cls-2' cx='806.9' cy='44.7' r='1.4'/%3e%3ccircle class='cls-2' cx='790.2' cy='39.9' r='.9'/%3e%3ccircle class='cls-2' cx='768' cy='34.6' r='1.3'/%3e%3ccircle class='cls-2' cx='760.6' cy='26.9' r='.9'/%3e%3ccircle class='cls-2' cx='893' cy='94.8' r='.5'/%3e%3ccircle class='cls-2' cx='869.7' cy='69.9' r='1.3'/%3e%3ccircle class='cls-2' cx='871.4' cy='63.6' r='.7'/%3e%3ccircle class='cls-2' cx='819.5' cy='165' r='.8'/%3e%3ccircle class='cls-2' cx='851.4' cy='144.6' r='1'/%3e%3ccircle class='cls-2' cx='858' cy='123' r='.7'/%3e%3ccircle class='cls-2' cx='861.8' cy='113.7' r='.7'/%3e%3ccircle class='cls-2' cx='855.3' cy='92.8' r='1.1'/%3e%3ccircle class='cls-2' cx='846.1' cy='71.8' r='1.2'/%3e%3ccircle class='cls-2' cx='504.7' cy='203' r='.5'/%3e%3ccircle class='cls-2' cx='536.5' cy='198.6' r='.6'/%3e%3ccircle class='cls-2' cx='546.6' cy='155.8' r='.5'/%3e%3ccircle class='cls-2' cx='507' cy='143.4' r='.9'/%3e%3ccircle class='cls-2' cx='483.5' cy='143.7' r='.6'/%3e%3ccircle class='cls-2' cx='462.5' cy='434.5' r='.6'/%3e%3ccircle class='cls-2' cx='476.8' cy='397.6' r='1.3'/%3e%3ccircle class='cls-2' cx='492.6' cy='377.3' r='.6'/%3e%3ccircle class='cls-2' cx='500.8' cy='355.9' r='.9'/%3e%3ccircle class='cls-2' cx='498.6' cy='327.6' r='1.4'/%3e%3ccircle class='cls-2' cx='496.7' cy='321.1' r='1'/%3e%3ccircle class='cls-2' cx='493.9' cy='284.7' r='1'/%3e%3ccircle class='cls-2' cx='479.3' cy='240.9' r='.8'/%3e%3ccircle class='cls-2' cx='452.5' cy='225.8' r='1.2'/%3e%3ccircle class='cls-2' cx='442.6' cy='221.9' r='.9'/%3e%3ccircle class='cls-2' cx='422.6' cy='207.7' r='1.1'/%3e%3ccircle class='cls-2' cx='407.4' cy='203.8' r='1.4'/%3e%3ccircle class='cls-2' cx='401.6' cy='191.6' r='1.4'/%3e%3ccircle class='cls-2' cx='360.4' cy='201.9' r='.6'/%3e%3ccircle class='cls-2' cx='372.6' cy='222.3' r='.6'/%3e%3ccircle class='cls-2' cx='399.3' cy='239.1' r='1.4'/%3e%3ccircle class='cls-2' cx='429.4' cy='246.2' r='.9'/%3e%3ccircle class='cls-2' cx='461.7' cy='228.9' r='1.4'/%3e%3ccircle class='cls-2' cx='457.5' cy='213' r='1.2'/%3e%3ccircle class='cls-2' cx='450' cy='183.3' r='.5'/%3e%3ccircle class='cls-2' cx='447.7' cy='140.7' r='.7'/%3e%3ccircle class='cls-2' cx='442.5' cy='134.6' r='.5'/%3e%3ccircle class='cls-2' cx='417.9' cy='171.7' r='.7'/%3e%3ccircle class='cls-2' cx='420.4' cy='202.8' r='1.3'/%3e%3ccircle class='cls-2' cx='394.1' cy='225.1' r='1.4'/%3e%3ccircle class='cls-2' cx='396.6' cy='238' r='1.1'/%3e%3ccircle class='cls-2' cx='389.9' cy='211.7' r='1'/%3e%3ccircle class='cls-2' cx='414.4' cy='191' r='1.2'/%3e%3ccircle class='cls-2' cx='422.7' cy='155.6' r='.7'/%3e%3ccircle class='cls-2' cx='441.9' cy='135.7' r='.8'/%3e%3ccircle class='cls-2' cx='450.4' cy='127.5' r='1.1'/%3e%3ccircle class='cls-2' cx='449.2' cy='116.5' r='.5'/%3e%3ccircle class='cls-2' cx='605.7' cy='391.3' r='.8'/%3e%3ccircle class='cls-2' cx='622.3' cy='376.9' r='.5'/%3e%3ccircle class='cls-2' cx='603' cy='346.6' r='1.3'/%3e%3ccircle class='cls-2' cx='569.4' cy='347.3' r='.9'/%3e%3ccircle class='cls-2' cx='557' cy='336.9' r='1.5'/%3e%3ccircle class='cls-2' cx='533.6' cy='331.4' r='1.4'/%3e%3ccircle class='cls-2' cx='492' cy='319' r='1.1'/%3e%3ccircle class='cls-2' cx='479.6' cy='346.1' r='1.2'/%3e%3ccircle class='cls-2' cx='457.3' cy='371.2' r='1'/%3e%3ccircle class='cls-2' cx='443.7' cy='375.7' r='1.1'/%3e%3ccircle class='cls-2' cx='431.6' cy='341.5' r='1.4'/%3e%3ccircle class='cls-2' cx='425.2' cy='314.8' r='1.4'/%3e%3ccircle class='cls-2' cx='405.8' cy='334.9' r='1.1'/%3e%3ccircle class='cls-2' cx='377.6' cy='342.8' r='1.3'/%3e%3ccircle class='cls-2' cx='368.8' cy='367.8' r='1.3'/%3e%3ccircle class='cls-2' cx='714.5' cy='317.1' r='1.1'/%3e%3ccircle class='cls-2' cx='701.1' cy='308.9' r='.9'/%3e%3ccircle class='cls-2' cx='694.2' cy='307.8' r='1.4'/%3e%3ccircle class='cls-2' cx='650.5' cy='304.9' r='.6'/%3e%3ccircle class='cls-2' cx='642' cy='306.5' r='.7'/%3e%3ccircle class='cls-2' cx='611.4' cy='310.1' r='.9'/%3e%3ccircle class='cls-2' cx='583.3' cy='315' r='.5'/%3e%3ccircle class='cls-2' cx='540.3' cy='325.6' r='.8'/%3e%3ccircle class='cls-2' cx='974' cy='812.9' r='.6'/%3e%3ccircle class='cls-2' cx='961.3' cy='791.7' r='.6'/%3e%3ccircle class='cls-2' cx='950.6' cy='781.4' r='1.3'/%3e%3ccircle class='cls-2' cx='939.1' cy='760' r='1.1'/%3e%3ccircle class='cls-2' cx='929.4' cy='737' r='1.3'/%3e%3ccircle class='cls-2' cx='920.2' cy='726' r='.7'/%3e%3ccircle class='cls-2' cx='898.8' cy='715.6' r='1'/%3e%3ccircle class='cls-2' cx='888.4' cy='707.2' r='.7'/%3e%3ccircle class='cls-2' cx='857' cy='704.8' r='.7'/%3e%3ccircle class='cls-2' cx='847.5' cy='711.9' r='.5'/%3e%3ccircle class='cls-2' cx='818.1' cy='702' r='1.1'/%3e%3ccircle class='cls-2' cx='783.5' cy='711.4' r='.7'/%3e%3ccircle class='cls-2' cx='773.5' cy='716.3' r='1.1'/%3e%3ccircle class='cls-2' cx='758.5' cy='713' r='1.1'/%3e%3ccircle class='cls-2' cx='746.3' cy='727.6' r='.8'/%3e%3ccircle class='cls-2' cx='726.5' cy='734.6' r='.6'/%3e%3ccircle class='cls-2' cx='717.8' cy='743.9' r='.9'/%3e%3ccircle class='cls-2' cx='684.4' cy='751.1' r='1.4'/%3e%3ccircle class='cls-2' cx='660.4' cy='770.2' r='.5'/%3e%3ccircle class='cls-2' cx='637.1' cy='796.7' r='.9'/%3e%3ccircle class='cls-2' cx='634.6' cy='802.6' r='1.1'/%3e%3ccircle class='cls-2' cx='618.9' cy='816.1' r='.6'/%3e%3ccircle class='cls-2' cx='627' cy='836.2' r='1'/%3e%3ccircle class='cls-2' cx='975.8' cy='902.8' r='.5'/%3e%3ccircle class='cls-2' cx='967.1' cy='906.3' r='1.2'/%3e%3ccircle class='cls-2' cx='959.2' cy='904.9' r='.9'/%3e%3ccircle class='cls-2' cx='928.4' cy='898.2' r='1'/%3e%3ccircle class='cls-2' cx='906.8' cy='867' r='1.2'/%3e%3ccircle class='cls-2' cx='894.2' cy='856.9' r='.8'/%3e%3ccircle class='cls-2' cx='880.1' cy='839.6' r='1.3'/%3e%3ccircle class='cls-2' cx='846.5' cy='819.1' r='.9'/%3e%3ccircle class='cls-2' cx='828.4' cy='807.9' r='1.2'/%3e%3ccircle class='cls-2' cx='815.2' cy='783.4' r='1.3'/%3e%3ccircle class='cls-2' cx='789.1' cy='780.5' r='1.2'/%3e%3ccircle class='cls-2' cx='780.4' cy='768.5' r='1'/%3e%3ccircle class='cls-2' cx='757.5' cy='754.4' r='.7'/%3e%3ccircle class='cls-2' cx='929.5' cy='931.8' r='.7'/%3e%3ccircle class='cls-2' cx='938.5' cy='910' r='1.4'/%3e%3ccircle class='cls-2' cx='948.3' cy='909.3' r='.5'/%3e%3ccircle class='cls-2' cx='958.6' cy='883.5' r='1'/%3e%3ccircle class='cls-2' cx='966.3' cy='874.1' r='.8'/%3e%3ccircle class='cls-2' cx='932.1' cy='892' r='.9'/%3e%3ccircle class='cls-2' cx='931.9' cy='949.7' r='.9'/%3e%3ccircle class='cls-2' cx='930.5' cy='944.2' r='.8'/%3e%3ccircle class='cls-2' cx='946.4' cy='928.8' r='1.4'/%3e%3ccircle class='cls-2' cx='964.2' cy='924.7' r='1.1'/%3e%3ccircle class='cls-2' cx='984.4' cy='898.4' r='1.2'/%3e%3ccircle class='cls-2' cx='991' cy='922' r='.6'/%3e%3ccircle class='cls-2' cx='1020.9' cy='913' r='1'/%3e%3ccircle class='cls-2' cx='1000.6' cy='931.8' r='.8'/%3e%3ccircle class='cls-2' cx='1010.5' cy='920.7' r='.8'/%3e%3ccircle class='cls-2' cx='1016.2' cy='914.3' r='.6'/%3e%3ccircle class='cls-2' cx='1018.3' cy='905' r='.9'/%3e%3ccircle class='cls-2' cx='1033.1' cy='897.1' r='1.2'/%3e%3ccircle class='cls-2' cx='1058.4' cy='890.5' r='.6'/%3e%3ccircle class='cls-2' cx='1065.8' cy='878.1' r='1.1'/%3e%3ccircle class='cls-2' cx='1097.5' cy='870.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1091.8' cy='868.5' r='1.1'/%3e%3ccircle class='cls-2' cx='1063' cy='866.3' r='.8'/%3e%3ccircle class='cls-2' cx='1024.1' cy='850.9' r='.8'/%3e%3ccircle class='cls-2' cx='1008.5' cy='849.3' r='1.3'/%3e%3ccircle class='cls-2' cx='969.8' cy='852.6' r='1'/%3e%3ccircle class='cls-2' cx='1042.3' cy='924.2' r='1.2'/%3e%3ccircle class='cls-2' cx='1065.5' cy='898.9' r='.9'/%3e%3ccircle class='cls-2' cx='1095' cy='870.5' r='.9'/%3e%3ccircle class='cls-2' cx='1080' cy='855.8' r='1.4'/%3e%3ccircle class='cls-2' cx='1040.8' cy='869.2' r='.7'/%3e%3ccircle class='cls-2' cx='1034.5' cy='881.9' r='1.3'/%3e%3ccircle class='cls-2' cx='1018.7' cy='884.8' r='1'/%3e%3ccircle class='cls-2' cx='1013.6' cy='885.7' r='1.2'/%3e%3ccircle class='cls-2' cx='987' cy='895.8' r='1'/%3e%3ccircle class='cls-2' cx='973.4' cy='881.8' r='.7'/%3e%3ccircle class='cls-2' cx='1043.3' cy='911' r='1.3'/%3e%3ccircle class='cls-2' cx='1055' cy='907.4' r='.7'/%3e%3ccircle class='cls-2' cx='1073.9' cy='876.2' r='.7'/%3e%3ccircle class='cls-2' cx='1063' cy='923.3' r='.7'/%3e%3ccircle class='cls-2' cx='1066' cy='921.3' r='.7'/%3e%3ccircle class='cls-2' cx='1086' cy='901' r='.7'/%3e%3ccircle class='cls-2' cx='1087.5' cy='916' r='1.1'/%3e%3ccircle class='cls-2' cx='1078.5' cy='907.8' r='1.3'/%3e%3ccircle class='cls-2' cx='1100.5' cy='895.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1122.8' cy='890.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1106.2' cy='912.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1127.4' cy='897.8' r='1.5'/%3e%3ccircle class='cls-2' cx='1148.5' cy='876.8' r='.8'/%3e%3ccircle class='cls-2' cx='1111.4' cy='930.6' r='.9'/%3e%3ccircle class='cls-2' cx='1115.2' cy='914.9' r='.9'/%3e%3ccircle class='cls-2' cx='1145.9' cy='891.7' r='.7'/%3e%3ccircle class='cls-2' cx='1329.6' cy='927.1' r='1.3'/%3e%3ccircle class='cls-2' cx='1313.4' cy='940.1' r='.6'/%3e%3ccircle class='cls-2' cx='1287.1' cy='947.4' r='1.4'/%3e%3ccircle class='cls-2' cx='1273.2' cy='961.9' r='.5'/%3e%3ccircle class='cls-2' cx='1264.4' cy='961.8' r='.9'/%3e%3ccircle class='cls-2' cx='1282.8' cy='955.2' r='1.2'/%3e%3ccircle class='cls-2' cx='1282.9' cy='947.5' r='.7'/%3e%3ccircle class='cls-2' cx='1286.3' cy='934.8' r='1.3'/%3e%3ccircle class='cls-2' cx='1311' cy='924.6' r='1.1'/%3e%3ccircle class='cls-2' cx='1318.5' cy='907.1' r='.8'/%3e%3ccircle class='cls-2' cx='1344.8' cy='894.6' r='.7'/%3e%3ccircle class='cls-2' cx='1327.4' cy='888.5' r='1.3'/%3e%3ccircle class='cls-2' cx='1313.3' cy='904.9' r='1.3'/%3e%3ccircle class='cls-2' cx='1305.8' cy='915' r='1.5'/%3e%3ccircle class='cls-2' cx='1271.9' cy='924.3' r='.9'/%3e%3ccircle class='cls-2' cx='1262' cy='940.6' r='1.4'/%3e%3ccircle class='cls-2' cx='1245.2' cy='949.6' r='.8'/%3e%3ccircle class='cls-2' cx='1217.8' cy='954.1' r='1.3'/%3e%3ccircle class='cls-2' cx='1230.3' cy='941.6' r='1'/%3e%3ccircle class='cls-2' cx='1236.3' cy='930.7' r='1.1'/%3e%3ccircle class='cls-2' cx='1272.6' cy='907' r='1.1'/%3e%3ccircle class='cls-2' cx='1294.7' cy='883.6' r='1.2'/%3e%3ccircle class='cls-2' cx='1268.2' cy='883.9' r='.9'/%3e%3ccircle class='cls-2' cx='1243.3' cy='902.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1213.7' cy='916.5' r='.8'/%3e%3ccircle class='cls-2' cx='1201.8' cy='917.9' r='1.4'/%3e%3ccircle class='cls-2' cx='1195.7' cy='931.1' r='1.1'/%3e%3ccircle class='cls-2' cx='1188.4' cy='939.4' r='.8'/%3e%3ccircle class='cls-2' cx='1201.5' cy='908.7' r='.5'/%3e%3ccircle class='cls-2' cx='1222.5' cy='899.6' r='.6'/%3e%3ccircle class='cls-2' cx='1226.6' cy='872.3' r='1.3'/%3e%3ccircle class='cls-2' cx='1204' cy='886.8' r='1'/%3e%3ccircle class='cls-2' cx='1203.9' cy='895.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1169.7' cy='923.7' r='1.4'/%3e%3ccircle class='cls-2' cx='1160.3' cy='925.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1131.5' cy='948' r='1.3'/%3e%3ccircle class='cls-2' cx='1141.6' cy='932.6' r='1.4'/%3e%3ccircle class='cls-2' cx='1174' cy='919.6' r='.9'/%3e%3ccircle class='cls-2' cx='1193.7' cy='890.9' r='.8'/%3e%3ccircle class='cls-2' cx='1317.4' cy='945.2' r='1.3'/%3e%3ccircle class='cls-2' cx='1332.1' cy='945' r='.9'/%3e%3ccircle class='cls-2' cx='1356.8' cy='919.3' r='1'/%3e%3ccircle class='cls-2' cx='1380.4' cy='899.6' r='.5'/%3e%3ccircle class='cls-2' cx='1661.1' cy='977.2' r='1.1'/%3e%3ccircle class='cls-2' cx='1629.4' cy='966.1' r='.9'/%3e%3ccircle class='cls-2' cx='1623.7' cy='964.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1614' cy='959.7' r='.8'/%3e%3ccircle class='cls-2' cx='1585.8' cy='960.2' r='.5'/%3e%3ccircle class='cls-2' cx='1578.5' cy='945.4' r='1.4'/%3e%3ccircle class='cls-2' cx='1559.2' cy='937.3' r='1.5'/%3e%3ccircle class='cls-2' cx='1549.5' cy='933.9' r='1'/%3e%3ccircle class='cls-2' cx='1520.2' cy='921.7' r='.5'/%3e%3ccircle class='cls-2' cx='1488.1' cy='895.4' r='.7'/%3e%3ccircle class='cls-2' cx='1446.3' cy='908.6' r='1.2'/%3e%3ccircle class='cls-2' cx='1424.7' cy='932' r='.9'/%3e%3ccircle class='cls-2' cx='1399.3' cy='947' r='1.3'/%3e%3ccircle class='cls-2' cx='1376.8' cy='956' r='1.2'/%3e%3ccircle class='cls-2' cx='1380.6' cy='952.9' r='.6'/%3e%3ccircle class='cls-2' cx='1397' cy='942.1' r='.8'/%3e%3ccircle class='cls-2' cx='1407.3' cy='910.6' r='1.4'/%3e%3ccircle class='cls-2' cx='1432.9' cy='893.5' r='1'/%3e%3ccircle class='cls-2' cx='1428.8' cy='881.6' r='.6'/%3e%3ccircle class='cls-2' cx='1416.7' cy='895' r='1.4'/%3e%3ccircle class='cls-2' cx='1402.9' cy='907.3' r='.8'/%3e%3ccircle class='cls-2' cx='1388.6' cy='924.2' r='.5'/%3e%3ccircle class='cls-2' cx='1374.7' cy='927.1' r='1.2'/%3e%3ccircle class='cls-2' cx='1352.7' cy='948.2' r='.8'/%3e%3ccircle class='cls-2' cx='1376.9' cy='914.9' r='1.1'/%3e%3ccircle class='cls-2' cx='1398.5' cy='891.8' r='.8'/%3e%3ccircle class='cls-2' cx='1646.9' cy='1061.7' r='.6'/%3e%3ccircle class='cls-2' cx='1655.9' cy='1031.3' r='.8'/%3e%3ccircle class='cls-2' cx='1647.3' cy='998.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1634.6' cy='987.4' r='1.2'/%3e%3ccircle class='cls-2' cx='1639.7' cy='971.6' r='1.3'/%3e%3ccircle class='cls-2' cx='1628.1' cy='972' r='.8'/%3e%3ccircle class='cls-2' cx='1595' cy='963.8' r='.7'/%3e%3ccircle class='cls-2' cx='1567.7' cy='982.3' r='1.4'/%3e%3ccircle class='cls-2' cx='1554' cy='974.7' r='1'/%3e%3ccircle class='cls-2' cx='1531' cy='985.2' r='.9'/%3e%3ccircle class='cls-2' cx='1002.1' cy='1076.3' r='1.4'/%3e%3ccircle class='cls-2' cx='983.2' cy='1046.6' r='1'/%3e%3ccircle class='cls-2' cx='954.8' cy='1014.1' r='1.5'/%3e%3ccircle class='cls-2' cx='926.2' cy='1032.4' r='1.1'/%3e%3ccircle class='cls-2' cx='910.8' cy='1045.8' r='1.3'/%3e%3ccircle class='cls-2' cx='905.3' cy='1053.5' r='1.3'/%3e%3ccircle class='cls-2' cx='904' cy='1062.7' r='1.1'/%3e%3ccircle class='cls-2' cx='894.1' cy='1064.5' r='1.3'/%3e%3ccircle class='cls-2' cx='260.6' cy='825.5' r='1'/%3e%3ccircle class='cls-2' cx='283.9' cy='831.7' r='1.1'/%3e%3ccircle class='cls-2' cx='297.1' cy='838.9' r='.5'/%3e%3ccircle class='cls-2' cx='315.6' cy='851.5' r='.8'/%3e%3ccircle class='cls-2' cx='327.6' cy='848.4' r='1.4'/%3e%3ccircle class='cls-2' cx='341.1' cy='876.2' r='1.3'/%3e%3ccircle class='cls-2' cx='359.3' cy='903.2' r='.6'/%3e%3ccircle class='cls-2' cx='360.2' cy='941.2' r='.9'/%3e%3ccircle class='cls-2' cx='358.2' cy='983.5' r='.6'/%3e%3ccircle class='cls-2' cx='374.4' cy='1011.2' r='1'/%3e%3ccircle class='cls-2' cx='366.4' cy='1030.1' r='1.5'/%3e%3ccircle class='cls-2' cx='398.7' cy='1061.6' r='1.5'/%3e%3ccircle class='cls-2' cx='420.9' cy='1056.9' r='1.1'/%3e%3ccircle class='cls-2' cx='444.5' cy='1047.1' r='.6'/%3e%3ccircle class='cls-2' cx='464.8' cy='1051.5' r='1.1'/%3e%3ccircle class='cls-2' cx='499.9' cy='1042' r='1.3'/%3e%3ccircle class='cls-2' cx='516.2' cy='1031.8' r='1.4'/%3e%3ccircle class='cls-2' cx='523.7' cy='1044.2' r='1.1'/%3e%3ccircle class='cls-2' cx='563.2' cy='1032.2' r='1'/%3e%3ccircle class='cls-2' cx='563.7' cy='1049.3' r='1.4'/%3e%3ccircle class='cls-2' cx='565.6' cy='1057.3' r='1.1'/%3e%3ccircle class='cls-2' cx='566.2' cy='1070.8' r='1.2'/%3e%3ccircle class='cls-2' cx='339.9' cy='994.5' r='.7'/%3e%3ccircle class='cls-2' cx='345.9' cy='987.6' r='.7'/%3e%3ccircle class='cls-2' cx='351.1' cy='949.2' r='1.4'/%3e%3ccircle class='cls-2' cx='348' cy='925.4' r='.7'/%3e%3ccircle class='cls-2' cx='338.4' cy='905.7' r='.5'/%3e%3ccircle class='cls-2' cx='339.4' cy='886.7' r='.8'/%3e%3ccircle class='cls-2' cx='351.2' cy='872.3' r='.8'/%3e%3ccircle class='cls-2' cx='360.6' cy='860.5' r='1.4'/%3e%3ccircle class='cls-2' cx='382.1' cy='863' r='1.1'/%3e%3ccircle class='cls-2' cx='395.8' cy='863.9' r='1.1'/%3e%3ccircle class='cls-2' cx='409.8' cy='852.7' r='1.3'/%3e%3ccircle class='cls-2' cx='428' cy='853.5' r='1'/%3e%3ccircle class='cls-2' cx='459.5' cy='837.2' r='1.1'/%3e%3ccircle class='cls-2' cx='462.3' cy='830.4' r='.8'/%3e%3ccircle class='cls-2' cx='421.5' cy='841.9' r='.9'/%3e%3ccircle class='cls-2' cx='188.1' cy='1075.1' r='1.1'/%3e%3ccircle class='cls-2' cx='201.8' cy='1070.6' r='.8'/%3e%3ccircle class='cls-2' cx='223' cy='1031.4' r='1.1'/%3e%3ccircle class='cls-2' cx='249.1' cy='1017' r='1'/%3e%3ccircle class='cls-2' cx='258.9' cy='1015.8' r='1.5'/%3e%3ccircle class='cls-2' cx='288.2' cy='997.5' r='.8'/%3e%3ccircle class='cls-2' cx='294.7' cy='995.9' r='1.3'/%3e%3ccircle class='cls-2' cx='283.1' cy='1016.7' r='.9'/%3e%3ccircle class='cls-2' cx='294' cy='1030.2' r='.7'/%3e%3ccircle class='cls-2' cx='291.5' cy='1056.8' r='1.4'/%3e%3ccircle class='cls-2' cx='944.4' cy='1010.6' r='.6'/%3e%3ccircle class='cls-2' cx='975.3' cy='979.5' r='1.3'/%3e%3ccircle class='cls-2' cx='1010.7' cy='963.1' r='1.1'/%3e%3ccircle class='cls-2' cx='1038.8' cy='927.5' r='1.1'/%3e%3ccircle class='cls-2' cx='1027.6' cy='924.4' r='1'/%3e%3ccircle class='cls-2' cx='990.1' cy='924.2' r='1'/%3e%3ccircle class='cls-2' cx='961.1' cy='933' r='.6'/%3e%3ccircle class='cls-2' cx='930.7' cy='934.9' r='1.3'/%3e%3ccircle class='cls-2' cx='918' cy='944.8' r='.7'/%3e%3ccircle class='cls-2' cx='897.4' cy='943.1' r='1'/%3e%3ccircle class='cls-2' cx='888.4' cy='945.4' r='.9'/%3e%3ccircle class='cls-2' cx='850.6' cy='952.7' r='1.4'/%3e%3ccircle class='cls-2' cx='810.8' cy='948.7' r='1'/%3e%3ccircle class='cls-2' cx='787.8' cy='960.2' r='1.2'/%3e%3ccircle class='cls-2' cx='752.7' cy='960.2' r='.9'/%3e%3ccircle class='cls-2' cx='739' cy='957.4' r='1.4'/%3e%3ccircle class='cls-2' cx='729.7' cy='959.6' r='1.1'/%3e%3ccircle class='cls-2' cx='719.8' cy='973.2' r='1.3'/%3e%3ccircle class='cls-2' cx='714.5' cy='975.7' r='.8'/%3e%3ccircle class='cls-2' cx='674.5' cy='983' r='1'/%3e%3ccircle class='cls-2' cx='652.8' cy='1005.8' r='1.4'/%3e%3ccircle class='cls-2' cx='641.5' cy='1003.5' r='.5'/%3e%3ccircle class='cls-2' cx='633.9' cy='1017.8' r='.9'/%3e%3ccircle class='cls-2' cx='603.4' cy='1028.5' r='1.3'/%3e%3ccircle class='cls-2' cx='589.2' cy='1060.5' r='1.4'/%3e%3ccircle class='cls-2' cx='561.9' cy='1072.9' r='.6'/%3e%3ccircle class='cls-2' cx='558.9' cy='1066.1' r='.8'/%3e%3ccircle class='cls-2' cx='584.8' cy='1057.9' r='1.3'/%3e%3ccircle class='cls-2' cx='594.2' cy='1056.2' r='.9'/%3e%3ccircle class='cls-2' cx='632.5' cy='1046.6' r='1.4'/%3e%3ccircle class='cls-2' cx='671.2' cy='1041.6' r='.9'/%3e%3ccircle class='cls-2' cx='692.6' cy='1044.9' r='1.1'/%3e%3ccircle class='cls-2' cx='711.4' cy='1062.6' r='.8'/%3e%3ccircle class='cls-2' cx='771.7' cy='1055' r='.7'/%3e%3ccircle class='cls-2' cx='762.7' cy='1048.1' r='1.4'/%3e%3ccircle class='cls-2' cx='850.5' cy='1073.2' r='.5'/%3e%3ccircle class='cls-2' cx='850.8' cy='1043.9' r='.9'/%3e%3ccircle class='cls-2' cx='865.3' cy='1025.5' r='.9'/%3e%3ccircle class='cls-2' cx='833.2' cy='1002.2' r='.7'/%3e%3ccircle class='cls-2' cx='828.5' cy='1005.2' r='.7'/%3e%3ccircle class='cls-2' cx='791.2' cy='1028.9' r='.5'/%3e%3ccircle class='cls-2' cx='765.1' cy='1038.3' r='.6'/%3e%3ccircle class='cls-2' cx='766.7' cy='1052.5' r='.6'/%3e%3ccircle class='cls-2' cx='743' cy='1058.2' r='1'/%3e%3ccircle class='cls-2' cx='1084.4' cy='761.5' r='.7'/%3e%3ccircle class='cls-2' cx='1065.5' cy='774' r='.9'/%3e%3ccircle class='cls-2' cx='1066.1' cy='790.7' r='1.1'/%3e%3ccircle class='cls-2' cx='1048.6' cy='800.2' r='1.2'/%3e%3ccircle class='cls-2' cx='1024.2' cy='831.9' r='1.1'/%3e%3ccircle class='cls-2' cx='999.9' cy='855.6' r='1.3'/%3e%3ccircle class='cls-2' cx='979.4' cy='884' r='1.4'/%3e%3ccircle class='cls-2' cx='977.9' cy='906.1' r='.9'/%3e%3ccircle class='cls-2' cx='957.4' cy='940.5' r='.7'/%3e%3ccircle class='cls-2' cx='933.1' cy='955.3' r='1.5'/%3e%3ccircle class='cls-2' cx='911.9' cy='993.5' r='.6'/%3e%3ccircle class='cls-2' cx='562.4' cy='782.4' r='1.2'/%3e%3ccircle class='cls-2' cx='591.3' cy='757.9' r='.5'/%3e%3ccircle class='cls-2' cx='583.2' cy='734.6' r='.9'/%3e%3ccircle class='cls-2' cx='595.9' cy='718.9' r='.8'/%3e%3ccircle class='cls-2' cx='596.2' cy='685.1' r='1.1'/%3e%3ccircle class='cls-2' cx='604.1' cy='658.3' r='1.3'/%3e%3ccircle class='cls-2' cx='593.4' cy='651' r='.8'/%3e%3ccircle class='cls-2' cx='609.1' cy='618.8' r='.6'/%3e%3ccircle class='cls-2' cx='608.9' cy='608.4' r='.9'/%3e%3ccircle class='cls-2' cx='618.1' cy='593.9' r='1.3'/%3e%3ccircle class='cls-2' cx='606.3' cy='576.8' r='1.3'/%3e%3ccircle class='cls-2' cx='609.9' cy='609.3' r='.9'/%3e%3ccircle class='cls-2' cx='606.5' cy='636' r='1'/%3e%3ccircle class='cls-2' cx='592.6' cy='656' r='.6'/%3e%3ccircle class='cls-2' cx='234.8' cy='477' r='.6'/%3e%3ccircle class='cls-2' cx='261.3' cy='477.7' r='.7'/%3e%3ccircle class='cls-2' cx='272.5' cy='490.1' r='.6'/%3e%3ccircle class='cls-2' cx='298.4' cy='505.4' r='1.1'/%3e%3ccircle class='cls-2' cx='304.4' cy='519.7' r='.6'/%3e%3ccircle class='cls-2' cx='317.8' cy='545.4' r='1.1'/%3e%3ccircle class='cls-2' cx='320.7' cy='579.4' r='1.2'/%3e%3ccircle class='cls-2' cx='330.3' cy='615' r='1'/%3e%3ccircle class='cls-2' cx='321.9' cy='648.3' r='1.1'/%3e%3ccircle class='cls-2' cx='315.9' cy='656.6' r='.6'/%3e%3ccircle class='cls-2' cx='332.6' cy='653.4' r='1.3'/%3e%3ccircle class='cls-2' cx='343.1' cy='632.5' r='.9'/%3e%3ccircle class='cls-2' cx='362.8' cy='612.5' r='1.4'/%3e%3ccircle class='cls-2' cx='391' cy='597.7' r='.9'/%3e%3ccircle class='cls-2' cx='415.9' cy='622.7' r='1.2'/%3e%3ccircle class='cls-2' cx='433.5' cy='649.3' r='1.5'/%3e%3ccircle class='cls-2' cx='431.6' cy='659.1' r='.7'/%3e%3ccircle class='cls-2' cx='428.2' cy='671.3' r='1.3'/%3e%3ccircle class='cls-2' cx='433.8' cy='681.5' r='1.3'/%3e%3ccircle class='cls-2' cx='433' cy='710.2' r='1.1'/%3e%3ccircle class='cls-2' cx='444.8' cy='735.6' r='1'/%3e%3ccircle class='cls-2' cx='463' cy='761.8' r='.8'/%3e%3ccircle class='cls-2' cx='458.8' cy='776.9' r='.7'/%3e%3ccircle class='cls-2' cx='487' cy='799.3' r='1.4'/%3e%3ccircle class='cls-2' cx='515.6' cy='819.3' r='.8'/%3e%3ccircle class='cls-2' cx='549.2' cy='810.4' r='.7'/%3e%3ccircle class='cls-2' cx='555.7' cy='807.7' r='1.2'/%3e%3ccircle class='cls-2' cx='565.8' cy='770.9' r='.9'/%3e%3ccircle class='cls-2' cx='578.5' cy='748.1' r='1.2'/%3e%3ccircle class='cls-2' cx='582.4' cy='709.5' r='1.2'/%3e%3ccircle class='cls-2' cx='562' cy='672' r='.6'/%3e%3ccircle class='cls-2' cx='569.4' cy='655.9' r='.6'/%3e%3ccircle class='cls-2' cx='278.8' cy='586.3' r='1.3'/%3e%3ccircle class='cls-2' cx='254.7' cy='578.8' r='.5'/%3e%3ccircle class='cls-2' cx='217.7' cy='572.9' r='1.2'/%3e%3ccircle class='cls-2' cx='197.2' cy='552.9' r='.6'/%3e%3ccircle class='cls-2' cx='164.7' cy='531.6' r='1.3'/%3e%3ccircle class='cls-2' cx='160.5' cy='528.6' r='1.4'/%3e%3ccircle class='cls-2' cx='157.4' cy='517.3' r='1'/%3e%3ccircle class='cls-2' cx='157' cy='497.7' r='1.3'/%3e%3ccircle class='cls-2' cx='175' cy='503' r='.6'/%3e%3ccircle class='cls-2' cx='205.5' cy='528.5' r='.5'/%3e%3ccircle class='cls-2' cx='235.4' cy='554.8' r='1'/%3e%3ccircle class='cls-2' cx='242.4' cy='588.1' r='.9'/%3e%3ccircle class='cls-2' cx='249.4' cy='602.8' r='.8'/%3e%3ccircle class='cls-2' cx='231.5' cy='612.4' r='.5'/%3e%3ccircle class='cls-2' cx='589.3' cy='466.9' r='1.4'/%3e%3ccircle class='cls-2' cx='575.3' cy='492.3' r='1.1'/%3e%3ccircle class='cls-2' cx='554.5' cy='513.9' r='.6'/%3e%3ccircle class='cls-2' cx='535.4' cy='549.1' r='1.1'/%3e%3ccircle class='cls-2' cx='526.1' cy='561.1' r='1.4'/%3e%3ccircle class='cls-2' cx='518.8' cy='578.7' r='1.4'/%3e%3ccircle class='cls-2' cx='511' cy='590.5' r='.6'/%3e%3ccircle class='cls-2' cx='495.9' cy='631' r='.8'/%3e%3ccircle class='cls-2' cx='497.1' cy='642.9' r='.8'/%3e%3ccircle class='cls-2' cx='492.1' cy='661.3' r='1.4'/%3e%3ccircle class='cls-2' cx='490.6' cy='705.2' r='1.2'/%3e%3ccircle class='cls-2' cx='490.7' cy='727' r='1.3'/%3e%3ccircle class='cls-2' cx='506' cy='732.3' r='.6'/%3e%3ccircle class='cls-2' cx='510.7' cy='745.3' r='1.3'/%3e%3ccircle class='cls-2' cx='525.3' cy='774.8' r='.9'/%3e%3ccircle class='cls-2' cx='558' cy='789.6' r='.7'/%3e%3ccircle class='cls-2' cx='576' cy='799.9' r='1.2'/%3e%3ccircle class='cls-2' cx='551.9' cy='784.1' r='1.3'/%3e%3ccircle class='cls-2' cx='530.8' cy='773.1' r='.8'/%3e%3ccircle class='cls-2' cx='515.9' cy='762.7' r='1.1'/%3e%3ccircle class='cls-2' cx='484.1' cy='762.4' r='1.3'/%3e%3ccircle class='cls-2' cx='463.6' cy='790.4' r='.7'/%3e%3ccircle class='cls-2' cx='447.4' cy='806.9' r='1.4'/%3e%3ccircle class='cls-2' cx='419.1' cy='831.1' r='.9'/%3e%3ccircle class='cls-2' cx='418.2' cy='837.3' r='.5'/%3e%3ccircle class='cls-2' cx='415' cy='850.5' r='.8'/%3e%3ccircle class='cls-2' cx='414.9' cy='867.4' r='.9'/%3e%3ccircle class='cls-2' cx='401.8' cy='835' r='.8'/%3e%3ccircle class='cls-2' cx='404.6' cy='827.1' r='1'/%3e%3ccircle class='cls-2' cx='391.1' cy='797.4' r='1.4'/%3e%3ccircle class='cls-2' cx='372' cy='819.8' r='1.1'/%3e%3ccircle class='cls-2' cx='355' cy='823.2' r='.9'/%3e%3ccircle class='cls-2' cx='328' cy='852.3' r='1'/%3e%3ccircle class='cls-2' cx='304' cy='866.3' r='1.1'/%3e%3ccircle class='cls-2' cx='277.9' cy='894.7' r='1'/%3e%3ccircle class='cls-2' cx='296.4' cy='856.9' r='1'/%3e%3ccircle class='cls-2' cx='296.6' cy='832.6' r='1.1'/%3e%3ccircle class='cls-2' cx='308' cy='826.2' r='1'/%3e%3ccircle class='cls-2' cx='304.6' cy='815.9' r='1'/%3e%3ccircle class='cls-2' cx='325' cy='776.7' r='1.2'/%3e%3ccircle class='cls-2' cx='329.8' cy='735.4' r='1.2'/%3e%3ccircle class='cls-2' cx='327.9' cy='705.8' r='1.4'/%3e%3ccircle class='cls-2' cx='328' cy='700.2' r='1'/%3e%3ccircle class='cls-2' cx='319.3' cy='680.9' r='.6'/%3e%3ccircle class='cls-2' cx='315.8' cy='646.7' r='1.1'/%3e%3ccircle class='cls-2' cx='749.3' cy='391.6' r='1'/%3e%3ccircle class='cls-2' cx='767.2' cy='369' r='.9'/%3e%3ccircle class='cls-2' cx='777.2' cy='350.1' r='1.1'/%3e%3ccircle class='cls-2' cx='792.1' cy='351.2' r='1'/%3e%3ccircle class='cls-2' cx='803.1' cy='343.8' r='1.1'/%3e%3ccircle class='cls-2' cx='816.3' cy='328.6' r='1.4'/%3e%3ccircle class='cls-2' cx='837.6' cy='305.3' r='1.1'/%3e%3ccircle class='cls-2' cx='848' cy='283' r='1.3'/%3e%3ccircle class='cls-2' cx='883.4' cy='259.8' r='.8'/%3e%3ccircle class='cls-2' cx='880.5' cy='246.6' r='.6'/%3e%3ccircle class='cls-2' cx='886.2' cy='243.1' r='.5'/%3e%3ccircle class='cls-2' cx='892.7' cy='241' r='1'/%3e%3ccircle class='cls-2' cx='906.4' cy='231.7' r='.9'/%3e%3ccircle class='cls-2' cx='895.9' cy='263.6' r='1.3'/%3e%3ccircle class='cls-2' cx='901' cy='283.1' r='1.4'/%3e%3ccircle class='cls-2' cx='914' cy='295.4' r='1.2'/%3e%3ccircle class='cls-2' cx='914.3' cy='302.2' r='1.3'/%3e%3ccircle class='cls-2' cx='911.5' cy='309.1' r='1.2'/%3e%3ccircle class='cls-2' cx='917' cy='344.2' r='1.1'/%3e%3ccircle class='cls-2' cx='644.5' cy='441.5' r='1'/%3e%3ccircle class='cls-2' cx='604.9' cy='425.9' r='1.4'/%3e%3ccircle class='cls-2' cx='570' cy='429.1' r='1.5'/%3e%3ccircle class='cls-2' cx='531.2' cy='420.9' r='.9'/%3e%3ccircle class='cls-2' cx='496.2' cy='419.4' r='1.1'/%3e%3ccircle class='cls-2' cx='479.9' cy='417.6' r='.9'/%3e%3ccircle class='cls-2' cx='454.4' cy='425.6' r='1.4'/%3e%3ccircle class='cls-2' cx='440.9' cy='423.6' r='1.2'/%3e%3ccircle class='cls-2' cx='432.7' cy='422.7' r='1.5'/%3e%3ccircle class='cls-2' cx='394.8' cy='409.8' r='1.1'/%3e%3ccircle class='cls-2' cx='375.2' cy='398.5' r='.9'/%3e%3ccircle class='cls-2' cx='361.3' cy='402.2' r='.6'/%3e%3ccircle class='cls-2' cx='323.3' cy='390.3' r='.9'/%3e%3ccircle class='cls-2' cx='312' cy='425.9' r='1.2'/%3e%3ccircle class='cls-2' cx='313.9' cy='441.7' r='1.4'/%3e%3ccircle class='cls-2' cx='318.9' cy='456.8' r='.6'/%3e%3ccircle class='cls-2' cx='317.8' cy='482.5' r='.7'/%3e%3ccircle class='cls-2' cx='335.7' cy='464.7' r='1.3'/%3e%3ccircle class='cls-2' cx='336.3' cy='445.4' r='1'/%3e%3ccircle class='cls-2' cx='356.8' cy='411.8' r='1.1'/%3e%3ccircle class='cls-2' cx='351' cy='390.4' r='1.4'/%3e%3ccircle class='cls-2' cx='368.9' cy='370.2' r='1.1'/%3e%3ccircle class='cls-2' cx='382.7' cy='351.8' r='1.3'/%3e%3ccircle class='cls-2' cx='385' cy='335.3' r='.5'/%3e%3ccircle class='cls-2' cx='392.2' cy='313.8' r='.6'/%3e%3ccircle class='cls-2' cx='405.9' cy='304.8' r='1.3'/%3e%3ccircle class='cls-2' cx='421.6' cy='295.8' r='.7'/%3e%3ccircle class='cls-2' cx='451.9' cy='279.4' r='.9'/%3e%3ccircle class='cls-2' cx='474.2' cy='270.8' r='.7'/%3e%3ccircle class='cls-2' cx='480.8' cy='272.8' r='.5'/%3e%3ccircle class='cls-2' cx='495.4' cy='274.7' r='.5'/%3e%3ccircle class='cls-2' cx='502.4' cy='277.3' r='.7'/%3e%3ccircle class='cls-2' cx='530.8' cy='295.6' r='1.4'/%3e%3ccircle class='cls-2' cx='551.4' cy='324.3' r='.8'/%3e%3ccircle class='cls-2' cx='560.6' cy='338.9' r='1.1'/%3e%3ccircle class='cls-2' cx='562.6' cy='361.5' r='1.5'/%3e%3ccircle class='cls-2' cx='713.5' cy='537.5' r='1.3'/%3e%3ccircle class='cls-2' cx='711.6' cy='522.8' r='.9'/%3e%3ccircle class='cls-2' cx='743.7' cy='497.1' r='.6'/%3e%3ccircle class='cls-2' cx='748.4' cy='473.4' r='1'/%3e%3ccircle class='cls-2' cx='770.1' cy='450.1' r='.6'/%3e%3ccircle class='cls-2' cx='773.5' cy='436.8' r='.5'/%3e%3ccircle class='cls-2' cx='786.9' cy='406.1' r='1.4'/%3e%3ccircle class='cls-2' cx='803.9' cy='382.7' r='.9'/%3e%3ccircle class='cls-2' cx='825.3' cy='349.1' r='1.2'/%3e%3ccircle class='cls-2' cx='825.2' cy='343.5' r='.9'/%3e%3ccircle class='cls-2' cx='832.8' cy='298.9' r='1.4'/%3e%3ccircle class='cls-2' cx='795.9' cy='298.6' r='1.1'/%3e%3ccircle class='cls-2' cx='776.7' cy='297.9' r='.9'/%3e%3ccircle class='cls-2' cx='746.7' cy='310.8' r='1.2'/%3e%3ccircle class='cls-2' cx='743.6' cy='318.9' r='.7'/%3e%3ccircle class='cls-2' cx='719.8' cy='322.6' r='.7'/%3e%3ccircle class='cls-2' cx='704.5' cy='341.1' r='1'/%3e%3ccircle class='cls-2' cx='696.3' cy='351' r='.8'/%3e%3ccircle class='cls-2' cx='672.4' cy='376.6' r='1.3'/%3e%3ccircle class='cls-2' cx='652.1' cy='370.6' r='1.4'/%3e%3ccircle class='cls-2' cx='616.8' cy='397.3' r='1.2'/%3e%3ccircle class='cls-2' cx='590' cy='420.8' r='.6'/%3e%3ccircle class='cls-2' cx='564.5' cy='458.1' r='1'/%3e%3ccircle class='cls-2' cx='537.8' cy='472.8' r='1'/%3e%3ccircle class='cls-2' cx='530.1' cy='480.3' r='1.4'/%3e%3ccircle class='cls-2' cx='518.9' cy='504.5' r='1.4'/%3e%3ccircle class='cls-2' cx='508.9' cy='505.6' r='.6'/%3e%3ccircle class='cls-2' cx='495.9' cy='525.3' r='1.5'/%3e%3ccircle class='cls-2' cx='745.5' cy='449.8' r='.7'/%3e%3ccircle class='cls-2' cx='731.7' cy='422.9' r='1.4'/%3e%3ccircle class='cls-2' cx='727.6' cy='412.3' r='1.3'/%3e%3ccircle class='cls-2' cx='724.3' cy='395' r='.8'/%3e%3ccircle class='cls-2' cx='716.5' cy='377.7' r='.8'/%3e%3ccircle class='cls-2' cx='709.2' cy='358' r='.8'/%3e%3ccircle class='cls-2' cx='710' cy='355.7' r='1.2'/%3e%3ccircle class='cls-2' cx='702.3' cy='367.3' r='1.2'/%3e%3ccircle class='cls-2' cx='716.5' cy='411.2' r='1.4'/%3e%3ccircle class='cls-2' cx='738.1' cy='445.2' r='1.4'/%3e%3ccircle class='cls-2' cx='772.7' cy='461' r='.7'/%3e%3ccircle class='cls-2' cx='805.9' cy='479.7' r='1.1'/%3e%3ccircle class='cls-2' cx='845.5' cy='492.3' r='.7'/%3e%3ccircle class='cls-2' cx='873.8' cy='481.9' r='.9'/%3e%3ccircle class='cls-2' cx='896.4' cy='478.6' r='.7'/%3e%3ccircle class='cls-2' cx='934.1' cy='474.6' r='1.3'/%3e%3ccircle class='cls-2' cx='937.6' cy='466.8' r='1.3'/%3e%3ccircle class='cls-2' cx='978.7' cy='460.1' r='1.3'/%3e%3ccircle class='cls-2' cx='721.5' cy='500' r='1.1'/%3e%3ccircle class='cls-2' cx='694.5' cy='488.6' r='1.1'/%3e%3ccircle class='cls-2' cx='679.1' cy='488.3' r='.6'/%3e%3ccircle class='cls-2' cx='672.8' cy='479.9' r='.7'/%3e%3ccircle class='cls-2' cx='667' cy='472' r='1.4'/%3e%3ccircle class='cls-2' cx='653.6' cy='470.4' r='.9'/%3e%3ccircle class='cls-2' cx='640.8' cy='442.4' r='1.4'/%3e%3ccircle class='cls-2' cx='659.8' cy='414.6' r='.7'/%3e%3ccircle class='cls-2' cx='1087' cy='319.7' r='1.1'/%3e%3ccircle class='cls-2' cx='1094.7' cy='305.1' r='.7'/%3e%3ccircle class='cls-2' cx='1106.3' cy='262.4' r='.8'/%3e%3ccircle class='cls-2' cx='1115.9' cy='230.8' r='.7'/%3e%3ccircle class='cls-2' cx='1115' cy='221.8' r='.8'/%3e%3ccircle class='cls-2' cx='1127.1' cy='181' r='1.1'/%3e%3ccircle class='cls-2' cx='1124.9' cy='186.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1107.2' cy='195.4' r='.6'/%3e%3ccircle class='cls-2' cx='1101.2' cy='204.2' r='.6'/%3e%3ccircle class='cls-2' cx='1086' cy='242.1' r='.7'/%3e%3ccircle class='cls-2' cx='1081.9' cy='255.4' r='1.4'/%3e%3ccircle class='cls-2' cx='1074.1' cy='280.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1063.2' cy='305.3' r='1'/%3e%3ccircle class='cls-2' cx='1038.9' cy='334.7' r='.5'/%3e%3ccircle class='cls-2' cx='1023.1' cy='357.9' r='.9'/%3e%3ccircle class='cls-2' cx='1007.8' cy='392.9' r='1.4'/%3e%3ccircle class='cls-2' cx='983.5' cy='400.8' r='.9'/%3e%3ccircle class='cls-2' cx='992.5' cy='393' r='1.2'/%3e%3ccircle class='cls-2' cx='998.3' cy='370' r='1'/%3e%3ccircle class='cls-2' cx='1012.1' cy='341.7' r='1.4'/%3e%3ccircle class='cls-2' cx='1024.9' cy='318.2' r='1.3'/%3e%3ccircle class='cls-2' cx='1003.7' cy='298.9' r='.7'/%3e%3ccircle class='cls-2' cx='989.1' cy='304.6' r='.8'/%3e%3ccircle class='cls-2' cx='976.6' cy='311.8' r='1.4'/%3e%3ccircle class='cls-2' cx='961.2' cy='318' r='.8'/%3e%3ccircle class='cls-2' cx='957' cy='329.4' r='1.4'/%3e%3ccircle class='cls-2' cx='937.4' cy='323.7' r='1'/%3e%3ccircle class='cls-2' cx='918.1' cy='341.8' r='1.4'/%3e%3ccircle class='cls-2' cx='912.1' cy='347.7' r='1.4'/%3e%3ccircle class='cls-2' cx='874' cy='369.5' r='1.4'/%3e%3ccircle class='cls-2' cx='862.8' cy='367.8' r='1.1'/%3e%3ccircle class='cls-2' cx='836.6' cy='396.1' r='.7'/%3e%3ccircle class='cls-2' cx='800.7' cy='420.6' r='.7'/%3e%3ccircle class='cls-2' cx='787.8' cy='434.3' r='.8'/%3e%3ccircle class='cls-2' cx='785.8' cy='443.6' r='.7'/%3e%3ccircle class='cls-2' cx='765.5' cy='466.1' r='1.2'/%3e%3ccircle class='cls-2' cx='729.1' cy='488.5' r='1.3'/%3e%3ccircle class='cls-2' cx='709.8' cy='527.1' r='1.1'/%3e%3ccircle class='cls-2' cx='1258.3' cy='458.6' r='1.1'/%3e%3ccircle class='cls-2' cx='1268' cy='447.5' r='1'/%3e%3ccircle class='cls-2' cx='1253.6' cy='426.9' r='.9'/%3e%3ccircle class='cls-2' cx='1240' cy='390.2' r='.5'/%3e%3ccircle class='cls-2' cx='1235.1' cy='354.2' r='1.2'/%3e%3ccircle class='cls-2' cx='1235.9' cy='340.1' r='1.2'/%3e%3ccircle class='cls-2' cx='1219.1' cy='304.3' r='.9'/%3e%3ccircle class='cls-2' cx='1192.5' cy='282.8' r='.9'/%3e%3ccircle class='cls-2' cx='1176.2' cy='256.1' r='1.3'/%3e%3ccircle class='cls-2' cx='1178.9' cy='239' r='1.4'/%3e%3ccircle class='cls-2' cx='1178.5' cy='229.8' r='.6'/%3e%3ccircle class='cls-2' cx='1166.9' cy='212.3' r='1.3'/%3e%3ccircle class='cls-2' cx='1138.3' cy='207.8' r='.7'/%3e%3ccircle class='cls-2' cx='1107.5' cy='225.9' r='1.3'/%3e%3ccircle class='cls-2' cx='1087.6' cy='222.1' r='.7'/%3e%3ccircle class='cls-2' cx='1055.8' cy='241.4' r='1.3'/%3e%3ccircle class='cls-2' cx='1050.5' cy='244.5' r='1.3'/%3e%3ccircle class='cls-2' cx='1007.9' cy='244.6' r='.5'/%3e%3ccircle class='cls-2' cx='971.4' cy='244.2' r='.7'/%3e%3ccircle class='cls-2' cx='957.2' cy='249.7' r='1.1'/%3e%3ccircle class='cls-2' cx='944' cy='240.7' r='1'/%3e%3ccircle class='cls-2' cx='944.9' cy='218.4' r='1.5'/%3e%3ccircle class='cls-2' cx='962' cy='191' r='1.4'/%3e%3ccircle class='cls-2' cx='993' cy='173.4' r='1.3'/%3e%3ccircle class='cls-2' cx='1027.8' cy='158.9' r='1'/%3e%3ccircle class='cls-2' cx='1034.6' cy='151.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1045.5' cy='160' r='.5'/%3e%3ccircle class='cls-2' cx='1060.1' cy='157.6' r='.6'/%3e%3ccircle class='cls-2' cx='1074.9' cy='167.1' r='1.2'/%3e%3ccircle class='cls-2' cx='1095.9' cy='171.4' r='.8'/%3e%3ccircle class='cls-2' cx='1107.6' cy='194' r='.7'/%3e%3ccircle class='cls-2' cx='761.9' cy='974.8' r='1.4'/%3e%3ccircle class='cls-2' cx='786.2' cy='940' r='1.2'/%3e%3ccircle class='cls-2' cx='815.7' cy='911.9' r='.9'/%3e%3ccircle class='cls-2' cx='831.8' cy='903.3' r='1.1'/%3e%3ccircle class='cls-2' cx='854.6' cy='885.1' r='.9'/%3e%3ccircle class='cls-2' cx='860.8' cy='870' r='.6'/%3e%3ccircle class='cls-2' cx='884' cy='870' r='1.1'/%3e%3ccircle class='cls-2' cx='906.5' cy='837.4' r='.6'/%3e%3ccircle class='cls-2' cx='915.3' cy='832.2' r='.5'/%3e%3ccircle class='cls-2' cx='939.9' cy='829' r='.9'/%3e%3ccircle class='cls-2' cx='952.9' cy='812.7' r='1.2'/%3e%3ccircle class='cls-2' cx='972.9' cy='818' r='.9'/%3e%3ccircle class='cls-2' cx='972.8' cy='823.5' r='.7'/%3e%3ccircle class='cls-2' cx='976.4' cy='832.2' r='1.4'/%3e%3ccircle class='cls-2' cx='981.2' cy='839.8' r='.7'/%3e%3ccircle class='cls-2' cx='970.2' cy='859.5' r='1.4'/%3e%3ccircle class='cls-2' cx='510.4' cy='936.6' r='1.3'/%3e%3ccircle class='cls-2' cx='507.7' cy='963.5' r='1.1'/%3e%3ccircle class='cls-2' cx='506.4' cy='972.4' r='1.1'/%3e%3ccircle class='cls-2' cx='511.6' cy='948.6' r='1.1'/%3e%3ccircle class='cls-2' cx='508.8' cy='936.2' r='.8'/%3e%3ccircle class='cls-2' cx='526.9' cy='924.2' r='.8'/%3e%3ccircle class='cls-2' cx='548.2' cy='901' r='.6'/%3e%3ccircle class='cls-2' cx='549.8' cy='933' r='.6'/%3e%3ccircle class='cls-2' cx='558.1' cy='970.8' r='1.5'/%3e%3ccircle class='cls-2' cx='562.2' cy='1010.7' r='.7'/%3e%3ccircle class='cls-2' cx='575.7' cy='1002.2' r='.6'/%3e%3ccircle class='cls-2' cx='596.6' cy='977.5' r='.5'/%3e%3ccircle class='cls-2' cx='604' cy='966.6' r='.8'/%3e%3ccircle class='cls-2' cx='626.4' cy='935.4' r='.7'/%3e%3ccircle class='cls-2' cx='658' cy='910.7' r='1.2'/%3e%3ccircle class='cls-2' cx='675.4' cy='876.8' r='1.4'/%3e%3ccircle class='cls-2' cx='706.1' cy='886.9' r='1.1'/%3e%3ccircle class='cls-2' cx='706.2' cy='894.3' r='.9'/%3e%3ccircle class='cls-2' cx='658.9' cy='853.8' r='1.1'/%3e%3ccircle class='cls-2' cx='652.5' cy='871.7' r='1.1'/%3e%3ccircle class='cls-2' cx='627.1' cy='897.5' r='1.4'/%3e%3ccircle class='cls-2' cx='625.1' cy='902.8' r='.6'/%3e%3ccircle class='cls-2' cx='617.4' cy='909.7' r='.9'/%3e%3ccircle class='cls-2' cx='598.1' cy='924.5' r='.7'/%3e%3ccircle class='cls-2' cx='573' cy='925.8' r='1.2'/%3e%3ccircle class='cls-2' cx='558' cy='925.9' r='.5'/%3e%3ccircle class='cls-2' cx='568.7' cy='901.9' r='.5'/%3e%3ccircle class='cls-2' cx='560' cy='879.5' r='1'/%3e%3ccircle class='cls-2' cx='560.6' cy='855.1' r='.6'/%3e%3ccircle class='cls-2' cx='557.1' cy='847.4' r='1.5'/%3e%3ccircle class='cls-2' cx='549.8' cy='873' r='1.2'/%3e%3ccircle class='cls-2' cx='540' cy='897.9' r='.5'/%3e%3ccircle class='cls-2' cx='845.6' cy='924.2' r='1'/%3e%3ccircle class='cls-2' cx='855.7' cy='883.8' r='1'/%3e%3ccircle class='cls-2' cx='868' cy='879.1' r='1.4'/%3e%3ccircle class='cls-2' cx='891' cy='849.3' r='.8'/%3e%3ccircle class='cls-2' cx='892.9' cy='827.7' r='1'/%3e%3ccircle class='cls-2' cx='888.7' cy='813.4' r='.7'/%3e%3ccircle class='cls-2' cx='876' cy='825.5' r='.5'/%3e%3ccircle class='cls-2' cx='854.9' cy='844.5' r='1.3'/%3e%3ccircle class='cls-2' cx='816.9' cy='866.9' r='1.4'/%3e%3ccircle class='cls-2' cx='798.7' cy='873.9' r='1.1'/%3e%3ccircle class='cls-2' cx='767.8' cy='892.1' r='1.1'/%3e%3ccircle class='cls-2' cx='755.9' cy='898.7' r='1'/%3e%3ccircle class='cls-2' cx='758.8' cy='889.1' r='1.1'/%3e%3ccircle class='cls-2' cx='777.7' cy='869.7' r='.5'/%3e%3ccircle class='cls-2' cx='791.8' cy='842.2' r='1'/%3e%3ccircle class='cls-2' cx='820.7' cy='826.1' r='1.4'/%3e%3ccircle class='cls-2' cx='821' cy='815' r='1.3'/%3e%3ccircle class='cls-2' cx='817.3' cy='811.6' r='1.3'/%3e%3ccircle class='cls-2' cx='795.8' cy='820.3' r='1.4'/%3e%3ccircle class='cls-2' cx='776.9' cy='837.7' r='1.1'/%3e%3ccircle class='cls-2' cx='772.5' cy='841.8' r='1.3'/%3e%3ccircle class='cls-2' cx='759.9' cy='848.2' r='.8'/%3e%3ccircle class='cls-2' cx='737' cy='866.8' r='1.5'/%3e%3ccircle class='cls-2' cx='712.4' cy='871.1' r='.6'/%3e%3ccircle class='cls-2' cx='713.9' cy='868.8' r='.5'/%3e%3ccircle class='cls-2' cx='719.1' cy='859.6' r='.9'/%3e%3ccircle class='cls-2' cx='744.1' cy='824.2' r='1.4'/%3e%3ccircle class='cls-2' cx='763.8' cy='786.3' r='.8'/%3e%3ccircle class='cls-2' cx='766' cy='782.2' r='.6'/%3e%3ccircle class='cls-2' cx='755.6' cy='801.3' r='.8'/%3e%3ccircle class='cls-2' cx='729.8' cy='833.4' r='1.2'/%3e%3ccircle class='cls-2' cx='721.3' cy='839.2' r='.9'/%3e%3ccircle class='cls-2' cx='1033' cy='1077.5' r='1.1'/%3e%3ccircle class='cls-2' cx='1037.9' cy='1067.2' r='.8'/%3e%3ccircle class='cls-2' cx='1048.2' cy='1045.7' r='1'/%3e%3ccircle class='cls-2' cx='1044.4' cy='1024.3' r='.9'/%3e%3ccircle class='cls-2' cx='1053.5' cy='1005' r='1.4'/%3e%3ccircle class='cls-2' cx='1053.7' cy='969.1' r='.6'/%3e%3ccircle class='cls-2' cx='1063.6' cy='954.6' r='1.4'/%3e%3ccircle class='cls-2' cx='1097' cy='942.7' r='1.1'/%3e%3ccircle class='cls-2' cx='1595.7' cy='374.3' r='.7'/%3e%3ccircle class='cls-2' cx='1585.3' cy='359.7' r='1.1'/%3e%3ccircle class='cls-2' cx='1558.8' cy='368.2' r='.9'/%3e%3ccircle class='cls-2' cx='1518.6' cy='370' r='1.3'/%3e%3ccircle class='cls-2' cx='1496.3' cy='378.6' r='.7'/%3e%3ccircle class='cls-2' cx='1457.4' cy='375.7' r='.8'/%3e%3ccircle class='cls-2' cx='1417.3' cy='384' r='1.4'/%3e%3ccircle class='cls-2' cx='1402.3' cy='392.5' r='1'/%3e%3ccircle class='cls-2' cx='1396.6' cy='406' r='.7'/%3e%3ccircle class='cls-2' cx='1375' cy='401.6' r='.6'/%3e%3ccircle class='cls-2' cx='1356.4' cy='418.8' r='1.2'/%3e%3ccircle class='cls-2' cx='1339.6' cy='419.3' r='1.5'/%3e%3ccircle class='cls-2' cx='1323.4' cy='426.4' r='.7'/%3e%3ccircle class='cls-2' cx='1303.7' cy='438.5' r='1.3'/%3e%3ccircle class='cls-2' cx='1270.1' cy='467.4' r='1'/%3e%3ccircle class='cls-2' cx='1256.8' cy='476.6' r='.8'/%3e%3ccircle class='cls-2' cx='1236.1' cy='491.9' r='1.2'/%3e%3ccircle class='cls-2' cx='1203.7' cy='504.9' r='.5'/%3e%3ccircle class='cls-2' cx='1177.9' cy='521.9' r='1.4'/%3e%3ccircle class='cls-2' cx='1167.5' cy='551.3' r='1.3'/%3e%3ccircle class='cls-2' cx='1154.3' cy='566.7' r='.7'/%3e%3ccircle class='cls-2' cx='1131.2' cy='591.1' r='1.4'/%3e%3ccircle class='cls-2' cx='1106.1' cy='624.2' r='.8'/%3e%3ccircle class='cls-2' cx='1088.8' cy='629.1' r='1.5'/%3e%3ccircle class='cls-2' cx='1073.2' cy='662.9' r='.5'/%3e%3ccircle class='cls-2' cx='1066.8' cy='697.5' r='.5'/%3e%3ccircle class='cls-2' cx='1052.7' cy='713.7' r='1.4'/%3e%3ccircle class='cls-2' cx='1045.2' cy='731.9' r='1.1'/%3e%3ccircle class='cls-2' cx='1041.3' cy='773.2' r='1.5'/%3e%3ccircle class='cls-2' cx='1037.8' cy='810.6' r='1'/%3e%3ccircle class='cls-2' cx='1052.4' cy='845.1' r='.6'/%3e%3ccircle class='cls-2' cx='1063.3' cy='862' r='1'/%3e%3ccircle class='cls-2' cx='1077' cy='874.6' r='1.2'/%3e%3ccircle class='cls-2' cx='1113.2' cy='890.1' r='.7'/%3e%3ccircle class='cls-2' cx='1137' cy='892.2' r='1.4'/%3e%3ccircle class='cls-2' cx='1153.6' cy='888.2' r='.6'/%3e%3ccircle class='cls-2' cx='1180.6' cy='896.7' r='1.5'/%3e%3ccircle class='cls-2' cx='1203.8' cy='895.8' r='.9'/%3e%3ccircle class='cls-2' cx='1241.3' cy='888.8' r='1.4'/%3e%3ccircle class='cls-2' cx='1262.8' cy='877.4' r='.8'/%3e%3ccircle class='cls-2' cx='1269.4' cy='875.3' r='1.3'/%3e%3ccircle class='cls-2' cx='1277.7' cy='878.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1298.5' cy='868.1' r='1.4'/%3e%3ccircle class='cls-2' cx='1321.5' cy='873.1' r='1.1'/%3e%3ccircle class='cls-2' cx='1360.2' cy='857.9' r='.7'/%3e%3ccircle class='cls-2' cx='1396.8' cy='849.6' r='1.3'/%3e%3ccircle class='cls-2' cx='1434.7' cy='829.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1459.6' cy='828' r='.9'/%3e%3ccircle class='cls-2' cx='1490.4' cy='828.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1515.6' cy='813.8' r='1.5'/%3e%3ccircle class='cls-2' cx='1532.7' cy='808.4' r='.6'/%3e%3ccircle class='cls-2' cx='1560' cy='803.8' r='.7'/%3e%3ccircle class='cls-2' cx='1601.1' cy='815.7' r='1.2'/%3e%3ccircle class='cls-2' cx='1600.2' cy='832.5' r='.5'/%3e%3ccircle class='cls-2' cx='1593.3' cy='871.6' r='.9'/%3e%3ccircle class='cls-2' cx='1587.9' cy='884.3' r='1.4'/%3e%3ccircle class='cls-2' cx='1581.9' cy='890.1' r='.5'/%3e%3ccircle class='cls-2' cx='1567.6' cy='929.1' r='1.2'/%3e%3ccircle class='cls-2' cx='1553.5' cy='943.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1547.7' cy='954.3' r='.6'/%3e%3ccircle class='cls-2' cx='1536.9' cy='990.9' r='.7'/%3e%3ccircle class='cls-2' cx='1533.4' cy='1000.7' r='.9'/%3e%3ccircle class='cls-2' cx='1525.2' cy='1039.3' r='.7'/%3e%3ccircle class='cls-2' cx='1507.8' cy='1052.6' r='1.1'/%3e%3ccircle class='cls-2' cx='1509' cy='1069' r='1'/%3e%3ccircle class='cls-2' cx='1545.1' cy='732.3' r='1.3'/%3e%3ccircle class='cls-2' cx='1557.8' cy='709.6' r='.8'/%3e%3ccircle class='cls-2' cx='1570.6' cy='695.1' r='1'/%3e%3ccircle class='cls-2' cx='1601.8' cy='678.1' r='.8'/%3e%3ccircle class='cls-2' cx='1626.4' cy='642.3' r='1.4'/%3e%3ccircle class='cls-2' cx='1640.5' cy='635.9' r='.6'/%3e%3ccircle class='cls-2' cx='1640.8' cy='620.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1646.8' cy='613.3' r='.5'/%3e%3ccircle class='cls-2' cx='1666.3' cy='596.8' r='.7'/%3e%3ccircle class='cls-2' cx='1675.1' cy='574.7' r='.5'/%3e%3ccircle class='cls-2' cx='1647.9' cy='568.7' r='1.1'/%3e%3ccircle class='cls-2' cx='1609.1' cy='587.8' r='1.3'/%3e%3ccircle class='cls-2' cx='1578.6' cy='612.6' r='1.1'/%3e%3ccircle class='cls-2' cx='1561' cy='620.1' r='1.3'/%3e%3ccircle class='cls-2' cx='1553.2' cy='630' r='.9'/%3e%3ccircle class='cls-2' cx='1522.7' cy='636.4' r='.6'/%3e%3ccircle class='cls-2' cx='1508.6' cy='645' r='1.4'/%3e%3ccircle class='cls-2' cx='1500.9' cy='657.8' r='1.2'/%3e%3ccircle class='cls-2' cx='1471.6' cy='667.2' r='1.3'/%3e%3ccircle class='cls-2' cx='1453.6' cy='676.7' r='1.4'/%3e%3ccircle class='cls-2' cx='1436.2' cy='699.7' r='1'/%3e%3ccircle class='cls-2' cx='1412.9' cy='700.4' r='.8'/%3e%3ccircle class='cls-2' cx='1396.7' cy='706.2' r='.5'/%3e%3ccircle class='cls-2' cx='1385.9' cy='721.6' r='.8'/%3e%3ccircle class='cls-2' cx='1369.2' cy='731.5' r='1.3'/%3e%3ccircle class='cls-2' cx='1326.8' cy='742.5' r='1'/%3e%3ccircle class='cls-2' cx='1322.2' cy='745.7' r='.7'/%3e%3ccircle class='cls-2' cx='1285.6' cy='742.4' r='.8'/%3e%3ccircle class='cls-2' cx='1285.8' cy='707.9' r='1.5'/%3e%3ccircle class='cls-2' cx='1285.6' cy='684.8' r='.9'/%3e%3ccircle class='cls-2' cx='1295.6' cy='671.2' r='1'/%3e%3ccircle class='cls-2' cx='1306.3' cy='655.1' r='.5'/%3e%3ccircle class='cls-2' cx='1304.4' cy='646' r='1.1'/%3e%3ccircle class='cls-2' cx='1331.9' cy='618.2' r='.9'/%3e%3ccircle class='cls-2' cx='1354' cy='594.6' r='1.3'/%3e%3ccircle class='cls-2' cx='1358.8' cy='590.1' r='1.4'/%3e%3ccircle class='cls-2' cx='1369' cy='576.2' r='.7'/%3e%3ccircle class='cls-2' cx='1388.5' cy='561.1' r='.8'/%3e%3ccircle class='cls-2' cx='1406.3' cy='545.1' r='1.1'/%3e%3ccircle class='cls-2' cx='1419.2' cy='536.2' r='1.4'/%3e%3ccircle class='cls-2' cx='1446' cy='510.3' r='.8'/%3e%3ccircle class='cls-2' cx='1465.3' cy='506.8' r='1'/%3e%3ccircle class='cls-2' cx='1484.9' cy='520.4' r='1'/%3e%3ccircle class='cls-2' cx='1496.1' cy='529' r='.9'/%3e%3ccircle class='cls-2' cx='1496.3' cy='539.3' r='.6'/%3e%3ccircle class='cls-2' cx='1478.3' cy='577.4' r='.9'/%3e%3ccircle class='cls-2' cx='1472.1' cy='596.6' r='1.4'/%3e%3ccircle class='cls-2' cx='1480.2' cy='639.1' r='1'/%3e%3ccircle class='cls-2' cx='1467.6' cy='653.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1471.3' cy='660.4' r='.5'/%3e%3ccircle class='cls-2' cx='1457.9' cy='694.3' r='.8'/%3e%3ccircle class='cls-2' cx='1467.1' cy='711' r='.9'/%3e%3ccircle class='cls-2' cx='1463.2' cy='730.3' r='1.3'/%3e%3ccircle class='cls-2' cx='1446.3' cy='756.4' r='1.3'/%3e%3ccircle class='cls-2' cx='1450.3' cy='799.4' r='1.2'/%3e%3ccircle class='cls-2' cx='1566.6' cy='600' r='.9'/%3e%3ccircle class='cls-2' cx='1577.9' cy='595.2' r='1.1'/%3e%3ccircle class='cls-2' cx='1582.5' cy='554.5' r='.8'/%3e%3ccircle class='cls-2' cx='1602.9' cy='539.9' r='.7'/%3e%3ccircle class='cls-2' cx='1618.1' cy='519' r='.8'/%3e%3ccircle class='cls-2' cx='1611.9' cy='492.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1597.5' cy='531' r='1.2'/%3e%3ccircle class='cls-2' cx='1571' cy='559.5' r='1'/%3e%3ccircle class='cls-2' cx='1557.8' cy='567.9' r='.9'/%3e%3ccircle class='cls-2' cx='1540.2' cy='595.9' r='.9'/%3e%3ccircle class='cls-2' cx='1520.3' cy='618.9' r='.7'/%3e%3ccircle class='cls-2' cx='1541.7' cy='604.2' r='1.4'/%3e%3ccircle class='cls-2' cx='1546.2' cy='586.2' r='.8'/%3e%3ccircle class='cls-2' cx='1560.4' cy='582.6' r='1.5'/%3e%3ccircle class='cls-2' cx='1582.2' cy='561.6' r='.6'/%3e%3ccircle class='cls-2' cx='1620.2' cy='542.6' r='1.3'/%3e%3ccircle class='cls-2' cx='1632.2' cy='521.6' r='1.3'/%3e%3ccircle class='cls-2' cx='1646.8' cy='527.4' r='1'/%3e%3ccircle class='cls-2' cx='1646.2' cy='525.4' r='1.4'/%3e%3ccircle class='cls-2' cx='1635.3' cy='533.8' r='1.4'/%3e%3ccircle class='cls-2' cx='1605.8' cy='559.2' r='1.4'/%3e%3ccircle class='cls-2' cx='1601.7' cy='582.4' r='.6'/%3e%3ccircle class='cls-2' cx='1590.5' cy='593.5' r='.8'/%3e%3ccircle class='cls-2' cx='1573.2' cy='593.9' r='1.1'/%3e%3ccircle class='cls-2' cx='1565.3' cy='617.9' r='.8'/%3e%3ccircle class='cls-2' cx='1581.7' cy='608.4' r='.6'/%3e%3ccircle class='cls-2' cx='1598.5' cy='598.6' r='1'/%3e%3ccircle class='cls-2' cx='1620' cy='568.4' r='1'/%3e%3ccircle class='cls-2' cx='1833.3' cy='663.8' r='.6'/%3e%3ccircle class='cls-2' cx='1818.9' cy='647.3' r='.8'/%3e%3ccircle class='cls-2' cx='1828.6' cy='631.7' r='1.3'/%3e%3ccircle class='cls-2' cx='1829.6' cy='610.4' r='.7'/%3e%3ccircle class='cls-2' cx='1816' cy='571.9' r='1.2'/%3e%3ccircle class='cls-2' cx='1823.4' cy='557.2' r='.8'/%3e%3ccircle class='cls-2' cx='1825.6' cy='534.6' r='.7'/%3e%3ccircle class='cls-2' cx='1830.5' cy='504.9' r='1.5'/%3e%3ccircle class='cls-2' cx='1831.2' cy='469.6' r='.9'/%3e%3ccircle class='cls-2' cx='1830.4' cy='452.9' r='.9'/%3e%3ccircle class='cls-2' cx='1835.9' cy='442.7' r='1.2'/%3e%3ccircle class='cls-2' cx='1826.2' cy='414.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1839.5' cy='381.9' r='.7'/%3e%3ccircle class='cls-2' cx='1826.7' cy='387.5' r='.5'/%3e%3ccircle class='cls-2' cx='1821.2' cy='409' r='.5'/%3e%3ccircle class='cls-2' cx='1828.4' cy='418.1' r='1.4'/%3e%3ccircle class='cls-2' cx='1814.9' cy='437.4' r='.8'/%3e%3ccircle class='cls-2' cx='1813.6' cy='463' r='1.5'/%3e%3ccircle class='cls-2' cx='1799.7' cy='462.4' r='.7'/%3e%3ccircle class='cls-2' cx='1802.2' cy='486.7' r='1.3'/%3e%3ccircle class='cls-2' cx='1778.5' cy='515.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1768.2' cy='515.7' r='1.3'/%3e%3ccircle class='cls-2' cx='1775.9' cy='500.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1773.8' cy='491' r='.9'/%3e%3ccircle class='cls-2' cx='1776.8' cy='471.3' r='1.4'/%3e%3ccircle class='cls-2' cx='1790.1' cy='436.8' r='.7'/%3e%3ccircle class='cls-2' cx='1797.8' cy='411.3' r='1.3'/%3e%3ccircle class='cls-2' cx='1800.8' cy='407.1' r='1.2'/%3e%3ccircle class='cls-2' cx='1812.6' cy='375.3' r='1.2'/%3e%3ccircle class='cls-2' cx='1795.7' cy='391.4' r='.7'/%3e%3ccircle class='cls-2' cx='1780.3' cy='407.9' r='.9'/%3e%3ccircle class='cls-2' cx='1784.5' cy='423.9' r='1.1'/%3e%3ccircle class='cls-2' cx='1769.4' cy='436.8' r='1.2'/%3e%3ccircle class='cls-2' cx='1749.8' cy='471.5' r='1.1'/%3e%3ccircle class='cls-2' cx='1727.1' cy='495.7' r='1.3'/%3e%3ccircle class='cls-2' cx='1703.6' cy='518.1' r='1.4'/%3e%3ccircle class='cls-2' cx='1692.1' cy='534.6' r='.9'/%3e%3ccircle class='cls-2' cx='1664.2' cy='510.1' r='.7'/%3e%3ccircle class='cls-2' cx='1683.5' cy='490.8' r='1.5'/%3e%3ccircle class='cls-2' cx='1705.2' cy='456.5' r='.6'/%3e%3ccircle class='cls-2' cx='813.2' cy='516.3' r='.5'/%3e%3ccircle class='cls-2' cx='846.6' cy='540.9' r='.6'/%3e%3ccircle class='cls-2' cx='850.4' cy='558.2' r='1.4'/%3e%3ccircle class='cls-2' cx='855.9' cy='571.9' r='.7'/%3e%3ccircle class='cls-2' cx='863.3' cy='585.2' r='1.3'/%3e%3ccircle class='cls-2' cx='895.8' cy='615.2' r='1.3'/%3e%3ccircle class='cls-2' cx='904.1' cy='619.4' r='1.1'/%3e%3ccircle class='cls-2' cx='916.6' cy='632.9' r='.7'/%3e%3ccircle class='cls-2' cx='929.1' cy='650.6' r='.7'/%3e%3ccircle class='cls-2' cx='937.1' cy='652.1' r='.6'/%3e%3ccircle class='cls-2' cx='946.7' cy='655.3' r='1'/%3e%3ccircle class='cls-2' cx='973.3' cy='674.7' r='1.5'/%3e%3ccircle class='cls-2' cx='982.5' cy='684.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1004' cy='701.3' r='.5'/%3e%3ccircle class='cls-2' cx='1022.5' cy='723.7' r='1.3'/%3e%3ccircle class='cls-2' cx='1033' cy='706.4' r='.8'/%3e%3ccircle class='cls-2' cx='1011.8' cy='688.9' r='1.2'/%3e%3ccircle class='cls-2' cx='1007.2' cy='662' r='1.1'/%3e%3ccircle class='cls-2' cx='996' cy='634.3' r='.8'/%3e%3ccircle class='cls-2' cx='994.6' cy='629' r='1.2'/%3e%3ccircle class='cls-2' cx='986.3' cy='620.9' r='.6'/%3e%3ccircle class='cls-2' cx='996.6' cy='615.4' r='.5'/%3e%3ccircle class='cls-2' cx='989.4' cy='602.7' r='1.1'/%3e%3ccircle class='cls-2' cx='1005.4' cy='580' r='.8'/%3e%3ccircle class='cls-2' cx='1002.1' cy='560.5' r='1.2'/%3e%3ccircle class='cls-2' cx='1032.3' cy='533.7' r='.6'/%3e%3ccircle class='cls-2' cx='1073.4' cy='526.8' r='.9'/%3e%3ccircle class='cls-2' cx='1116' cy='527' r='.8'/%3e%3ccircle class='cls-2' cx='1156.7' cy='536.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1177.2' cy='538.5' r='.7'/%3e%3ccircle class='cls-2' cx='1197.9' cy='537.9' r='1.3'/%3e%3ccircle class='cls-2' cx='1207.2' cy='551.7' r='.5'/%3e%3ccircle class='cls-2' cx='1219.8' cy='554.6' r='.6'/%3e%3ccircle class='cls-2' cx='1226.5' cy='554.3' r='1.4'/%3e%3ccircle class='cls-2' cx='1237.8' cy='552.4' r='1.5'/%3e%3ccircle class='cls-2' cx='1257.3' cy='575.6' r='1.3'/%3e%3ccircle class='cls-2' cx='1297.9' cy='591.6' r='.5'/%3e%3ccircle class='cls-2' cx='1324.9' cy='600.3' r='.8'/%3e%3ccircle class='cls-2' cx='1360.1' cy='611.3' r='1.4'/%3e%3ccircle class='cls-2' cx='1399.5' cy='625.9' r='1.3'/%3e%3ccircle class='cls-2' cx='1428.3' cy='638.2' r='1.5'/%3e%3ccircle class='cls-2' cx='1470.7' cy='639.7' r='1.4'/%3e%3ccircle class='cls-2' cx='1484.1' cy='637.7' r='.5'/%3e%3ccircle class='cls-2' cx='1510.4' cy='641.1' r='1.1'/%3e%3ccircle class='cls-2' cx='1517.8' cy='637' r='.7'/%3e%3ccircle class='cls-2' cx='1542' cy='620.2' r='1.5'/%3e%3ccircle class='cls-2' cx='1558.6' cy='584.1' r='.5'/%3e%3ccircle class='cls-2' cx='1574.3' cy='543' r='.7'/%3e%3ccircle class='cls-2' cx='1589.5' cy='548.4' r='1'/%3e%3ccircle class='cls-2' cx='1603.3' cy='530.8' r='1.3'/%3e%3ccircle class='cls-2' cx='1633.3' cy='527.1' r='1.4'/%3e%3ccircle class='cls-2' cx='1659.4' cy='534.5' r='.6'/%3e%3ccircle class='cls-2' cx='1665.4' cy='536' r='1'/%3e%3ccircle class='cls-2' cx='1684.4' cy='567.9' r='1'/%3e%3ccircle class='cls-2' cx='1694.6' cy='589.5' r='.6'/%3e%3ccircle class='cls-2' cx='1692.6' cy='612' r='1.2'/%3e%3ccircle class='cls-2' cx='1705.5' cy='638.9' r='1.5'/%3e%3ccircle class='cls-2' cx='1706.8' cy='675.4' r='.7'/%3e%3ccircle class='cls-2' cx='1739.2' cy='670' r='1.2'/%3e%3ccircle class='cls-2' cx='1751.2' cy='634.1' r='.6'/%3e%3ccircle class='cls-2' cx='1769.3' cy='596.8' r='.6'/%3e%3ccircle class='cls-2' cx='1786.8' cy='584.1' r='.9'/%3e%3ccircle class='cls-2' cx='1807.5' cy='564.1' r='.6'/%3e%3ccircle class='cls-2' cx='1819.4' cy='544.2' r='1.1'/%3e%3ccircle class='cls-2' cx='1807.4' cy='541.7' r='1'/%3e%3ccircle class='cls-2' cx='1802.8' cy='565.1' r='.7'/%3e%3ccircle class='cls-2' cx='1799.2' cy='591.1' r='.8'/%3e%3ccircle class='cls-2' cx='1785.7' cy='594.5' r='1.1'/%3e%3ccircle class='cls-2' cx='1786.2' cy='620.5' r='.7'/%3e%3ccircle class='cls-2' cx='1777' cy='643.1' r='1.3'/%3e%3ccircle class='cls-2' cx='1783.4' cy='667.3' r='1.2'/%3e%3ccircle class='cls-2' cx='1770.2' cy='679.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1769.1' cy='697.9' r='1.2'/%3e%3ccircle class='cls-2' cx='1776.3' cy='711.7' r='1'/%3e%3ccircle class='cls-2' cx='1771.7' cy='748.3' r='1.1'/%3e%3ccircle class='cls-2' cx='1780' cy='772.8' r='1.4'/%3e%3ccircle class='cls-2' cx='1514.1' cy='450.9' r='.8'/%3e%3ccircle class='cls-2' cx='1495.3' cy='453.6' r='1.4'/%3e%3ccircle class='cls-2' cx='1467.3' cy='445.2' r='.6'/%3e%3ccircle class='cls-2' cx='1455.9' cy='439.6' r='.8'/%3e%3ccircle class='cls-2' cx='1415.1' cy='436.6' r='1.1'/%3e%3ccircle class='cls-2' cx='1388' cy='436.7' r='.7'/%3e%3ccircle class='cls-2' cx='1370.4' cy='437.2' r='.8'/%3e%3ccircle class='cls-2' cx='1338.2' cy='435.2' r='.6'/%3e%3ccircle class='cls-2' cx='1328.6' cy='446.6' r='.9'/%3e%3ccircle class='cls-2' cx='1300.2' cy='447.2' r='.6'/%3e%3ccircle class='cls-2' cx='1274.1' cy='432.4' r='1.1'/%3e%3ccircle class='cls-2' cx='1265.4' cy='429.8' r='1.1'/%3e%3ccircle class='cls-2' cx='1227.4' cy='424.3' r='.6'/%3e%3ccircle class='cls-2' cx='1204.1' cy='424.1' r='1.3'/%3e%3ccircle class='cls-2' cx='1180.1' cy='414.1' r='1.4'/%3e%3ccircle class='cls-2' cx='1195.1' cy='437.8' r='.8'/%3e%3ccircle class='cls-2' cx='1214.1' cy='430.4' r='.7'/%3e%3ccircle class='cls-2' cx='1217.5' cy='441.2' r='1'/%3e%3ccircle class='cls-2' cx='1225.8' cy='450.8' r='.8'/%3e%3ccircle class='cls-2' cx='1234.5' cy='453.8' r='1.3'/%3e%3ccircle class='cls-2' cx='1249.8' cy='454.8' r='1.3'/%3e%3ccircle class='cls-2' cx='1264.1' cy='476' r='.8'/%3e%3ccircle class='cls-2' cx='1273.1' cy='478' r='1.1'/%3e%3ccircle class='cls-2' cx='1308.8' cy='502.5' r='.7'/%3e%3ccircle class='cls-2' cx='1315.2' cy='507.2' r='1.3'/%3e%3ccircle class='cls-2' cx='1316.8' cy='514.3' r='1.4'/%3e%3ccircle class='cls-2' cx='1308.1' cy='513.7' r='.9'/%3e%3ccircle class='cls-2' cx='1278' cy='517' r='.7'/%3e%3ccircle class='cls-2' cx='1236.8' cy='507.4' r='1.2'/%3e%3ccircle class='cls-2' cx='1235.3' cy='492.1' r='1.1'/%3e%3ccircle class='cls-2' cx='1216' cy='497.3' r='1.4'/%3e%3ccircle class='cls-2' cx='1213.3' cy='482.7' r='1.2'/%3e%3ccircle class='cls-2' cx='1172.7' cy='470.5' r='.9'/%3e%3ccircle class='cls-2' cx='1168.4' cy='449.6' r='1.1'/%3e%3ccircle class='cls-2' cx='1141.7' cy='430.7' r='1.4'/%3e%3ccircle class='cls-2' cx='1113.5' cy='413.1' r='1.4'/%3e%3ccircle class='cls-2' cx='1099.7' cy='405.4' r='1.4'/%3e%3ccircle class='cls-2' cx='1069.1' cy='389.2' r='1.2'/%3e%3ccircle class='cls-2' cx='1033.1' cy='387.9' r='.9'/%3e%3ccircle class='cls-2' cx='1022' cy='404.9' r='1.4'/%3e%3ccircle class='cls-2' cx='1026.7' cy='412.8' r='.6'/%3e%3ccircle class='cls-2' cx='1040.8' cy='443.3' r='.8'/%3e%3ccircle class='cls-2' cx='1049.9' cy='449.7' r='.7'/%3e%3ccircle class='cls-2' cx='1064.1' cy='475.5' r='1'/%3e%3ccircle class='cls-2' cx='1086.9' cy='499' r='.6'/%3e%3ccircle class='cls-2' cx='1091.3' cy='513.4' r='.8'/%3e%3ccircle class='cls-2' cx='1086.6' cy='508.2' r='.9'/%3e%3ccircle class='cls-2' cx='1077.6' cy='510.5' r='.7'/%3e%3ccircle class='cls-2' cx='306' cy='902.6' r='2.2'/%3e%3ccircle class='cls-2' cx='335.2' cy='913.2' r='2.3'/%3e%3ccircle class='cls-2' cx='342.8' cy='917.4' r='2.2'/%3e%3ccircle class='cls-2' cx='354.3' cy='902.8' r='2.2'/%3e%3ccircle class='cls-2' cx='390.9' cy='873.5' r='2.5'/%3e%3ccircle class='cls-2' cx='430.6' cy='870.3' r='2.4'/%3e%3ccircle class='cls-2' cx='468' cy='870.8' r='2.5'/%3e%3ccircle class='cls-2' cx='489' cy='870.3' r='2.4'/%3e%3ccircle class='cls-2' cx='510.3' cy='827.4' r='2.4'/%3e%3ccircle class='cls-2' cx='552' cy='897.9' r='2.3'/%3e%3ccircle class='cls-2' cx='578.6' cy='903.9' r='2.2'/%3e%3ccircle class='cls-2' cx='572.1' cy='849.3' r='2.3'/%3e%3ccircle class='cls-2' cx='611.1' cy='828.7' r='2.4'/%3e%3ccircle class='cls-2' cx='648.1' cy='850.3' r='2.3'/%3e%3ccircle class='cls-2' cx='675.5' cy='837.4' r='2.4'/%3e%3ccircle class='cls-2' cx='716.4' cy='837.5' r='2.4'/%3e%3ccircle class='cls-2' cx='738.2' cy='890' r='2.4'/%3e%3ccircle class='cls-2' cx='752.3' cy='857.3' r='2.3'/%3e%3ccircle class='cls-2' cx='759' cy='870.1' r='2.4'/%3e%3ccircle class='cls-2' cx='803.4' cy='822.3' r='2.3'/%3e%3ccircle class='cls-2' cx='828.6' cy='862.9' r='2.2'/%3e%3ccircle class='cls-2' cx='874.7' cy='876.1' r='2.2'/%3e%3ccircle class='cls-2' cx='890.5' cy='898.8' r='2.3'/%3e%3ccircle class='cls-2' cx='891.3' cy='928.9' r='2.5'/%3e%3ccircle class='cls-2' cx='945.1' cy='917.5' r='2.2'/%3e%3ccircle class='cls-2' cx='1005.2' cy='917.3' r='2.5'/%3e%3ccircle class='cls-2' cx='1040.7' cy='950.7' r='2.3'/%3e%3ccircle class='cls-2' cx='1051.4' cy='988.9' r='2.2'/%3e%3ccircle class='cls-2' cx='1058.8' cy='1050.2' r='2.4'/%3e%3ccircle class='cls-2' cx='1125.6' cy='1029.5' r='2.4'/%3e%3ccircle class='cls-2' cx='1177.9' cy='1055.3' r='2.4'/%3e%3ccircle class='cls-2' cx='1192.6' cy='1055.9' r='2.3'/%3e%3ccircle class='cls-2' cx='1227.5' cy='1050.8' r='2.3'/%3e%3ccircle class='cls-2' cx='1266' cy='1057.3' r='2.3'/%3e%3ccircle class='cls-2' cx='1310.4' cy='1062.3' r='2.3'/%3e%3ccircle class='cls-2' cx='1351.3' cy='1066.2' r='2.2'/%3e%3ccircle class='cls-2' cx='1412' cy='1071' r='2.3'/%3e%3ccircle class='cls-2' cx='1454.3' cy='1045.2' r='2.4'/%3e%3ccircle class='cls-2' cx='1470.1' cy='1022.1' r='2.5'/%3e%3ccircle class='cls-2' cx='1486' cy='1024' r='2.4'/%3e%3ccircle class='cls-2' cx='1513.6' cy='1023.6' r='2.3'/%3e%3ccircle class='cls-2' cx='1548.3' cy='1053.3' r='2.2'/%3e%3ccircle class='cls-2' cx='1564.2' cy='1024.9' r='2.2'/%3e%3ccircle class='cls-2' cx='1588.4' cy='1012.1' r='2.3'/%3e%3ccircle class='cls-2' cx='1602.3' cy='973' r='2.3'/%3e%3ccircle class='cls-2' cx='1650.7' cy='990.6' r='2.3'/%3e%3ccircle class='cls-2' cx='1689.8' cy='958.5' r='2.3'/%3e%3ccircle class='cls-2' cx='1704.7' cy='954.4' r='2.3'/%3e%3ccircle class='cls-2' cx='1733.7' cy='968.4' r='2.4'/%3e%3ccircle class='cls-2' cx='1733.2' cy='935.9' r='2.2'/%3e%3ccircle class='cls-2' cx='1780.3' cy='971.9' r='2.3'/%3e%3ccircle class='cls-2' cx='1807.3' cy='1009.9' r='2.4'/%3e%3ccircle class='cls-2' cx='1806' cy='970' r='2.2'/%3e%3ccircle class='cls-2' cx='1826.6' cy='1001.5' r='2.3'/%3e%3ccircle class='cls-2' cx='1843.3' cy='1020.7' r='2.4'/%3e%3ccircle class='cls-2' cx='1756' cy='1072.9' r='2.5'/%3e%3ccircle class='cls-2' cx='224.4' cy='294.6' r='2.3'/%3e%3ccircle class='cls-2' cx='50.4' cy='272.2' r='2.4'/%3e%3ccircle class='cls-2' cx='54.6' cy='390.5' r='2.5'/%3e%3ccircle class='cls-2' cx='57.3' cy='392.1' r='2.4'/%3e%3ccircle class='cls-2' cx='89.8' cy='409.2' r='2.4'/%3e%3ccircle class='cls-2' cx='81.3' cy='438.6' r='2.2'/%3e%3ccircle class='cls-2' cx='55.4' cy='479.1' r='2.3'/%3e%3ccircle class='cls-2' cx='102.1' cy='456.9' r='2.4'/%3e%3ccircle class='cls-2' cx='123.6' cy='467.8' r='2.3'/%3e%3ccircle class='cls-2' cx='182.4' cy='92.4' r='2.3'/%3e%3ccircle class='cls-2' cx='135.5' cy='104' r='2.3'/%3e%3ccircle class='cls-2' cx='658' cy='522' r='2.4'/%3e%3ccircle class='cls-2' cx='97.3' cy='110.3' r='2.2'/%3e%3ccircle class='cls-2' cx='606.3' cy='489.8' r='2.4'/%3e%3ccircle class='cls-2' cx='1479.5' cy='269.8' r='2.3'/%3e%3ccircle class='cls-2' cx='1508.2' cy='279.3' r='2.4'/%3e%3ccircle class='cls-2' cx='1516.2' cy='251.4' r='2.4'/%3e%3ccircle class='cls-2' cx='1520.8' cy='245.6' r='2.3'/%3e%3ccircle class='cls-2' cx='1524.5' cy='180.4' r='2.4'/%3e%3ccircle class='cls-2' cx='1565.1' cy='250' r='2.3'/%3e%3ccircle class='cls-2' cx='1582.8' cy='201.8' r='2.3'/%3e%3ccircle class='cls-2' cx='1598.6' cy='223.4' r='2.4'/%3e%3ccircle class='cls-2' cx='1604.5' cy='165.3' r='2.4'/%3e%3ccircle class='cls-2' cx='1646.9' cy='194.6' r='2.3'/%3e%3ccircle class='cls-2' cx='1637' cy='144.5' r='2.5'/%3e%3ccircle class='cls-2' cx='1656.7' cy='185.8' r='2.2'/%3e%3ccircle class='cls-2' cx='1160' cy='325.7' r='2.4'/%3e%3ccircle class='cls-2' cx='1199.9' cy='276.7' r='2.3'/%3e%3ccircle class='cls-2' cx='1195.7' cy='353.1' r='2.4'/%3e%3ccircle class='cls-2' cx='1234.1' cy='325.1' r='2.3'/%3e%3ccircle class='cls-2' cx='1248.8' cy='367.6' r='2.4'/%3e%3ccircle class='cls-2' cx='1258.5' cy='399.3' r='2.2'/%3e%3ccircle class='cls-2' cx='1301.6' cy='366.4' r='2.2'/%3e%3ccircle class='cls-2' cx='1323.7' cy='371.4' r='2.4'/%3e%3ccircle class='cls-2' cx='1321.2' cy='425' r='2.2'/%3e%3ccircle class='cls-2' cx='1345.8' cy='401' r='2.2'/%3e%3ccircle class='cls-2' cx='1362.5' cy='415.3' r='2.3'/%3e%3ccircle class='cls-2' cx='1366' cy='280' r='2.3'/%3e%3ccircle class='cls-2' cx='1361.8' cy='260' r='2.3'/%3e%3ccircle class='cls-2' cx='1358.6' cy='229.5' r='2.3'/%3e%3ccircle class='cls-2' cx='1311.6' cy='222.7' r='2.2'/%3e%3ccircle class='cls-2' cx='1268.5' cy='273.9' r='2.2'/%3e%3ccircle class='cls-2' cx='1259' cy='201' r='2.4'/%3e%3ccircle class='cls-2' cx='1227.1' cy='207.3' r='2.3'/%3e%3ccircle class='cls-2' cx='1224.8' cy='248.7' r='2.4'/%3e%3ccircle class='cls-2' cx='1185' cy='235.7' r='2.2'/%3e%3ccircle class='cls-2' cx='1167.3' cy='257.1' r='2.3'/%3e%3ccircle class='cls-2' cx='1146.2' cy='300.4' r='2.4'/%3e%3ccircle class='cls-2' cx='1183.3' cy='246.1' r='2.4'/%3e%3ccircle class='cls-2' cx='1218.2' cy='285.8' r='2.2'/%3e%3ccircle class='cls-2' cx='1259.4' cy='293.2' r='2.3'/%3e%3ccircle class='cls-2' cx='1266.8' cy='303.9' r='2.3'/%3e%3ccircle class='cls-2' cx='1294.3' cy='293.4' r='2.3'/%3e%3ccircle class='cls-2' cx='1302.6' cy='300.2' r='2.2'/%3e%3ccircle class='cls-2' cx='1341.1' cy='276.5' r='2.3'/%3e%3ccircle class='cls-2' cx='1372.2' cy='284.4' r='2.2'/%3e%3ccircle class='cls-2' cx='1375.4' cy='252.6' r='2.4'/%3e%3ccircle class='cls-2' cx='1383.7' cy='247.9' r='2.3'/%3e%3ccircle class='cls-2' cx='1389.5' cy='213.1' r='2.2'/%3e%3ccircle class='cls-2' cx='1428.1' cy='209.3' r='2.3'/%3e%3ccircle class='cls-2' cx='1491.2' cy='238.6' r='2.4'/%3e%3ccircle class='cls-2' cx='205.8' cy='350.6' r='2.3'/%3e%3ccircle class='cls-2' cx='226.9' cy='310.8' r='2.4'/%3e%3ccircle class='cls-2' cx='255.8' cy='350.6' r='2.2'/%3e%3ccircle class='cls-2' cx='280.8' cy='333.2' r='2.2'/%3e%3ccircle class='cls-2' cx='295.4' cy='326.9' r='2.2'/%3e%3ccircle class='cls-2' cx='331.3' cy='313.3' r='2.2'/%3e%3ccircle class='cls-2' cx='371.5' cy='303.3' r='2.4'/%3e%3ccircle class='cls-2' cx='411.4' cy='337.7' r='2.4'/%3e%3ccircle class='cls-2' cx='437.8' cy='304.6' r='2.2'/%3e%3ccircle class='cls-2' cx='448.1' cy='290.5' r='2.2'/%3e%3ccircle class='cls-2' cx='495.3' cy='308.2' r='2.5'/%3e%3ccircle class='cls-2' cx='511.2' cy='340.6' r='2.2'/%3e%3ccircle class='cls-2' cx='540.3' cy='318.4' r='2.3'/%3e%3ccircle class='cls-2' cx='556.3' cy='344.5' r='2.4'/%3e%3ccircle class='cls-2' cx='590' cy='270.2' r='2.2'/%3e%3ccircle class='cls-2' cx='636' cy='332.3' r='2.2'/%3e%3ccircle class='cls-2' cx='677.6' cy='296.4' r='2.4'/%3e%3ccircle class='cls-2' cx='707.2' cy='283.4' r='2.2'/%3e%3ccircle class='cls-2' cx='745.9' cy='283.8' r='2.5'/%3e%3ccircle class='cls-2' cx='793.2' cy='259' r='2.3'/%3e%3ccircle class='cls-2' cx='828.7' cy='246.2' r='2.5'/%3e%3ccircle class='cls-2' cx='852.9' cy='281.2' r='2.3'/%3e%3ccircle class='cls-2' cx='874.8' cy='314.4' r='2.5'/%3e%3ccircle class='cls-2' cx='643.4' cy='268.2' r='2.2'/%3e%3ccircle class='cls-2' cx='621' cy='241.7' r='2.2'/%3e%3ccircle class='cls-2' cx='637.5' cy='170.5' r='2.3'/%3e%3ccircle class='cls-2' cx='576.8' cy='240.6' r='2.2'/%3e%3ccircle class='cls-2' cx='559.5' cy='205.1' r='2.2'/%3e%3ccircle class='cls-2' cx='550' cy='141.8' r='2.5'/%3e%3ccircle class='cls-2' cx='538.3' cy='169.7' r='2.2'/%3e%3ccircle class='cls-2' cx='506.4' cy='208.8' r='2.3'/%3e%3ccircle class='cls-2' cx='461.5' cy='157.7' r='2.2'/%3e%3ccircle class='cls-2' cx='465' cy='201.6' r='2.3'/%3e%3ccircle class='cls-2' cx='440.2' cy='234.6' r='2.3'/%3e%3ccircle class='cls-2' cx='416.6' cy='160.1' r='2.2'/%3e%3ccircle class='cls-2' cx='385.4' cy='233.2' r='2.2'/%3e%3ccircle class='cls-2' cx='328.1' cy='198.4' r='2.4'/%3e%3ccircle class='cls-2' cx='292.1' cy='227.1' r='2.3'/%3e%3ccircle class='cls-2' cx='924.5' cy='274.9' r='2.3'/%3e%3ccircle class='cls-2' cx='921.1' cy='199.4' r='2.4'/%3e%3ccircle class='cls-2' cx='859.7' cy='242.2' r='2.2'/%3e%3ccircle class='cls-2' cx='850.6' cy='203.3' r='2.2'/%3e%3ccircle class='cls-2' cx='861.2' cy='176.5' r='2.2'/%3e%3ccircle class='cls-2' cx='826.8' cy='198.9' r='2.3'/%3e%3ccircle class='cls-2' cx='815.4' cy='215.6' r='2.2'/%3e%3ccircle class='cls-2' cx='807.6' cy='196' r='2.4'/%3e%3ccircle class='cls-2' cx='813.4' cy='208.3' r='2.3'/%3e%3ccircle class='cls-2' cx='780.7' cy='215.1' r='2.3'/%3e%3ccircle class='cls-2' cx='1147.2' cy='168.7' r='2.2'/%3e%3ccircle class='cls-2' cx='1110.8' cy='165.6' r='2.4'/%3e%3ccircle class='cls-2' cx='1093' cy='160.6' r='2.2'/%3e%3ccircle class='cls-2' cx='1074.6' cy='135.5' r='2.4'/%3e%3ccircle class='cls-2' cx='1060.3' cy='144.4' r='2.4'/%3e%3ccircle class='cls-2' cx='1043' cy='172.6' r='2.4'/%3e%3ccircle class='cls-2' cx='1334.5' cy='170.8' r='2.2'/%3e%3ccircle class='cls-2' cx='1304.7' cy='204.8' r='2.2'/%3e%3ccircle class='cls-2' cx='1262.8' cy='219.6' r='2.3'/%3e%3ccircle class='cls-2' cx='1228.8' cy='216' r='2.4'/%3e%3ccircle class='cls-2' cx='1535.5' cy='505.4' r='2.2'/%3e%3ccircle class='cls-2' cx='1534.8' cy='440.7' r='2.3'/%3e%3ccircle class='cls-2' cx='1535.9' cy='415.2' r='2.3'/%3e%3ccircle class='cls-2' cx='1548.4' cy='397.9' r='2.2'/%3e%3ccircle class='cls-2' cx='1524.3' cy='364.3' r='2.3'/%3e%3ccircle class='cls-2' cx='1512.4' cy='361.6' r='2.4'/%3e%3ccircle class='cls-2' cx='1454.3' cy='420.5' r='2.2'/%3e%3ccircle class='cls-2' cx='1440.5' cy='361.1' r='2.2'/%3e%3ccircle class='cls-2' cx='1410.6' cy='333.8' r='2.3'/%3e%3ccircle class='cls-2' cx='1408.2' cy='398.3' r='2.2'/%3e%3ccircle class='cls-2' cx='1768.1' cy='711.5' r='2.4'/%3e%3ccircle class='cls-2' cx='1736.5' cy='717.5' r='2.2'/%3e%3ccircle class='cls-2' cx='1704.5' cy='655.6' r='2.4'/%3e%3ccircle class='cls-2' cx='1676.3' cy='641.1' r='2.5'/%3e%3ccircle class='cls-2' cx='1674' cy='672.6' r='2.4'/%3e%3ccircle class='cls-2' cx='1648.8' cy='722' r='2.3'/%3e%3ccircle class='cls-2' cx='1615.8' cy='702.7' r='2.2'/%3e%3ccircle class='cls-2' cx='1589.6' cy='693.5' r='2.4'/%3e%3ccircle class='cls-2' cx='1583.6' cy='713.9' r='2.4'/%3e%3ccircle class='cls-2' cx='1558.2' cy='677.3' r='2.3'/%3e%3ccircle class='cls-2' cx='1862.9' cy='480.6' r='2.3'/%3e%3ccircle class='cls-2' cx='1865.1' cy='444.2' r='2.3'/%3e%3ccircle class='cls-2' cx='1839.2' cy='410.1' r='2.3'/%3e%3ccircle class='cls-2' cx='1815' cy='494.7' r='2.3'/%3e%3ccircle class='cls-2' cx='1773.5' cy='448.8' r='2.2'/%3e%3ccircle class='cls-2' cx='1495.7' cy='593.5' r='2.2'/%3e%3ccircle class='cls-2' cx='1433.3' cy='576.3' r='2.3'/%3e%3ccircle class='cls-2' cx='1422.9' cy='659.5' r='2.5'/%3e%3ccircle class='cls-2' cx='1421' cy='582.1' r='2.2'/%3e%3ccircle class='cls-2' cx='1383.9' cy='629.6' r='2.3'/%3e%3ccircle class='cls-2' cx='1376.2' cy='633.8' r='2.3'/%3e%3ccircle class='cls-2' cx='1346.9' cy='602.1' r='2.2'/%3e%3ccircle class='cls-2' cx='1506.3' cy='584.1' r='2.4'/%3e%3ccircle class='cls-2' cx='1449' cy='533.1' r='2.4'/%3e%3ccircle class='cls-2' cx='1491.4' cy='470.4' r='2.4'/%3e%3ccircle class='cls-2' cx='1458.5' cy='529' r='2.2'/%3e%3ccircle class='cls-2' cx='1430.7' cy='508.5' r='2.5'/%3e%3ccircle class='cls-2' cx='1424.6' cy='499.1' r='2.2'/%3e%3ccircle class='cls-2' cx='1384.1' cy='499.1' r='2.4'/%3e%3ccircle class='cls-2' cx='1363.7' cy='513.2' r='2.4'/%3e%3ccircle class='cls-2' cx='1380.2' cy='568.4' r='2.4'/%3e%3ccircle class='cls-2' cx='1342.5' cy='703.4' r='2.4'/%3e%3ccircle class='cls-2' cx='1393.6' cy='688' r='2.2'/%3e%3ccircle class='cls-2' cx='1408.3' cy='670.4' r='2.3'/%3e%3ccircle class='cls-2' cx='1409.4' cy='621.2' r='2.4'/%3e%3ccircle class='cls-2' cx='1329.7' cy='633.1' r='2.3'/%3e%3ccircle class='cls-2' cx='1373.1' cy='560' r='2.2'/%3e%3ccircle class='cls-2' cx='1325.5' cy='617.8' r='2.3'/%3e%3ccircle class='cls-2' cx='1313.5' cy='601.9' r='2.3'/%3e%3ccircle class='cls-2' cx='1277.1' cy='588.7' r='2.4'/%3e%3ccircle class='cls-2' cx='1262.7' cy='550.3' r='2.3'/%3e%3ccircle class='cls-2' cx='1213.5' cy='548.8' r='2.3'/%3e%3ccircle class='cls-2' cx='1189.5' cy='543.9' r='2.3'/%3e%3ccircle class='cls-2' cx='1169.3' cy='586.5' r='2.2'/%3e%3ccircle class='cls-2' cx='1119' cy='589.3' r='2.4'/%3e%3ccircle class='cls-2' cx='1163.8' cy='635.2' r='2.5'/%3e%3ccircle class='cls-2' cx='809.4' cy='616.2' r='2.3'/%3e%3ccircle class='cls-2' cx='841.4' cy='639.6' r='2.2'/%3e%3ccircle class='cls-2' cx='866.6' cy='628.9' r='2.3'/%3e%3ccircle class='cls-2' cx='877.9' cy='669.7' r='2.3'/%3e%3ccircle class='cls-2' cx='880.6' cy='623.3' r='2.3'/%3e%3ccircle class='cls-2' cx='914' cy='643.7' r='2.2'/%3e%3ccircle class='cls-2' cx='943.1' cy='664.1' r='2.4'/%3e%3ccircle class='cls-2' cx='978.7' cy='622' r='2.2'/%3e%3ccircle class='cls-2' cx='989' cy='603.2' r='2.3'/%3e%3ccircle class='cls-2' cx='989.5' cy='637' r='2.2'/%3e%3ccircle class='cls-2' cx='1025.2' cy='689.5' r='2.2'/%3e%3ccircle class='cls-2' cx='1073' cy='645.8' r='2.2'/%3e%3ccircle class='cls-2' cx='1115.1' cy='631.9' r='2.3'/%3e%3ccircle class='cls-2' cx='1102.1' cy='709.3' r='2.3'/%3e%3ccircle class='cls-2' cx='1130' cy='669.2' r='2.2'/%3e%3ccircle class='cls-2' cx='1161.8' cy='701.4' r='2.4'/%3e%3ccircle class='cls-2' cx='1194.4' cy='715.1' r='2.2'/%3e%3ccircle class='cls-2' cx='1197.5' cy='736.6' r='2.4'/%3e%3ccircle class='cls-2' cx='1215.1' cy='752.8' r='2.3'/%3e%3ccircle class='cls-2' cx='367.6' cy='544.5' r='2.4'/%3e%3ccircle class='cls-2' cx='406.5' cy='528.4' r='2.2'/%3e%3ccircle class='cls-2' cx='424.8' cy='544.7' r='2.3'/%3e%3ccircle class='cls-2' cx='428.5' cy='514.9' r='2.4'/%3e%3ccircle class='cls-2' cx='440.2' cy='495.2' r='2.3'/%3e%3ccircle class='cls-2' cx='446.5' cy='500.7' r='2.2'/%3e%3ccircle class='cls-2' cx='484.1' cy='558.7' r='2.2'/%3e%3ccircle class='cls-2' cx='520.7' cy='502.3' r='2.2'/%3e%3ccircle class='cls-2' cx='537.5' cy='509.6' r='2.4'/%3e%3ccircle class='cls-2' cx='539.7' cy='555.3' r='2.4'/%3e%3ccircle class='cls-2' cx='573.2' cy='565.6' r='2.4'/%3e%3ccircle class='cls-2' cx='596.3' cy='567.4' r='2.3'/%3e%3ccircle class='cls-2' cx='612.5' cy='566.5' r='2.2'/%3e%3ccircle class='cls-2' cx='661.2' cy='563.3' r='2.4'/%3e%3ccircle class='cls-2' cx='710.9' cy='496.9' r='2.3'/%3e%3ccircle class='cls-2' cx='709.1' cy='549.6' r='2.4'/%3e%3ccircle class='cls-2' cx='730.1' cy='510.1' r='2.2'/%3e%3ccircle class='cls-2' cx='749.3' cy='536.7' r='2.4'/%3e%3ccircle class='cls-2' cx='763' cy='547' r='2.3'/%3e%3ccircle class='cls-2' cx='786.1' cy='548.8' r='2.2'/%3e%3ccircle class='cls-2' cx='794.5' cy='600.2' r='2.3'/%3e%3ccircle class='cls-2' cx='844' cy='582.3' r='2.2'/%3e%3ccircle class='cls-2' cx='355.3' cy='964.3' r='2.3'/%3e%3ccircle class='cls-2' cx='321.7' cy='941.6' r='2.4'/%3e%3ccircle class='cls-2' cx='328.4' cy='1004.1' r='2.2'/%3e%3ccircle class='cls-2' cx='277.6' cy='997.1' r='2.3'/%3e%3ccircle class='cls-2' cx='247.6' cy='1028.4' r='2.3'/%3e%3ccircle class='cls-2' cx='444.5' cy='1061.7' r='2.4'/%3e%3ccircle class='cls-2' cx='217.3' cy='1039.9' r='2.4'/%3e%3ccircle class='cls-2' cx='199.8' cy='1028.3' r='2.4'/%3e%3ccircle class='cls-2' cx='228.7' cy='1006.2' r='2.3'/%3e%3ccircle class='cls-2' cx='613.3' cy='451.3' r='.8'/%3e%3ccircle class='cls-2' cx='595.4' cy='460.5' r='.6'/%3e%3c/svg%3e";
 
 var Backdrop = function Backdrop(_ref) {
   var style = _ref.style,
@@ -54212,8 +53978,7 @@ var NightSkyRenderer = function NightSkyRenderer(_ref) {
         captured = object.captured,
         fadeIn = object.fadeIn,
         angle = object.angle,
-        uuid = object.uuid,
-        color = object.color;
+        uuid = object.uuid;
     var _object$physics2 = object.physics,
         x = _object$physics2.x,
         y = _object$physics2.y;
@@ -54224,8 +53989,7 @@ var NightSkyRenderer = function NightSkyRenderer(_ref) {
       x: x,
       y: y,
       width: width + "%",
-      angle: angle,
-      color: color
+      angle: angle
     }, fadeIn ? {
       $fadeIn: fade
     } : {
@@ -54419,16 +54183,6 @@ var SkyObject = function SkyObject(type, aspectRatio, position) {
 
   this.captured = false;
 
-  this.getConfig = function (type) {
-    var config = SkyObjectConfigs[type];
-
-    if (typeof config === 'function') {
-      return config();
-    }
-
-    return config;
-  };
-
   this.getPhysics = function (type, width, aspectRatio, position) {
     var startPosition = position || getNewPosition(width / 2);
     var defaultOptions = {
@@ -54444,12 +54198,11 @@ var SkyObject = function SkyObject(type, aspectRatio, position) {
   };
 
   this.type = type;
-  this.config = this.getConfig(this.type);
+  this.config = SkyObjectConfigs[type];
   this.width = getScaledObjectSize(this.config.size, aspectRatio);
   this.aspectRatio = aspectRatio;
   this.physics = this.getPhysics(type, this.width, aspectRatio, position);
   this.brightness = getBrightness(this.config.brightness);
-  this.color = this.config.color || null;
   this.uuid = getUuid();
 };
 
@@ -55192,22 +54945,108 @@ var DynamicObject = /*#__PURE__*/function (_SkyObject) {
   return DynamicObject;
 }(SkyObject);
 
-var spawnObject = function spawnObject(type, objects, system, state, group, timestamp) {
+var moveDynamicObject = function moveDynamicObject(object) {
+  var _object$delta = object.delta,
+      deltaX = _object$delta.x,
+      deltaY = _object$delta.y;
+  var _object$physics = object.physics,
+      x = _object$physics.x,
+      y = _object$physics.y;
+  object.physics.setPosition(x + deltaX, y + deltaY);
+};
+
+var isInsideBounds = function isInsideBounds(object) {
+  var xOffset = object.xOffset,
+      yOffset = object.yOffset;
+  var _object$physics2 = object.physics,
+      x = _object$physics2.x,
+      y = _object$physics2.y;
+
+  if (x >= 0 - xOffset && x <= 100 + xOffset && y >= 0 - yOffset && y <= 100 + yOffset) {
+    return true;
+  }
+
+  return false;
+};
+
+var spawnDynamicObject = function spawnDynamicObject(type, objects, system, state, group) {
   var rateLimit = {
     cloud: MAX_OCCLUDING_OBJECTS,
     airplane: MAX_OCCLUDING_OBJECTS,
     asteroid: MAX_DYNAMIC_OBJECTS,
-    comet: MAX_DYNAMIC_OBJECTS,
-    supernova: MAX_TIMED_OBJECTS
+    comet: MAX_DYNAMIC_OBJECTS
   };
 
   if (objects.length < rateLimit[type]) {
     var aspectRatio = state.aspectRatio;
-    var newObject = type === 'supernova' ? new TimedSkyObject(type, timestamp, aspectRatio) : new DynamicObject(type, aspectRatio);
+    var newOcclusion = new DynamicObject(type, aspectRatio);
+    objects.push(newOcclusion);
+    system.insert(newOcclusion.physics);
+  }
+
+  state.nextSpawn[group] += getRandomInt(SPAWN_INTERVAL[group].min, SPAWN_INTERVAL[group].max);
+};
+
+var moveDynamicObjects = function moveDynamicObjects(entities) {
+  var skyObjects = entities.skyObjects,
+      state = entities.state;
+  var stage = state.stage;
+  var occludingObjects = skyObjects.occludingObjects,
+      movingObjects = skyObjects.movingObjects;
+
+  if (stage !== 'menu' && (occludingObjects.length > 0 || movingObjects.length > 0)) {
+    occludingObjects.forEach(moveDynamicObject);
+    movingObjects.forEach(moveDynamicObject);
+  }
+
+  return entities;
+};
+
+var cullDynamicObjects = function cullDynamicObjects(entities) {
+  var skyObjects = entities.skyObjects,
+      world = entities.world;
+  var occlusions = world.occlusions,
+      system = world.system;
+  var occludingObjects = skyObjects.occludingObjects,
+      movingObjects = skyObjects.movingObjects;
+
+  if (occludingObjects.length > 0 || movingObjects.length > 0) {
+    var remainingOccludingObjects = occludingObjects.filter(function (object) {
+      if (isInsideBounds(object)) {
+        return true;
+      }
+
+      occlusions.remove(object.physics);
+      return false;
+    });
+    var remainingMovingObjects = movingObjects.filter(function (object) {
+      if (isInsideBounds(object)) {
+        return true;
+      }
+
+      system.remove(object.physics);
+      return false;
+    });
+    return _extends({}, entities, {
+      skyObjects: _extends({}, skyObjects, {
+        occludingObjects: remainingOccludingObjects,
+        movingObjects: remainingMovingObjects
+      })
+    });
+  }
+
+  return entities;
+};
+
+var spawnObject = function spawnObject(type, objects, system, state, group, timestamp) {
+  if (objects.length < MAX_TIMED_OBJECTS) {
+    var aspectRatio = state.aspectRatio;
+    var newObject = new TimedSkyObject(type, timestamp, aspectRatio);
     objects.push(newObject);
     system.insert(newObject.physics);
-    state.nextSpawn[group] += getRandomInt(SPAWN_INTERVAL[group].min, SPAWN_INTERVAL[group].max);
   }
+
+  state.nextSpawn[group] += getRandomInt(SPAWN_INTERVAL[group].min, SPAWN_INTERVAL[group].max);
 };
 
 var prepareExpiringObjects = function prepareExpiringObjects(object, currentTime) {
@@ -55272,6 +55111,11 @@ var spawnObjects = function spawnObjects(entities, _ref2) {
     timedObject: system,
     dynamicObject: system
   };
+  var spawners = {
+    occlusion: spawnDynamicObject,
+    dynamicObject: spawnDynamicObject,
+    timedObject: spawnObject
+  };
   var event = {
     occlusion: 'spawnedOcclusion',
     timedObject: 'spawnedObject',
@@ -55284,86 +55128,12 @@ var spawnObjects = function spawnObjects(entities, _ref2) {
         var weights = WEIGHTS_SPAWN[group];
         var object = getRandomWeightedValue(weights);
         var objectType = objectTypes[object];
-        spawnObject(object, objects[objectType], physics[objectType], state, group, current);
+        var spawner = spawners[objectType];
+        spawner(object, objects[objectType], physics[objectType], state, group, current);
         dispatch({
           type: event[objectType]
         });
       }
-    });
-  }
-
-  return entities;
-};
-
-var moveDynamicObject = function moveDynamicObject(object) {
-  var _object$delta = object.delta,
-      deltaX = _object$delta.x,
-      deltaY = _object$delta.y;
-  var _object$physics = object.physics,
-      x = _object$physics.x,
-      y = _object$physics.y;
-  object.physics.setPosition(x + deltaX, y + deltaY);
-};
-
-var isInsideBounds = function isInsideBounds(object) {
-  var xOffset = object.xOffset,
-      yOffset = object.yOffset;
-  var _object$physics2 = object.physics,
-      x = _object$physics2.x,
-      y = _object$physics2.y;
-
-  if (x >= 0 - xOffset && x <= 100 + xOffset && y >= 0 - yOffset && y <= 100 + yOffset) {
-    return true;
-  }
-
-  return false;
-};
-
-var moveDynamicObjects = function moveDynamicObjects(entities) {
-  var skyObjects = entities.skyObjects,
-      state = entities.state;
-  var stage = state.stage;
-  var occludingObjects = skyObjects.occludingObjects,
-      movingObjects = skyObjects.movingObjects;
-
-  if (stage !== 'menu' && (occludingObjects.length > 0 || movingObjects.length > 0)) {
-    occludingObjects.forEach(moveDynamicObject);
-    movingObjects.forEach(moveDynamicObject);
-  }
-
-  return entities;
-};
-
-var cullDynamicObjects = function cullDynamicObjects(entities) {
-  var skyObjects = entities.skyObjects,
-      world = entities.world;
-  var occlusions = world.occlusions,
-      system = world.system;
-  var occludingObjects = skyObjects.occludingObjects,
-      movingObjects = skyObjects.movingObjects;
-
-  if (occludingObjects.length > 0 || movingObjects.length > 0) {
-    var remainingOccludingObjects = occludingObjects.filter(function (object) {
-      if (isInsideBounds(object)) {
-        return true;
-      }
-
-      occlusions.remove(object.physics);
-      return false;
-    });
-    var remainingMovingObjects = movingObjects.filter(function (object) {
-      if (isInsideBounds(object)) {
-        return true;
-      }
-
-      system.remove(object.physics);
-      return false;
-    });
-    return _extends({}, entities, {
-      skyObjects: _extends({}, skyObjects, {
-        occludingObjects: remainingOccludingObjects,
-        movingObjects: remainingMovingObjects
-      })
     });
   }
 
@@ -55708,7 +55478,7 @@ var index = function index() {
 };
 
 exports.default = index;
-},{"react":"../node_modules/react/index.js","styled-components":"../node_modules/styled-components/dist/styled-components.browser.esm.js","@castiron/style-mixins":"../node_modules/@castiron/style-mixins/dist/index.js","use-resize-observer":"../node_modules/use-resize-observer/dist/bundle.esm.js","react-game-engine":"../node_modules/react-game-engine/build/index.js","random-js-no-node":"../node_modules/random-js-no-node/dist/random-js.esm.js","weighted":"../node_modules/weighted/index.js","prop-types":"../node_modules/prop-types/index.js","react/jsx-runtime":"../node_modules/react/jsx-runtime.js","react-inlinesvg":"../node_modules/react-inlinesvg/esm/index.js","copy-to-clipboard":"../node_modules/copy-to-clipboard/index.js","detect-collisions":"../node_modules/detect-collisions/dist/index.js","howler":"../node_modules/howler/dist/howler.js"}],"../dist/index.js":[function(require,module,exports) {
+},{"react":"../node_modules/react/index.js","styled-components":"../node_modules/styled-components/dist/styled-components.browser.esm.js","@castiron/style-mixins":"../node_modules/@castiron/style-mixins/dist/index.js","use-resize-observer":"../node_modules/use-resize-observer/dist/bundle.esm.js","react-game-engine":"../node_modules/react-game-engine/build/index.js","prop-types":"../node_modules/prop-types/index.js","react/jsx-runtime":"../node_modules/react/jsx-runtime.js","react-inlinesvg":"../node_modules/react-inlinesvg/esm/index.js","random-js-no-node":"../node_modules/random-js-no-node/dist/random-js.esm.js","weighted":"../node_modules/weighted/index.js","detect-collisions":"../node_modules/detect-collisions/dist/index.js","howler":"../node_modules/howler/dist/howler.js"}],"../dist/index.js":[function(require,module,exports) {
 'use strict';
 
 if ("development" === 'production') {
@@ -55863,7 +55633,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "62026" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "59343" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
