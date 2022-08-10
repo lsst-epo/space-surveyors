@@ -162,7 +162,9 @@ export const getScaledObjectSize = (
 
     const scaledSize: number = round(size / aspectRatio);
 
-    return target ? Math.min(Math.max(scaledSize, min), max) : scaledSize;
+    return target
+      ? Math.min(Math.max(scaledSize, min), max)
+      : Math.max(scaledSize, min * 0.75);
   }
 };
 

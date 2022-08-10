@@ -8,6 +8,7 @@ import Button from '@components/Button';
 import { MENU_TRANSITION_TIME } from '@constants/index';
 import ScoreList from '@components/ScoreList';
 import { sum } from '../../../utils';
+import ShareScoreButton from '@components/ShareScoreButton';
 
 const SummaryMenuContainer = styled(BaseMenu)`
   justify-content: center;
@@ -89,7 +90,7 @@ const SummaryMenu = ({ onMenuAction, score }) => {
         <ScaledScoreList $width={width} {...{ score }} />
         <ButtonContainer>
           <Button onClick={handleGameRestart}>Play again!</Button>
-          {/* <Button onClick={handleGameRestart}>Share my score!</Button> */}
+          <ShareScoreButton score={score} total={scoreSum} />
         </ButtonContainer>
         {/* <LinkContainer>
         <a>Explore the night sky on the Skyviewer</a>
