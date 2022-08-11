@@ -1,5 +1,5 @@
 {
-  "version": "0.8.2-alpha",
+  "version": "0.8.3-alpha",
   "name": "space-surveyors",
   "author": "Rubin EPO",
   "module": "dist/space-surveyors.esm.js",
@@ -22,8 +22,8 @@
     "prepare": "tsdx build",
     "size": "size-limit",
     "analyze": "size-limit --why",
-    "predeploy": "yarn build && cd example && yarn build --no-source-maps --public-url ./",
-    "deploy": "gh-pages -d example/dist && echo 'spacesurveyors.app' > ./CNAME"
+    "predeploy": "yarn build && cd example && yarn build",
+    "deploy": "gh-pages -d example/dist"
   },
   "peerDependencies": {
     "react": ">=16",
