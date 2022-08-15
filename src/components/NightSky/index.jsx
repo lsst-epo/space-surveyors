@@ -12,20 +12,21 @@ const NightSkyContainer = styled.div`
 
 const NightSkyRenderer = ({
   staticObjects,
-  dynamicObjects,
+  timedObjects,
   occludingObjects,
+  movingObjects,
   capturedObjects,
   fade,
   showSunrise,
 }) => {
-  const renderOccludingObjects = (object, i) => {
-    const { width, angle } = object;
+  const renderOccludingObjects = (object) => {
+    const { width, angle, uuid } = object;
     const { x, y } = object.physics;
     const Object = Objects[object.type];
 
     return (
       <Object
-        key={`${object.type}-${width}-${i}`}
+        key={uuid}
         {...{
           x,
           y,
@@ -37,19 +38,21 @@ const NightSkyRenderer = ({
     );
   };
   const renderSkyObjects = (object) => {
-    const { width, brightness, captured, fadeIn } = object;
+    const { width, brightness, captured, fadeIn, angle, uuid, color } = object;
     const { x, y } = object.physics;
     const Object = Objects[object.type];
 
     return (
       <Object
-        key={`${object.type}-${x}-${y}`}
+        key={uuid}
         {...{
           brightness,
           $captured: captured,
           x,
           y,
           width: `${width}%`,
+          angle,
+          color,
           ...(fadeIn ? { $fadeIn: fade } : { $fadeOut: fade }),
         }}
       />
@@ -59,7 +62,8 @@ const NightSkyRenderer = ({
   return (
     <NightSkyContainer>
       {staticObjects.map(renderSkyObjects)}
-      {dynamicObjects.map(renderSkyObjects)}
+      {timedObjects.map(renderSkyObjects)}
+      {movingObjects.map(renderSkyObjects)}
       {fade && capturedObjects.map(renderSkyObjects)}
       {occludingObjects.map(renderOccludingObjects)}
     </NightSkyContainer>

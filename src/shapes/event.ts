@@ -14,7 +14,8 @@ type GameEventName =
   | 'dawn'
   | 'showFinish'
   | 'quit'
-  | 'stopped';
+  | 'stopped'
+  | 'swapped';
 
 interface GameEvent {
   type: GameEventName;

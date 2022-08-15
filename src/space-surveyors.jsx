@@ -10,7 +10,6 @@ import Systems from '@systems/index';
 import { GameStageContainer } from '@components/containers/GameStageContainer';
 import HUD from '@components/HUD/hud';
 import Dome from '@components/HUD/dome';
-import entities from '@entities/index';
 import Score from '@entities/score';
 import { getAspectRatio } from './utils';
 
@@ -58,13 +57,15 @@ const SpaceSurveyors = () => {
   });
 
   const handleMenuAction = (action) => {
+    console.debug('menu', action);
     switch (action) {
       case 'start':
         setState({ ...state, menu: null });
         engine.current.dispatch({ type: 'gameStart' });
         break;
       case 'restart':
-        window.location.reload(false);
+        setState({ ...state, score: Score() });
+        engine.current.swap(Entities(boundingRect, aspectRatio));
         break;
       default:
         break;
@@ -76,6 +77,9 @@ const SpaceSurveyors = () => {
     console.debug(type);
 
     switch (type) {
+      case 'swapped':
+        handleMenuAction('start');
+        break;
       case 'showFinish':
         setState({ ...state, menu: 'finished' });
         break;
@@ -83,9 +87,6 @@ const SpaceSurveyors = () => {
         setState({ ...state, score: payload });
         break;
       case 'quit':
-        engine.current.stop();
-        break;
-      case 'stopped':
         setState({ ...state, menu: 'summary' });
         break;
       default:
@@ -102,16 +103,21 @@ const SpaceSurveyors = () => {
       ref={outerResizeRef}
     >
       {menu && (
+        (
         <GameMenu
+         
           onMenuAction={handleMenuAction}
           {...{ score, aspectRatio }}
+        
+          {...{ score, aspectRatio }}
         ></GameMenu>
+      )
       )}
       {aspectRatio && (
         <GameStageContainer ref={resizeRef} aspectRatio={aspectRatio}>
           {boundingRect && (
             <GameEngine
-              style={{ width: '100%', height: '100%', overflow: 'hidden' }}
+              style={{ width: '100%', height: '100%', overflow: 'hidden', overflow: 'hidden' }}
               ref={engine}
               entities={Entities(boundingRect, aspectRatio)}
               systems={Systems}

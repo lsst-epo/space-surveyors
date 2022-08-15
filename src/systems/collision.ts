@@ -67,12 +67,14 @@ export const detectCapture = (
       if (isOccluded(body, occlusions) || !doesOverlap(system.response)) return;
 
       const { skyObjects } = entities;
-      const { staticObjects, dynamicObjects } = skyObjects;
+      const { staticObjects, timedObjects, movingObjects } = skyObjects;
       const { x, y } = body;
 
-      const collider = [...staticObjects, ...dynamicObjects].find(
-        (object) => object.physics.x === x && object.physics.y === y
-      );
+      const collider = [
+        ...staticObjects,
+        ...timedObjects,
+        ...movingObjects,
+      ].find((object) => object.physics.x === x && object.physics.y === y);
 
       if (collider) {
         handleCapturedObject(collider, entities);

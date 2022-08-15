@@ -1,30 +1,32 @@
-import { SPAWN_LOCATION, STARTING_EDGES } from '@constants/index';
 import { SkyObject } from '@modules/SkyObject';
-import { Edge, GamePosition, SkyObjectType } from '@shapes/index';
+import {
+  DynamicObjectConfig,
+  Edge,
+  GamePosition,
+  SkyObjectType,
+} from '@shapes/index';
 import {
   getAngleBetweenPoints,
   getDistanceBetweenPoints,
-  getPositionInQuad,
   getRandomWeightedValue,
+  getNewPosition,
   round,
+  scaleByAspectRatio,
 } from 'src/utils';
 
-export class OccludingObject extends SkyObject {
+export class DynamicObject extends SkyObject {
   public delta: GamePosition;
   public endPosition: GamePosition = { x: 100, y: 100 };
   public xOffset: number;
   public yOffset: number;
   public angle: number = 0;
-  private windSpeed: number;
 
   constructor(
     type: SkyObjectType,
     aspectRatio: number = 1,
-    windSpeed: number,
     position?: GamePosition
   ) {
     super(type, aspectRatio, position);
-    this.windSpeed = windSpeed;
     this.xOffset = this.width / 2;
     this.yOffset = this.xOffset * this.aspectRatio;
     this.initializeOcclusion();
@@ -32,39 +34,37 @@ export class OccludingObject extends SkyObject {
   }
 
   private initializeOcclusion = () => {
-    const onlyMovesHorizontal = this.type === 'cloud';
+    const { onlyMovesHorizontal, spawnEdge, baseRotation } = this
+      .config as DynamicObjectConfig;
 
     const startOnEdge: Edge = onlyMovesHorizontal
       ? 'left'
-      : (getRandomWeightedValue(STARTING_EDGES) as Edge);
+      : (getRandomWeightedValue(spawnEdge) as Edge);
     const endOnEdge: Edge = onlyMovesHorizontal
       ? 'right'
       : (getRandomWeightedValue({
-          ...STARTING_EDGES,
+          ...spawnEdge,
           [startOnEdge]: 0,
         }) as Edge);
 
-    const xQuad = Number(getRandomWeightedValue(SPAWN_LOCATION[this.type].x));
-    const yQuad = Number(getRandomWeightedValue(SPAWN_LOCATION[this.type].y));
-
-    const startQuadPosition = getPositionInQuad(xQuad, yQuad);
-    const endQuadPosition = getPositionInQuad(xQuad, yQuad);
+    const startPosition = getNewPosition();
+    const endPosition = getNewPosition();
 
     switch (startOnEdge) {
       case 'left':
         this.physics.x = -this.xOffset;
-        this.physics.y = startQuadPosition.y;
+        this.physics.y = startPosition.y;
         break;
       case 'right':
         this.physics.x = 100 + this.xOffset;
-        this.physics.y = startQuadPosition.y;
+        this.physics.y = startPosition.y;
         break;
       case 'top':
-        this.physics.x = startQuadPosition.x;
+        this.physics.x = startPosition.x;
         this.physics.y = -this.yOffset;
         break;
       case 'bottom':
-        this.physics.x = startQuadPosition.x;
+        this.physics.x = startPosition.x;
         this.physics.y = 100 + this.yOffset;
         break;
     }
@@ -72,38 +72,49 @@ export class OccludingObject extends SkyObject {
     switch (endOnEdge) {
       case 'left':
         this.endPosition.x = -this.xOffset;
-        this.endPosition.y = endQuadPosition.y;
+        this.endPosition.y = endPosition.y;
         break;
       case 'right':
         this.endPosition.x = 100 + this.xOffset;
         this.endPosition.y = onlyMovesHorizontal
-          ? startQuadPosition.y
-          : endQuadPosition.y;
+          ? startPosition.y
+          : endPosition.y;
         break;
       case 'top':
-        this.endPosition.x = endQuadPosition.x;
+        this.endPosition.x = endPosition.x;
         this.endPosition.y = -this.yOffset;
         break;
       case 'bottom':
-        this.endPosition.x = endQuadPosition.x;
+        this.endPosition.x = endPosition.x;
         this.endPosition.y = 100 + this.yOffset;
         break;
     }
 
     this.angle = onlyMovesHorizontal
       ? 0
-      : round(getAngleBetweenPoints(this.physics.pos, this.endPosition)) + 90;
+      : round(getAngleBetweenPoints(this.physics.pos, this.endPosition)) +
+        baseRotation;
   };
 
   private getDelta = () => {
     const { x, y } = this.physics;
     const { x: finalX, y: finalY } = this.endPosition;
+    const { speed } = this.config as DynamicObjectConfig;
 
     const distance = getDistanceBetweenPoints(
       { x, y },
-      { x: finalX, y: finalY }
+      { x: finalX, y: finalY },
+      this.aspectRatio
     );
-    const steps = Math.ceil(distance / this.windSpeed);
+
+    const scaledSpeed = scaleByAspectRatio(
+      this.aspectRatio,
+      speed.target,
+      speed.min,
+      speed.max
+    );
+    const steps = Math.ceil(distance / scaledSpeed);
+
     const xDelta = round((finalX - x) / steps);
     const yDelta = round((finalY - y) / steps);
 

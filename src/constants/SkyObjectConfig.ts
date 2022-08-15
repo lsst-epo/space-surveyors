@@ -1,58 +1,28 @@
-import { SkyObjectType, WeightedOptions } from '@shapes/index';
+import {
+  ObjectConfig,
+  TimedObjectConfig,
+  DynamicObjectConfig,
+} from '@shapes/index';
+import StarConfig from '@constants/objects/star';
+import GalaxyConfig from '@constants/objects/galaxy';
+import SupernovaConfig from '@constants/objects/supernova';
+import CloudConfig from '@constants/objects/cloud';
+import AirplaneConfig from '@constants/objects/airplane';
+import AsteroidConfig from '@constants/objects/asteroid';
+import CometConfig from '@constants/objects/comet';
 
-export const OBJECT_LIFESPAN: {
-  [key: string]: { min: number; max: number };
+export const SkyObjectConfigs: {
+  [key: string]:
+    | ObjectConfig
+    | TimedObjectConfig
+    | DynamicObjectConfig
+    | (() => ObjectConfig | TimedObjectConfig | DynamicObjectConfig);
 } = {
-  asteroid: {
-    min: 5000,
-    max: 10000,
-  },
-  comet: {
-    min: 5000,
-    max: 10000,
-  },
-  supernova: {
-    min: 5000,
-    max: 10000,
-  },
-};
-export const OBJECT_BRIGHTNESS: {
-  [Key in SkyObjectType]: { min: number; max: number };
-} = {
-  star: {
-    min: 0.5,
-    max: 1,
-  },
-  asteroid: {
-    min: 0.5,
-    max: 1,
-  },
-  comet: {
-    min: 0.5,
-    max: 1,
-  },
-  galaxy: {
-    min: 0.5,
-    max: 1,
-  },
-  supernova: {
-    min: 0.5,
-    max: 1,
-  },
-  cloud: {
-    min: 1,
-    max: 1,
-  },
-  airplane: {
-    min: 1,
-    max: 1,
-  },
-};
-export const WEIGHTED_GENERATION: WeightedOptions = {
-  star: 5,
-  asteroid: 0,
-  comet: 0,
-  galaxy: 2,
-  supernova: 1,
-  cloud: 1,
+  star: () => StarConfig(),
+  galaxy: GalaxyConfig,
+  supernova: SupernovaConfig,
+  cloud: CloudConfig,
+  airplane: AirplaneConfig,
+  asteroid: AsteroidConfig,
+  comet: CometConfig,
 };

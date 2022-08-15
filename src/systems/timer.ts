@@ -16,6 +16,7 @@ const timeline: GameSystem = (entities, { time, input, dispatch }) => {
     if (stage === 'finished') {
       const mouseDown = input.find((x) => x.name === 'onClick');
       if (mouseDown) {
+        state.stage = 'menu';
         dispatch({ type: 'quit' });
       }
     }

@@ -19,9 +19,9 @@ export const MENU_SLIDE_DELAY: number = 200;
 export const MENU_TRANSITION_TIME: number = MENU_SLIDE_TIME + MENU_SLIDE_DELAY;
 
 // Camera
-export const MIN_CAMERA_MOVE: number = 0.25;
-export const CAMERA_MOVE: number = 0.35;
-export const MAX_CAMERA_MOVE: number = 0.5;
+export const MIN_CAMERA_MOVE: number = 0.16;
+export const CAMERA_MOVE: number = MIN_CAMERA_MOVE * 1.5;
+export const MAX_CAMERA_MOVE: number = MIN_CAMERA_MOVE * 2;
 export const EXPOSURE_TIME: number = 3500;
 
 // Collision
@@ -29,20 +29,15 @@ export const MIN_OVERLAP: number = 0.5;
 
 // Spawn
 export const FIRST_SPAWN: any = {
-  cloud: 0,
-  airplane: 5000,
-  supernova: 3000,
+  occlusion: 0,
+  observable: 1000,
 };
 export const SPAWN_INTERVAL: any = {
-  cloud: {
+  occlusion: {
     min: 5000,
-    max: 12000,
+    max: 10000,
   },
-  airplane: {
-    min: 12000,
-    max: 24000,
-  },
-  supernova: {
+  observable: {
     min: 3000,
     max: 5000,
   },
@@ -58,17 +53,10 @@ export const Y_RANGE: number = MAX_OBJECT_Y - MIN_OBJECT_Y;
 export const STATIC_ROWS: number = 2;
 export const STATIC_COLUMNS: number = 4;
 export const STATIC_CELLS: number = STATIC_ROWS * STATIC_COLUMNS;
-export const STATIC_OBJECTS_PER_CELL: number = 3;
-export const MAX_DYNAMIC_OBJECTS: number = 10;
+export const STATIC_OBJECTS_PER_CELL: number = 4;
 export const FADE_TIME: number = 500;
+export * from '@constants/spawn';
 export * from '@constants/SkyObjectConfig';
 
-// Occlusions
-export const MAX_OCCLUDING_OBJECTS: number = 8;
-export const MIN_WIND_SPEED: number = 0.015;
-export const MAX_WIND_SPEED: number = 0.035;
-export const AIRPLANE_SPEED: number = 0.035;
-export * from '@constants/OcclusionConfig';
-
-export * from '@constants/objects/sizes';
+// Game Timeline
 export * from '@constants/timeline';

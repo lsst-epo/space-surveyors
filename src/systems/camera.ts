@@ -1,6 +1,11 @@
 import { EXPOSURE_TIME } from '@constants/index';
 import { GameSystem } from '@shapes/index';
-import { getDistanceBetweenPoints, getRelativePosition, round } from '../utils';
+import {
+  getDistanceBetweenPoints,
+  getRelativePosition,
+  round,
+  sum,
+} from '../utils';
 import { detectCapture } from '@systems/collision';
 
 /** onClick, while the game has started but not end,
@@ -116,7 +121,7 @@ const onCameraMoving: GameSystem = (entities, { events, dispatch, time }) => {
  */
 const onCameraExposing: GameSystem = (entities, { events, time, dispatch }) => {
   const event = events.find((e) => e.type === 'cameraExposing');
-  const { camera, state } = entities;
+  const { camera, state, score } = entities;
   const { stage } = state;
 
   if (event && stage === 'running') {
@@ -129,31 +134,24 @@ const onCameraExposing: GameSystem = (entities, { events, time, dispatch }) => {
     const exposureElapsed = current - exposureStartTime;
 
     if (isFirstExposure) {
+      state.lastScore = sum(Object.values(score));
       exposures.push({ x, y });
     }
 
     detectCapture(entities, dispatch);
 
     if (exposureElapsed < EXPOSURE_TIME) {
+      camera.exposureRemaining = EXPOSURE_TIME - exposureElapsed;
       dispatch({ type: 'cameraExposing', payload: { isFirstExposure: false } });
-
-      return {
-        ...entities,
-        camera: {
-          ...camera,
-          exposureRemaining: EXPOSURE_TIME - exposureElapsed,
-        },
-      };
     } else {
-      dispatch({ type: 'cameraExposureEnd' });
-      return {
-        ...entities,
-        camera: {
-          ...camera,
-          exposureRemaining: null,
-          exposureStartTime: null,
+      camera.exposureRemaining = null;
+      camera.exposureStartTime = null;
+      dispatch({
+        type: 'cameraExposureEnd',
+        payload: {
+          failedCapture: sum(Object.values(score)) === state.lastScore,
         },
-      };
+      });
     }
   }
 

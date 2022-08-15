@@ -32,7 +32,7 @@ const sunriseColors = keyframes`
     background-color: #cf4040;
   }
   75% {
-    background-color: #ffdb78;
+    background-color: #fce7ae;
   }
   100% {
     background-color: #5db8e8;
@@ -74,6 +74,7 @@ const BackdropNight = styled(Backdrop)`
   mask-position: top;
   min-width: 100%;
   min-height: 100%;
+  object-fit: cover;
   transition: ${DAY_TRANSITION_DURATION}ms opacity;
   z-index: 2;
 

@@ -1,20 +1,22 @@
 import NightSkyRenderer from '@components/NightSky';
-import { WEIGHTED_GENERATION } from '@constants/';
+import {
+  WEIGHTS_STATIC,
+  STATIC_COLUMNS,
+  STATIC_OBJECTS_PER_CELL,
+  STATIC_ROWS,
+} from '@constants/index';
 import { getPositionInCell, getRandomWeightedValue } from 'src/utils';
 import { SkyObject } from '@modules/SkyObject/';
-import { STATIC_ROWS } from '@constants/';
-import { STATIC_COLUMNS } from '@constants/';
-import { STATIC_OBJECTS_PER_CELL } from '@constants/';
 
 export default async (aspectRatio) => {
-  const dynamicObjects = [];
+  const movingObjects = [];
+  const timedObjects = [];
   const occludingObjects = [];
   const staticObjects = [];
   const capturedObjects = [];
   const fade = false;
   const showSunrise = false;
 
-  const { star, galaxy } = WEIGHTED_GENERATION;
   const totalRows = aspectRatio < 1 ? STATIC_COLUMNS : STATIC_ROWS;
   const totalColumns = aspectRatio < 1 ? STATIC_ROWS : STATIC_COLUMNS;
 
@@ -24,7 +26,7 @@ export default async (aspectRatio) => {
       const column = aspectRatio < 1 ? i : j;
 
       for (let k = 0; k < STATIC_OBJECTS_PER_CELL; k++) {
-        const type = getRandomWeightedValue({ star, galaxy });
+        const type = getRandomWeightedValue(WEIGHTS_STATIC);
         const position = getPositionInCell(
           row,
           column,
@@ -38,16 +40,18 @@ export default async (aspectRatio) => {
 
   return {
     staticObjects,
-    dynamicObjects,
+    timedObjects,
     occludingObjects,
     capturedObjects,
     showSunrise,
     fade,
+    movingObjects,
     renderer: (
       <NightSkyRenderer
         {...{
           staticObjects,
-          dynamicObjects,
+          movingObjects,
+          timedObjects,
           occludingObjects,
           capturedObjects,
           showSunrise,

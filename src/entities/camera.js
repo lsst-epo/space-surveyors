@@ -4,20 +4,27 @@ import { Polygon } from 'detect-collisions';
 import { FocalPlaneBounding } from '@constants/objects/boundings/FocalPlaneBounding';
 import {
   CAMERA_MOVE,
-  getScaledObjectSize,
   MAX_CAMERA_MOVE,
   MIN_CAMERA_MOVE,
 } from '@constants/index';
-import { round } from '../utils';
+import { round, getScaledObjectSize, scaleByAspectRatio } from '../utils';
+
+const cameraSizeConfig = {
+  min: 15,
+  target: 25,
+  max: 30,
+};
 
 export default (aspectRatio) => {
-  const size = getScaledObjectSize('camera', aspectRatio);
+  const size = getScaledObjectSize(cameraSizeConfig, aspectRatio);
   const showEndgame = false;
   const offset = round(size / 2);
   const nextPosition = null;
   const delta = { x: null, y: null };
-  const maxMove = Math.min(
-    Math.max(CAMERA_MOVE / aspectRatio, MIN_CAMERA_MOVE),
+  const maxMove = scaleByAspectRatio(
+    aspectRatio,
+    CAMERA_MOVE,
+    MIN_CAMERA_MOVE,
     MAX_CAMERA_MOVE
   );
   const steps = 0;
@@ -40,6 +47,7 @@ export default (aspectRatio) => {
     exposureStartTime,
     exposureRemaining,
     physics,
+    size,
     size,
   };
 

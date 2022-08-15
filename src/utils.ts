@@ -9,7 +9,12 @@ import {
   X_RANGE,
   Y_RANGE,
 } from '@constants/index';
-import { WeightedOptions, GamePosition } from '@shapes/index';
+import {
+  WeightedOptions,
+  GamePosition,
+  RangedValue,
+  WeightedBins,
+} from '@shapes/index';
 
 const engine = MersenneTwister19937.autoSeed();
 const random = new Random(engine);
@@ -111,3 +116,67 @@ export const getAngleBetweenPoints = (
 
 export const round = (number: number, fixed: number = 2) =>
   parseFloat(number.toFixed(fixed));
+
+export const sum = (values: number[]): number =>
+  values.reduce((accumulator, value) => accumulator + value, 0);
+
+export const getBrightness = (
+  brightnessDefinition: RangedValue | WeightedBins
+): number => {
+  if (
+    (brightnessDefinition as RangedValue).min &&
+    (brightnessDefinition as RangedValue).max
+  ) {
+    const { min, max } = brightnessDefinition as RangedValue;
+    return getRandomDecimal(min, max);
+  } else {
+    const { bins, weights } = brightnessDefinition as WeightedBins;
+    const [min, max] = weighted.select(bins, weights, {
+      rand: () => random.realZeroToOneInclusive(),
+    });
+    return getRandomDecimal(min, max);
+  }
+};
+
+export const getUuid = (): string => random.uuid4();
+
+export const getScaledObjectSize = (
+  sizeConfig: RangedValue | WeightedBins,
+  aspectRatio: number
+): number => {
+  if (
+    (sizeConfig as WeightedBins).bins &&
+    (sizeConfig as WeightedBins).weights
+  ) {
+    const { bins, weights } = sizeConfig as WeightedBins;
+    const [min, max] = weighted.select(bins, weights, {
+      rand: () => random.realZeroToOneInclusive(),
+    });
+    const size: number = getRandomDecimal(min, max);
+    const scaledSize: number = round(size / aspectRatio);
+
+    return scaledSize;
+  } else {
+    const { min, max, target } = sizeConfig as any;
+    const size: number = target ? target : getRandomDecimal(min, max, 1);
+
+    const scaledSize: number = round(size / aspectRatio);
+
+    return target
+      ? Math.min(Math.max(scaledSize, min), max)
+      : Math.max(scaledSize, min * 0.75);
+  }
+};
+
+export const scaleByAspectRatio = (
+  aspectRatio: number,
+  target: number,
+  min?: number,
+  max?: number
+): number => {
+  const scaledTarget = target / aspectRatio;
+  const flooredTarget = Math.max(scaledTarget, min || scaledTarget);
+  const ceilingedTarget = Math.min(flooredTarget, max || flooredTarget);
+
+  return round(ceilingedTarget);
+};

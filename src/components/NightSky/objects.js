@@ -4,8 +4,10 @@ import Galaxy from '@components/svg/Galaxy';
 import Supernova from '@components/svg/Supernova';
 import CloudNight from '@components/svg/CloudNight';
 import Cloud from '@components/svg/Cloud';
-import { FADE_TIME, FINISH_SCREEN_START, GAME_END } from '@constants/index';
 import Airplane from '@components/svg/Airplane';
+import Asteroid from '@components/svg/Asteroid';
+import Comet from '@components/svg/Comet';
+import { FADE_TIME, FINISH_SCREEN_START, GAME_END } from '@constants/index';
 
 const transitionColor = `${FADE_TIME / 2}ms color`;
 const transitionOpacity = `${FADE_TIME}ms opacity`;
@@ -26,15 +28,17 @@ const SkyObjectBase = css`
   aspect-ratio: 1/1;
   transition: ${transitionColor};
   ${({ $fadeOut }) => ($fadeOut ? fadeOutAnimation : '')}
+  ${({ $fadeIn }) => ($fadeIn ? fadeInAnimation : '')};
+  ${({ $fadeOut }) => ($fadeOut ? fadeOutAnimation : '')}
   ${({ $fadeIn }) => ($fadeIn ? fadeInAnimation : '')}
 `;
 
-const SkyObjectAttrs = ({ width, x, y, $captured, brightness }) => ({
+const SkyObjectAttrs = ({ width, x, y, $captured, brightness, color }) => ({
   style: {
-    color: $captured ? 'var(--yellow)' : 'var(--neutral10)',
     left: `${x}%`,
     top: `${y}%`,
-    opacity: brightness,
+    opacity: $captured && brightness > 0 ? 0.85 : brightness,
+    ...(($captured || color) && { color: $captured ? 'var(--yellow)' : color }),
   },
 });
 
@@ -42,39 +46,41 @@ const StyledSkyObject = (object) => styled(object).attrs(SkyObjectAttrs)`
   ${SkyObjectBase}
 `;
 
-const DynamicSkyObjectBase = css`
+const TimedSkyObjectBase = css`
   ${SkyObjectBase}
   opacity: 0;
   transition: ${transitionColor}, ${transitionOpacity}, ${transitionFilter};
 `;
 
-const DynamicSkyObjectAttrs = ({ width, x, y, $captured, brightness }) => ({
+const TimedSkyObjectAttrs = ({ width, x, y, $captured, brightness }) => ({
   style: {
-    color: $captured ? 'var(--yellow)' : 'var(--neutral10)',
     left: `${x}%`,
     top: `${y}%`,
     opacity: brightness,
     filter: `blur(${brightness === 0 ? 5 : 0}px)`,
+    ...($captured && { color: 'var(--yellow)' }),
   },
 });
 
-const OccludingObjectAttrs = ({ width, x, y, angle }) => ({
+const DynamicObjectAttrs = ({ width, x, y, angle, $captured }) => ({
   style: {
     left: `${x}%`,
     top: `${y}%`,
     transform: `translate(-50%, -50%) rotate(${angle}deg)`,
+    ...($captured && { color: 'var(--yellow)' }),
   },
 });
 
-const StyledDynamicSkyObject = (object) => styled(object).attrs(
-  DynamicSkyObjectAttrs
+const StyledTimedSkyObject = (object) => styled(object).attrs(
+  TimedSkyObjectAttrs
 )`
-  ${DynamicSkyObjectBase}
+  ${TimedSkyObjectBase}
 `;
 
-const StyledOccludingObject = (object) =>
-  styled(object).attrs(OccludingObjectAttrs)`
+const StyledDynamicObject = (object) =>
+  styled(object).attrs(DynamicObjectAttrs)`
     ${SkyObjectBase}
+    transition: ${transitionColor}, ${transitionOpacity};
     transition: ${transitionColor}, ${transitionOpacity};
   `;
 
@@ -84,12 +90,16 @@ const BaseObjects = {
   supernova: Supernova,
   cloud: Cloud,
   airplane: Airplane,
+  asteroid: Asteroid,
+  comet: Comet,
 };
 
 export default {
   star: StyledSkyObject(BaseObjects['star']),
   galaxy: StyledSkyObject(BaseObjects['galaxy']),
-  supernova: StyledDynamicSkyObject(BaseObjects['supernova']),
-  cloud: StyledOccludingObject(BaseObjects['cloud']),
-  airplane: StyledOccludingObject(BaseObjects['airplane']),
+  supernova: StyledTimedSkyObject(BaseObjects['supernova']),
+  cloud: StyledDynamicObject(BaseObjects['cloud']),
+  airplane: StyledDynamicObject(BaseObjects['airplane']),
+  asteroid: StyledDynamicObject(BaseObjects['asteroid']),
+  comet: StyledDynamicObject(BaseObjects['comet']),
 };
