@@ -53292,20 +53292,26 @@ var fadeOut = /*#__PURE__*/styled.keyframes(["to{opacity:0}"]);
 var fadeIn = /*#__PURE__*/styled.keyframes(["from{opacity:0}to{opacity:1}"]);
 var fadeOutAnimation = /*#__PURE__*/styled.css(["animation:", " ", "ms forwards;"], fadeOut, (FINISH_SCREEN_START - GAME_END) / 2);
 var fadeInAnimation = /*#__PURE__*/styled.css(["animation:", " ", "ms forwards;"], fadeIn, (FINISH_SCREEN_START - GAME_END) / 2);
-var SkyObjectBase = /*#__PURE__*/styled.css(["position:absolute;transform:translate(-50%,-50%);aspect-ratio:1/1;transition:", ";", " ", ""], transitionColor, function (_ref) {
+var SkyObjectBase = /*#__PURE__*/styled.css(["position:absolute;transform:translate(-50%,-50%);aspect-ratio:1/1;transition:", ";", " ", ";", " ", ""], transitionColor, function (_ref) {
   var $fadeOut = _ref.$fadeOut;
   return $fadeOut ? fadeOutAnimation : '';
 }, function (_ref2) {
   var $fadeIn = _ref2.$fadeIn;
   return $fadeIn ? fadeInAnimation : '';
+}, function (_ref3) {
+  var $fadeOut = _ref3.$fadeOut;
+  return $fadeOut ? fadeOutAnimation : '';
+}, function (_ref4) {
+  var $fadeIn = _ref4.$fadeIn;
+  return $fadeIn ? fadeInAnimation : '';
 });
 
-var SkyObjectAttrs = function SkyObjectAttrs(_ref3) {
-  var x = _ref3.x,
-      y = _ref3.y,
-      $captured = _ref3.$captured,
-      brightness = _ref3.brightness,
-      color = _ref3.color;
+var SkyObjectAttrs = function SkyObjectAttrs(_ref5) {
+  var x = _ref5.x,
+      y = _ref5.y,
+      $captured = _ref5.$captured,
+      brightness = _ref5.brightness,
+      color = _ref5.color;
   return {
     style: _extends({
       left: x + "%",
@@ -53326,11 +53332,11 @@ var StyledSkyObject = function StyledSkyObject(object) {
 
 var TimedSkyObjectBase = /*#__PURE__*/styled.css(["", " opacity:0;transition:", ",", ",", ";"], SkyObjectBase, transitionColor, transitionOpacity, transitionFilter);
 
-var TimedSkyObjectAttrs = function TimedSkyObjectAttrs(_ref4) {
-  var x = _ref4.x,
-      y = _ref4.y,
-      $captured = _ref4.$captured,
-      brightness = _ref4.brightness;
+var TimedSkyObjectAttrs = function TimedSkyObjectAttrs(_ref6) {
+  var x = _ref6.x,
+      y = _ref6.y,
+      $captured = _ref6.$captured,
+      brightness = _ref6.brightness;
   return {
     style: _extends({
       left: x + "%",
@@ -53343,11 +53349,11 @@ var TimedSkyObjectAttrs = function TimedSkyObjectAttrs(_ref4) {
   };
 };
 
-var DynamicObjectAttrs = function DynamicObjectAttrs(_ref5) {
-  var x = _ref5.x,
-      y = _ref5.y,
-      angle = _ref5.angle,
-      $captured = _ref5.$captured;
+var DynamicObjectAttrs = function DynamicObjectAttrs(_ref7) {
+  var x = _ref7.x,
+      y = _ref7.y,
+      angle = _ref7.angle,
+      $captured = _ref7.$captured;
   return {
     style: _extends({
       left: x + "%",
@@ -53370,7 +53376,7 @@ var StyledDynamicObject = function StyledDynamicObject(object) {
   return styled__default(object).attrs(DynamicObjectAttrs).withConfig({
     displayName: "objects",
     componentId: "space-surveyors__sc-11myinu-2"
-  })(["", " transition:", ",", ";"], SkyObjectBase, transitionColor, transitionOpacity);
+  })(["", " transition:", ",", ";transition:", ",", ";"], SkyObjectBase, transitionColor, transitionOpacity, transitionColor, transitionOpacity);
 };
 
 var BaseObjects = {
@@ -53923,15 +53929,16 @@ TimerRenderer.propTypes = {
 };
 
 var Timer = function Timer() {
+  var _ref;
+
   var timeRemaining = GAME_DURATION;
   var timedEvents = [].concat(TIMED_EVENTS);
-  return {
+  return _ref = {
     timeRemaining: timeRemaining,
-    timedEvents: timedEvents,
-    renderer: /*#__PURE__*/jsxRuntime.jsx(TimerRenderer, {
-      currentTime: true
-    })
-  };
+    timedEvents: timedEvents
+  }, _ref["timedEvents"] = timedEvents, _ref.renderer = /*#__PURE__*/jsxRuntime.jsx(TimerRenderer, {
+    currentTime: true
+  }), _ref;
 };
 
 var expandExposure = /*#__PURE__*/styled.keyframes(["0%{opacity:1;clip-path:polygon(0% 100%,100% 100%,100% 100%,0% 100%);}25%{opacity:1;clip-path:polygon(0% 100%,100% 100%,100% 0%,0% 0%);}100%{opacity:0;clip-path:polygon(0% 100%,100% 100%,100% 0%,0% 0%);}"]);
@@ -54113,6 +54120,8 @@ var cameraSizeConfig = {
 };
 
 var Camera = function Camera(aspectRatio) {
+  var _properties;
+
   var size = getScaledObjectSize(cameraSizeConfig, aspectRatio);
   var showEndgame = false;
   var offset = round(size / 2);
@@ -54133,7 +54142,7 @@ var Camera = function Camera(aspectRatio) {
     center: true,
     isTrigger: true
   });
-  var properties = {
+  var properties = (_properties = {
     showEndgame: showEndgame,
     nextPosition: nextPosition,
     delta: delta,
@@ -54144,7 +54153,7 @@ var Camera = function Camera(aspectRatio) {
     exposureRemaining: exposureRemaining,
     physics: physics,
     size: size
-  };
+  }, _properties["size"] = size, _properties);
   return _extends({}, properties, {
     renderer: /*#__PURE__*/jsxRuntime.jsx(CameraRenderer, _extends({}, properties))
   });
@@ -55514,7 +55523,7 @@ var TotalScore = /*#__PURE__*/styled__default.div.withConfig({
 var TotalScoreCount = /*#__PURE__*/styled__default.span.withConfig({
   displayName: "score__TotalScoreCount",
   componentId: "space-surveyors__sc-hq03fc-2"
-})(["font-size:2em;font-variant-numeric:tabular-nums;width:2ch;margin-left:0.5ch;"]);
+})(["font-size:2em;font-variant-numeric:tabular-nums;width:2ch;width:2ch;margin-left:0.5ch;"]);
 
 var HUDScore = function HUDScore(_ref4) {
   var score = _ref4.score;
@@ -55560,6 +55569,8 @@ HUD.propTypes = {
 };
 
 var SpaceSurveyors = function SpaceSurveyors() {
+  var _jsx2, _ref3;
+
   var initialState = {
     menu: 'landing',
     score: Score$1(),
@@ -55675,19 +55686,19 @@ var SpaceSurveyors = function SpaceSurveyors() {
   return /*#__PURE__*/jsxRuntime.jsxs(SpaceSurveyorsContainer, {
     className: "space-surveyors-container",
     ref: outerResizeRef,
-    children: [menu && /*#__PURE__*/jsxRuntime.jsx(GameMenu, {
+    children: [menu && /*#__PURE__*/jsxRuntime.jsx(GameMenu, (_jsx2 = {
       onMenuAction: handleMenuAction,
       score: score,
       aspectRatio: aspectRatio
-    }), aspectRatio && /*#__PURE__*/jsxRuntime.jsxs(GameStageContainer, {
+    }, _jsx2["score"] = score, _jsx2["aspectRatio"] = aspectRatio, _jsx2)), aspectRatio && /*#__PURE__*/jsxRuntime.jsxs(GameStageContainer, {
       ref: resizeRef,
       aspectRatio: aspectRatio,
       children: [boundingRect && /*#__PURE__*/jsxRuntime.jsx(reactGameEngine.GameEngine, {
-        style: {
+        style: (_ref3 = {
           width: '100%',
           height: '100%',
           overflow: 'hidden'
-        },
+        }, _ref3["overflow"] = 'hidden', _ref3),
         ref: engine,
         entities: Entities(boundingRect, aspectRatio),
         systems: Systems,
@@ -55863,7 +55874,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "55264" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "55206" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
