@@ -1,5 +1,5 @@
 {
-  "version": "0.8.3-alpha",
+  "version": "0.8.3-beta",
   "name": "space-surveyors",
   "author": "Rubin EPO",
   "module": "dist/space-surveyors.esm.js",
@@ -15,8 +15,8 @@
     "node": ">=10"
   },
   "scripts": {
-    "start": "tsdx watch --platform=node",
-    "build": "tsdx build --platform=node",
+    "start": "tsdx watch --platform=node --platform=node",
+    "build": "tsdx build --platform=node --platform=node",
     "test": "tsdx test --passWithNoTests",
     "lint": "tsdx lint",
     "prepare": "tsdx build",
@@ -79,6 +79,7 @@
     "detect-collisions": "^6.0.2",
     "howler": "^2.2.3",
     "prop-types": "^15.8.1",
+    "random-js-no-node": "^2.1.0-b",
     "random-js-no-node": "^2.1.0-b",
     "react-game-engine": "^1.1.0",
     "react-inlinesvg": "^3.0.0",

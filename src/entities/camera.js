@@ -48,6 +48,7 @@ export default (aspectRatio) => {
     exposureRemaining,
     physics,
     size,
+    size,
   };
 
   return {

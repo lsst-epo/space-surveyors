@@ -1,10 +1,12 @@
 import NightSkyRenderer from '@components/NightSky';
-import { WEIGHTS_STATIC } from '@constants/';
+import {
+  WEIGHTS_STATIC,
+  STATIC_COLUMNS,
+  STATIC_OBJECTS_PER_CELL,
+  STATIC_ROWS,
+} from '@constants/index';
 import { getPositionInCell, getRandomWeightedValue } from 'src/utils';
 import { SkyObject } from '@modules/SkyObject/';
-import { STATIC_ROWS } from '@constants/';
-import { STATIC_COLUMNS } from '@constants/';
-import { STATIC_OBJECTS_PER_CELL } from '@constants/';
 
 export default async (aspectRatio) => {
   const movingObjects = [];

@@ -28,6 +28,8 @@ const SkyObjectBase = css`
   aspect-ratio: 1/1;
   transition: ${transitionColor};
   ${({ $fadeOut }) => ($fadeOut ? fadeOutAnimation : '')}
+  ${({ $fadeIn }) => ($fadeIn ? fadeInAnimation : '')};
+  ${({ $fadeOut }) => ($fadeOut ? fadeOutAnimation : '')}
   ${({ $fadeIn }) => ($fadeIn ? fadeInAnimation : '')}
 `;
 
@@ -78,6 +80,7 @@ const StyledTimedSkyObject = (object) => styled(object).attrs(
 const StyledDynamicObject = (object) =>
   styled(object).attrs(DynamicObjectAttrs)`
     ${SkyObjectBase}
+    transition: ${transitionColor}, ${transitionOpacity};
     transition: ${transitionColor}, ${transitionOpacity};
   `;
 
