@@ -1,69 +1,68 @@
 /* eslint-disable */
-import { createGlobalStyle } from 'styled-components';
-import { fluidScaleBase, stripUnit, respondBase } from '@castiron/style-mixins';
-import { aButton, aButtonTheme } from './mixins/appearance';
-import { fontFace } from './mixins/font';
+import { createGlobalStyle } from "styled-components";
+import { fluidScaleBase, stripUnit, respondBase } from "@castiron/style-mixins";
+import { aButton, aButtonTheme } from "./mixins/appearance";
+import { fontFace } from "./mixins/font";
 
 export const tokens = {
-  white: '#ffffff',
-  offWhite: '#e9e9e9',
-  neutral02: '#fafafa',
-  neutral08: '#ebebeb',
-  neutral10: '#f5f5f5',
-  neutral15: '#e3e4e8',
-  neutral20: '#dce0e3',
-  neutral30: '#d3d4d5',
-  neutral40: '#9E9EA3',
-  neutral60: '#666666',
-  neutral80: '#404040',
-  neutral90: '#2b2e34',
-  neutral95: '#1f2121',
-  black: '#000000',
-  turquoise05: '#EDFFFE',
-  turqouise07: '#EDFFFE',
-  turquoise10: '#D9F7F6',
-  turquoise20: '#B2F2EF',
-  turquoise50: '#00babc',
-  turquoise55: '#009fa1',
-  turquoise60: '#078b8c',
-  turquoise70: '#058b8c',
-  turquoise80: '#117273',
-  turquoise85: '#12726c',
-  turquoise90: '#0c4a4c',
-  orange02: '#FFFDFA',
-  orange05: '#FFF9F2',
-  orange20: '#FFE7CC',
-  orange55: '#FAB364',
-  blue10: '#eef5fb',
-  red: '#cf4040',
-  red20: '#f2c3c0',
-  red40: '#FF8489',
-  yellow: '#fdda78',
-  BREAK_HEADER_LAYOUT: '1625px',
-  BREAK_HEADER_LAYOUT: '1500px',
-  BREAK_DESKTOP: '1280px',
-  BREAK_DESKTOP_SMALL: '1130px',
-  BREAK_LARGE_TABLET: '850px',
-  BREAK_LARGE_TABLET_MIN: '851px',
-  BREAK_TABLET: '768px',
-  BREAK_TABLET_MIN: '769px',
-  BREAK_PHABLET: '600px',
-  BREAK_PHABLET_MIN: '601px',
-  BREAK_MOBILE: '446px',
+  white: "#ffffff",
+  offWhite: "#e9e9e9",
+  neutral02: "#fafafa",
+  neutral08: "#ebebeb",
+  neutral10: "#f5f5f5",
+  neutral15: "#e3e4e8",
+  neutral20: "#dce0e3",
+  neutral30: "#d3d4d5",
+  neutral40: "#9E9EA3",
+  neutral60: "#666666",
+  neutral80: "#404040",
+  neutral90: "#2b2e34",
+  neutral95: "#1f2121",
+  black: "#000000",
+  turquoise05: "#EDFFFE",
+  turqouise07: "#EDFFFE",
+  turquoise10: "#D9F7F6",
+  turquoise20: "#B2F2EF",
+  turquoise50: "#00babc",
+  turquoise55: "#009fa1",
+  turquoise60: "#078b8c",
+  turquoise70: "#058b8c",
+  turquoise80: "#117273",
+  turquoise85: "#12726c",
+  turquoise90: "#0c4a4c",
+  orange02: "#FFFDFA",
+  orange05: "#FFF9F2",
+  orange20: "#FFE7CC",
+  orange55: "#FAB364",
+  blue10: "#eef5fb",
+  red: "#cf4040",
+  red20: "#f2c3c0",
+  red40: "#FF8489",
+  yellow: "#fdda78",
+  BREAK_HEADER_LAYOUT: "1500px",
+  BREAK_DESKTOP: "1280px",
+  BREAK_DESKTOP_SMALL: "1130px",
+  BREAK_LARGE_TABLET: "850px",
+  BREAK_LARGE_TABLET_MIN: "851px",
+  BREAK_TABLET: "768px",
+  BREAK_TABLET_MIN: "769px",
+  BREAK_PHABLET: "600px",
+  BREAK_PHABLET_MIN: "601px",
+  BREAK_MOBILE: "446px",
   // For extremely thin devices, or users with largeer font bases
-  BREAK_MOBILE_MIN: '280px',
-  CONTAINER_MAX: '2560px',
-  CONTAINER_FULL: '1920px',
-  CONTAINER_WIDE: '1435px',
-  CONTAINER_REGULAR: '1160px',
-  CONTAINER_NARROW: '900px',
-  FONT_SIZE_BASE_DESKTOP: '22px',
-  FONT_SIZE_BASE_MOBILE: '16px',
+  BREAK_MOBILE_MIN: "280px",
+  CONTAINER_MAX: "2560px",
+  CONTAINER_FULL: "1920px",
+  CONTAINER_WIDE: "1435px",
+  CONTAINER_REGULAR: "1160px",
+  CONTAINER_NARROW: "900px",
+  FONT_SIZE_BASE_DESKTOP: "22px",
+  FONT_SIZE_BASE_MOBILE: "16px",
   FONT_STACK_BASE: `"Source Sans Pro", system-ui`,
-  LINE_HEIGHT_BASE: '1.636',
-  PADDING_LARGE: '100px',
-  PADDING_MEDIUM: '40px',
-  PADDING_SMALL: '20px',
+  LINE_HEIGHT_BASE: "1.636",
+  PADDING_LARGE: "100px",
+  PADDING_MEDIUM: "40px",
+  PADDING_SMALL: "20px",
 };
 
 export const zStack = {
@@ -129,7 +128,7 @@ export const PADDING_LARGE = tokens.PADDING_LARGE;
 export const PADDING_MEDIUM = tokens.PADDING_MEDIUM;
 export const PADDING_SMALL = tokens.PADDING_SMALL;
 
-export const getRawPx = (pixelValue) => Number(pixelValue.replace('px', ''));
+export const getRawPx = (pixelValue) => Number(pixelValue.replace("px", ""));
 
 export function fluidScale(
   max,
@@ -145,7 +144,7 @@ export const containerMax = () => protoContainer(tokens.CONTAINER_MAX);
 
 export const containerFull = () => protoContainer(tokens.CONTAINER_FULL);
 
-export const containerFullBleed = (width = 'CONTAINER_MAX') => {
+export const containerFullBleed = (width = "CONTAINER_MAX") => {
   return `
     width: 100%;
     max-width: ${tokens[width]};
@@ -157,7 +156,7 @@ export const containerFullBleed = (width = 'CONTAINER_MAX') => {
 export const containerWide = () => protoContainer(tokens.CONTAINER_WIDE);
 
 export const containerNews = () =>
-  protoContainer(tokens.CONTAINER_WIDE, '110px', '50px');
+  protoContainer(tokens.CONTAINER_WIDE, "110px", "50px");
 
 export const containerRegular = () => protoContainer(tokens.CONTAINER_REGULAR);
 
@@ -184,12 +183,12 @@ export const layoutGrid = (
 };
 
 export const encodeColor = (string) => {
-  const str = string.split('#').pop();
+  const str = string.split("#").pop();
   return `%23${str}`;
 };
 
 export const needsDarkColor = (hexColor) => {
-  var color = hexColor.charAt(0) === '#' ? hexColor.substring(1, 7) : hexColor;
+  var color = hexColor.charAt(0) === "#" ? hexColor.substring(1, 7) : hexColor;
   var r = parseInt(color.substring(0, 2), 16); // hexToR
   var g = parseInt(color.substring(2, 4), 16); // hexToG
   var b = parseInt(color.substring(4, 6), 16); // hexToB
@@ -206,7 +205,7 @@ export const protoContainer = (
   narrowPadding = tokens.PADDING_SMALL
 ) => {
   const units = widePadding.toString().split(/\d+/);
-  const unit = units?.[0] || 'px';
+  const unit = units?.[0] || "px";
   const maxValue = stripUnit(maxWidth) + 2 * stripUnit(widePadding);
   const minValue = stripUnit(maxWidth) + 2 * stripUnit(narrowPadding);
 
@@ -232,14 +231,14 @@ export const ptToEm = (pt, base = tokens.FONT_SIZE_BASE_DESKTOP) => {
 export const respond = (
   content,
   size = tokens.BREAK_TABLET,
-  operator = 'max',
-  aspect = 'width'
+  operator = "max",
+  aspect = "width"
 ) => {
   return respondBase(content, size, operator, aspect);
 };
 
 export const token = (which) => {
-  if (typeof which === 'string') {
+  if (typeof which === "string") {
     return tokens[which];
   } else if (which.isArray()) {
     let obj = which.reduce(function (result, item) {
@@ -258,13 +257,13 @@ const createCSSGlobalStyles = () => {
 
 const GlobalStyles = createGlobalStyle`
   ${fontFace}
-  .space-surveyors-container {
-      ${createCSSGlobalStyles()}
-  }
   .space-surveyors-container * {
     box-sizing: border-box;
     padding: 0;
     margin: 0;
+  }
+  .space-surveyors-container {
+      ${createCSSGlobalStyles()}
   }
   .c-buttonish {
     ${aButton}

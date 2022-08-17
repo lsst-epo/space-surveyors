@@ -1,21 +1,21 @@
-import React, { useRef, useState } from 'react';
-import useResizeObserver from 'use-resize-observer';
-import { GameEngine } from 'react-game-engine';
-import { GAME_FIELD_SIZE } from '@constants/index';
-import SpaceSurveyorsContainer from '@components/containers/SpaceSurveyorsContainer';
-import GameMenus from '@components/Menus';
-import styled from 'styled-components';
-import Entities from '@entities/index';
-import Systems from '@systems/index';
-import { GameStageContainer } from '@components/containers/GameStageContainer';
-import HUD from '@components/HUD/hud';
-import Dome from '@components/HUD/dome';
-import Score from '@entities/score';
-import { getAspectRatio } from './utils';
+import React, { useRef, useState } from "react";
+import useResizeObserver from "use-resize-observer";
+import { GameEngine } from "react-game-engine";
+import { GAME_FIELD_SIZE } from "@constants/index";
+import SpaceSurveyorsContainer from "@components/containers/SpaceSurveyorsContainer";
+import GameMenus from "@components/Menus";
+import styled from "styled-components";
+import Entities from "@entities/index";
+import Systems from "@systems/index";
+import { GameStageContainer } from "@components/containers/GameStageContainer";
+import HUD from "@components/HUD/hud";
+import Dome from "@components/HUD/dome";
+import Score from "@entities/score";
+import { getAspectRatio } from "./utils";
 
 const SpaceSurveyors = () => {
   const initialState = {
-    menu: 'landing',
+    menu: "landing",
     score: Score(),
     boundingRect: null,
     aspectRatio: null,
@@ -27,7 +27,7 @@ const SpaceSurveyors = () => {
   const handleResize = ({ width, height }) => {
     const boundingRect = resizeRef.current.getBoundingClientRect();
     if (engine.current) {
-      engine.current.dispatch({ type: 'resize', payload: boundingRect });
+      engine.current.dispatch({ type: "resize", payload: boundingRect });
     }
     setState({ ...state, boundingRect });
   };
@@ -57,13 +57,13 @@ const SpaceSurveyors = () => {
   });
 
   const handleMenuAction = (action) => {
-    console.debug('menu', action);
+    console.debug("menu", action);
     switch (action) {
-      case 'start':
+      case "start":
         setState({ ...state, menu: null });
-        engine.current.dispatch({ type: 'gameStart' });
+        engine.current.dispatch({ type: "gameStart" });
         break;
-      case 'restart':
+      case "restart":
         setState({ ...state, score: Score() });
         engine.current.swap(Entities(boundingRect, aspectRatio));
         break;
@@ -77,17 +77,17 @@ const SpaceSurveyors = () => {
     console.debug(type);
 
     switch (type) {
-      case 'swapped':
-        handleMenuAction('start');
+      case "swapped":
+        handleMenuAction("start");
         break;
-      case 'showFinish':
-        setState({ ...state, menu: 'finished' });
+      case "showFinish":
+        setState({ ...state, menu: "finished" });
         break;
-      case 'scoreUpdate':
+      case "scoreUpdate":
         setState({ ...state, score: payload });
         break;
-      case 'quit':
-        setState({ ...state, menu: 'summary' });
+      case "quit":
+        setState({ ...state, menu: "summary" });
         break;
       default:
         break;
@@ -103,21 +103,16 @@ const SpaceSurveyors = () => {
       ref={outerResizeRef}
     >
       {menu && (
-        (
         <GameMenu
-         
           onMenuAction={handleMenuAction}
           {...{ score, aspectRatio }}
-        
-          {...{ score, aspectRatio }}
         ></GameMenu>
-      )
       )}
       {aspectRatio && (
         <GameStageContainer ref={resizeRef} aspectRatio={aspectRatio}>
           {boundingRect && (
             <GameEngine
-              style={{ width: '100%', height: '100%', overflow: 'hidden', overflow: 'hidden' }}
+              style={{ width: "100%", height: "100%", overflow: "hidden" }}
               ref={engine}
               entities={Entities(boundingRect, aspectRatio)}
               systems={Systems}
