@@ -1,9 +1,13 @@
 {
-  "version": "0.8.3-beta",
   "name": "space-surveyors",
+  "version": "0.8.4-beta",
   "author": "Rubin EPO",
-  "homepage": "https://lsst-epo.github.io/space-surveyors",
   "license": "MIT",
+  "homepage": "https://lsst-epo.github.io/space-surveyors",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lsst-epo/space-surveyors"
+  },
   "type": "module",
   "scripts": {
     "build": "tsc && vite build --watch",
@@ -15,7 +19,7 @@
     "src"
   ],
   "main": "./dist/space-surveyors.umd.cjs",
-  "module": "./dist/space-surveyors.js",
+  "types": "./dist/types/index.d.ts",
   "exports": {
     ".": {
       "import": "./dist/space-surveyors.js",
@@ -57,6 +61,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "typescript": "^4.7.3",
-    "vite": "^3.0.7"
+    "vite": "^3.0.7",
+    "vite-plugin-dts": "^1.4.1"
   }
 }

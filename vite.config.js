@@ -2,6 +2,7 @@ import fs from "fs/promises";
 import { resolve } from "path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import dts from "vite-plugin-dts";
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -75,6 +76,11 @@ export default defineConfig({
           ["babel-plugin-styled-components", { namespace: "space-surveyors" }],
         ],
       },
+    }),
+    dts({
+      outputDir: "dist/types",
+      entryRoot: "src/",
+      exclude: "src/vite-env.d.ts",
     }),
   ],
 });
