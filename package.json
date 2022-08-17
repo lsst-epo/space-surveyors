@@ -10,8 +10,9 @@
   },
   "type": "module",
   "scripts": {
-    "build": "tsc && vite build --watch",
-    "predeploy": "tsc && vite build && cd example && yarn build",
+    "start": "tsc && vite build --watch --mode development",
+    "prepare": "tsc && vite build",
+    "predeploy": "yarn prepare && cd example && yarn build",
     "deploy": "gh-pages -d example/dist"
   },
   "files": [

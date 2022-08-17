@@ -9,7 +9,7 @@ Vite scaffolds the package inside `/src`, and also sets up a playground for it i
 The recommended workflow is to build the library in one terminal:
 
 ```bash
-yarn build
+yarn start
 ```
 
 This builds to `/dist` and runs the project in watch mode so any edits you save inside `src` causes a rebuild to `/dist`.
@@ -25,7 +25,7 @@ yarn start # or yarn start
 
 The example imports and live reloads whatever is in `/dist`, so if you are seeing an out of date component, make sure Vite is running in `--watch` mode. The library is imported into the example using Vite's `resolve.alias` so no additional aliasing is required.
 
-To do a one-off build, use `npm run build` or `yarn build`.
+To do a one-off build of the library package, use `npm run prepare` or `yarn prepare`.
 
 ## Deployment
 
