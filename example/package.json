@@ -1,34 +1,20 @@
 {
-  "name": "example",
-  "version": "1.0.0",
-  "main": "index.js",
-  "license": "MIT",
+  "name": "space-surveyors-example",
+  "private": true,
+  "version": "0.0.0",
   "scripts": {
-    "start": "parcel index.html",
-    "build": "parcel build index.html --no-source-maps --public-url ./ && echo 'spacesurveyors.app' > dist/CNAME"
+    "start": "vite",
+    "build": "vite build && echo 'spacesurveyors.app' > dist/CNAME"
   },
   "dependencies": {
     "modern-css-reset": "^1.4.0",
-    "react-app-polyfill": "^1.0.0"
-  },
-  "alias": {
-    "react": "../node_modules/react",
-    "react-dom": "../node_modules/react-dom"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "@types/react": "^16.9.11",
-    "@types/react-dom": "^16.8.4",
-    "parcel": "1.12.4",
-    "typescript": "^3.4.5"
-  },
-  "resolutions": {
-    "@babel/preset-env": "7.13.8",
-    "browserslist": "4.14.2"
-  },
-  "browserslist": [
-    "last 4 versions",
-    "> 2%",
-    "not dead",
-    "IE 11"
-  ]
+    "@types/react": "^18.0.17",
+    "@types/react-dom": "^18.0.6",
+    "@vitejs/plugin-react": "^2.0.1",
+    "vite": "^3.0.7"
+  }
 }
