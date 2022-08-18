@@ -1,16 +1,7 @@
-import React, { useRef } from 'react';
-import useResizeObserver from 'use-resize-observer';
-import styled from 'styled-components';
-import { zStack } from '@styles/globalStyle';
-
-const StyledDomeSVG = styled(DomeSVG)`
-  height: 0;
-  top: 0;
-  lef
-  position: absolute;
-  z-index: ${zStack.hud};
-  user-select: none;
-`;
+import React, { useRef } from "react";
+import useResizeObserver from "use-resize-observer";
+import styled from "styled-components";
+import { zStack } from "@styles/globalStyle";
 
 const DomeUpper = styled.div`
   position: absolute;

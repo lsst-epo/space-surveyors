@@ -1,102 +1,68 @@
 {
-  "version": "0.8.3-beta",
   "name": "space-surveyors",
+  "version": "0.8.4-beta",
   "author": "Rubin EPO",
-  "module": "dist/space-surveyors.esm.js",
   "license": "MIT",
-  "main": "dist/index.js",
-  "typings": "dist/index.d.ts",
   "homepage": "https://lsst-epo.github.io/space-surveyors",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lsst-epo/space-surveyors"
+  },
+  "type": "module",
+  "scripts": {
+    "start": "tsc && vite build --watch --mode development",
+    "prepare": "tsc && vite build",
+    "predeploy": "yarn prepare && cd example && yarn build",
+    "deploy": "gh-pages -d example/dist"
+  },
   "files": [
     "dist",
     "src"
   ],
+  "main": "./dist/space-surveyors.umd.cjs",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/space-surveyors.js",
+      "require": "./dist/space-surveyors.umd.cjs"
+    }
+  },
   "engines": {
     "node": ">=10"
   },
-  "scripts": {
-    "start": "tsdx watch --platform=node --platform=node",
-    "build": "tsdx build --platform=node --platform=node",
-    "test": "tsdx test --passWithNoTests",
-    "lint": "tsdx lint",
-    "prepare": "tsdx build",
-    "size": "size-limit",
-    "analyze": "size-limit --why",
-    "predeploy": "yarn build && cd example && yarn build",
-    "deploy": "gh-pages -d example/dist"
+  "dependencies": {
+    "copy-to-clipboard": "^3.3.2",
+    "detect-collisions": "6.0.2",
+    "howler": "^2.2.3",
+    "prop-types": "^15.8.1",
+    "random-js-no-node": "^2.1.0-b",
+    "react-game-engine": "^1.1.0",
+    "react-inlinesvg": "^3.0.0",
+    "regenerator-runtime": "^0.13.9",
+    "styled-components": "^5.3.5",
+    "use-resize-observer": "^9.0.2",
+    "weighted": "^1.0.0"
   },
   "peerDependencies": {
     "react": ">=16",
     "react-dom": ">=16"
   },
-  "husky": {
-    "hooks": {
-      "pre-commit": "tsdx lint"
-    }
-  },
-  "prettier": {
-    "printWidth": 80,
-    "semi": true,
-    "singleQuote": true,
-    "trailingComma": "es5"
-  },
-  "size-limit": [
-    {
-      "path": "dist/space-surveyors.cjs.production.min.js",
-      "limit": "30 KB"
-    },
-    {
-      "path": "dist/space-surveyors.esm.js",
-      "limit": "30 KB"
-    }
-  ],
   "devDependencies": {
     "@babel/preset-react": "^7.18.6",
     "@castiron/eslint-config": "^0.0.1",
     "@castiron/style-mixins": "^1.0.6",
-    "@rollup/plugin-image": "^2.1.1",
-    "@rollup/plugin-url": "^7.0.0",
-    "@rushstack/eslint-patch": "^1.1.4",
-    "@size-limit/preset-small-lib": "^7.0.8",
     "@types/howler": "^2.2.7",
-    "@types/react": "^18.0.12",
-    "@types/react-dom": "^18.0.5",
+    "@types/react": "^18.0.17",
+    "@types/react-dom": "^18.0.6",
+    "@types/regenerator-runtime": "^0.13.1",
     "@types/styled-components": "^5.1.25",
-    "babel-plugin-module-resolver": "^4.0.0",
+    "@vitejs/plugin-react": "^2.0.1",
     "babel-plugin-styled-components": "^2.0.7",
     "gh-pages": "^4.0.0",
-    "husky": "^8.0.1",
-    "postcss": "^8.4.14",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "size-limit": "^7.0.8",
-    "tsdx": "^0.14.1",
-    "tslib": "^2.4.0",
-    "typescript": "^4.7.3"
-  },
-  "dependencies": {
-    "copy-to-clipboard": "^3.3.2",
-    "detect-collisions": "^6.0.2",
-    "howler": "^2.2.3",
-    "prop-types": "^15.8.1",
-    "random-js-no-node": "^2.1.0-b",
-    "random-js-no-node": "^2.1.0-b",
-    "react-game-engine": "^1.1.0",
-    "react-inlinesvg": "^3.0.0",
-    "styled-components": "^5.3.5",
-    "use-resize-observer": "^9.0.2",
-    "weighted": "^1.0.0"
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+    "typescript": "^4.7.3",
+    "vite": "^3.0.7",
+    "vite-plugin-dts": "^1.4.1"
   }
 }

@@ -1,7 +1,7 @@
-import { MIN_OVERLAP } from '@constants/index';
-import { SkyObject } from '@modules/SkyObject';
-import { GameEventDispatch, GameEntities } from '@shapes/index';
-import { System, Body } from 'detect-collisions';
+import { MIN_OVERLAP } from "@constants/index";
+import { SkyObject } from "@modules/SkyObject";
+import { GameEventDispatch, GameEntities } from "@shapes/index";
+import { System, Body } from "detect-collisions";
 
 /**
  * check to see if the colliding object overlaps by
@@ -84,6 +84,6 @@ export const detectCapture = (
   });
 
   if (isScoreUpdated) {
-    dispatch({ type: 'scoreUpdate', payload: score });
+    dispatch({ type: "scoreUpdate", payload: score });
   }
 };

@@ -1,10 +1,10 @@
-import { SkyObject } from '@modules/SkyObject';
+import { SkyObject } from "@modules/SkyObject";
 import {
   DynamicObjectConfig,
   Edge,
   GamePosition,
   SkyObjectType,
-} from '@shapes/index';
+} from "@shapes/index";
 import {
   getAngleBetweenPoints,
   getDistanceBetweenPoints,
@@ -12,7 +12,7 @@ import {
   getNewPosition,
   round,
   scaleByAspectRatio,
-} from 'src/utils';
+} from "../../utils";
 
 export class DynamicObject extends SkyObject {
   public delta: GamePosition;
@@ -38,10 +38,10 @@ export class DynamicObject extends SkyObject {
       .config as DynamicObjectConfig;
 
     const startOnEdge: Edge = onlyMovesHorizontal
-      ? 'left'
+      ? "left"
       : (getRandomWeightedValue(spawnEdge) as Edge);
     const endOnEdge: Edge = onlyMovesHorizontal
-      ? 'right'
+      ? "right"
       : (getRandomWeightedValue({
           ...spawnEdge,
           [startOnEdge]: 0,
@@ -51,40 +51,40 @@ export class DynamicObject extends SkyObject {
     const endPosition = getNewPosition();
 
     switch (startOnEdge) {
-      case 'left':
+      case "left":
         this.physics.x = -this.xOffset;
         this.physics.y = startPosition.y;
         break;
-      case 'right':
+      case "right":
         this.physics.x = 100 + this.xOffset;
         this.physics.y = startPosition.y;
         break;
-      case 'top':
+      case "top":
         this.physics.x = startPosition.x;
         this.physics.y = -this.yOffset;
         break;
-      case 'bottom':
+      case "bottom":
         this.physics.x = startPosition.x;
         this.physics.y = 100 + this.yOffset;
         break;
     }
 
     switch (endOnEdge) {
-      case 'left':
+      case "left":
         this.endPosition.x = -this.xOffset;
         this.endPosition.y = endPosition.y;
         break;
-      case 'right':
+      case "right":
         this.endPosition.x = 100 + this.xOffset;
         this.endPosition.y = onlyMovesHorizontal
           ? startPosition.y
           : endPosition.y;
         break;
-      case 'top':
+      case "top":
         this.endPosition.x = endPosition.x;
         this.endPosition.y = -this.yOffset;
         break;
-      case 'bottom':
+      case "bottom":
         this.endPosition.x = endPosition.x;
         this.endPosition.y = 100 + this.yOffset;
         break;
