@@ -1,6 +1,7 @@
-import React, { forwardRef } from 'react';
-import PropTypes from 'prop-types';
-import * as Styled from './styles';
+import React, { forwardRef } from "react";
+import PropTypes from "prop-types";
+import * as Styled from "./styles";
+import IconComposer from "@components/svg/IconComposer";
 
 const Button = forwardRef(
   (
@@ -25,18 +26,25 @@ const Button = forwardRef(
         className={className}
         {...buttonProps}
       >
+        {icon && (
+          <IconComposer
+            icon={icon}
+            size={iconSize}
+            role={children && "presentation"}
+          />
+        )}
         <Styled.ButtonText>{children}</Styled.ButtonText>
       </Styled.Button>
     );
   }
 );
 
-Button.displayName = 'Atomic.Button';
+Button.displayName = "Atomic.Button";
 
-Button.prototypes = {
+Button.propTypes = {
   children: PropTypes.node,
   isBlock: PropTypes.bool,
-  styleAs: PropTypes.oneOf(['primary', 'secondary', 'tertiary']),
+  styleAs: PropTypes.oneOf(["primary", "secondary", "tertiary"]),
   /** This is a disabled style without disabling the button.
    * Good for a11y - button is visible even if form isn't complete.
    */
