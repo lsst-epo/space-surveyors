@@ -1,12 +1,12 @@
-import styled, { css } from 'styled-components';
-import { fluidScale } from '@styles/globalStyle';
-import { aButton, aButtonTheme } from '@styles/mixins/appearance';
+import styled, { css } from "styled-components";
+import { fluidScale } from "@styles/globalStyle";
+import { aButton, aButtonTheme } from "@styles/mixins/appearance";
 
 export const Button = styled.button`
-  ${({ $styleAs = 'primary' }) => aButtonTheme($styleAs)}
+  ${({ $styleAs = "primary" }) => aButtonTheme($styleAs)}
   ${aButton}
   align-items: center;
-  font-size: ${fluidScale('20px', '16px')};
+  font-size: ${fluidScale("20px", "16px")};
   text-align: center;
 
   ${({ $isBlock }) =>
@@ -14,6 +14,13 @@ export const Button = styled.button`
     css`
       display: flex;
       width: 100%;
+    `}
+
+  ${({ $hasIcon }) =>
+    $hasIcon &&
+    css`
+      display: inline-flex;
+      padding-inline-start: 15px;
     `}
 `;
 

@@ -1,5 +1,5 @@
-import { Random, MersenneTwister19937 } from 'random-js-no-node';
-import weighted from 'weighted';
+import { Random, MersenneTwister19937 } from "random-js-no-node";
+import weighted from "weighted";
 import {
   ASPECT_RATIOS_FLOAT,
   MAX_OBJECT_X,
@@ -8,13 +8,14 @@ import {
   MIN_OBJECT_Y,
   X_RANGE,
   Y_RANGE,
-} from '@constants/index';
+} from "@constants/index";
 import {
   WeightedOptions,
   GamePosition,
   RangedValue,
   WeightedBins,
-} from '@shapes/index';
+  GameState,
+} from "@shapes/index";
 
 const engine = MersenneTwister19937.autoSeed();
 const random = new Random(engine);
@@ -26,7 +27,7 @@ export const convertMsToTime = (milliseconds: number): string => {
   seconds = seconds % 60;
   minutes = minutes % 60;
 
-  return `${minutes}m ${String(seconds).padStart(2, '0')}s`;
+  return `${minutes}m ${String(seconds).padStart(2, "0")}s`;
 };
 
 const parseRelative = (
@@ -180,3 +181,8 @@ export const scaleByAspectRatio = (
 
   return round(ceilingedTarget);
 };
+
+export const timeFromGameStart = (current: number, state: GameState) =>
+  current - state.timePaused - state.gameStart;
+export const timeFromTimerStart = (current: number, state: GameState) =>
+  current - state.timePaused - state.timerStart;

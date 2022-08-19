@@ -1,17 +1,16 @@
-import React, { useState } from 'react';
-import styled from 'styled-components';
-import PropTypes from 'prop-types';
-import BaseMenu from '@components/Menus/BaseMenu';
-import Button from '@components/Button';
-import IconComposer from '@components/svg/IconComposer';
-import IconContainer from '@components/svg/helpers/IconContainer';
-import { GAME_DURATION, MENU_TRANSITION_TIME } from '@constants/index';
-import { convertMsToTime } from '../../../utils';
-import fundingLogos from '@assets/image/funding.png';
-import rubinLogo from '@assets/image/rubin_over_black.png';
-import FocalPlaneVisual from '@components/Menus/Landing/visuals/FocalPlaneVisual';
-import MovementVisual from '@components/Menus/Landing/visuals/MovementVisual';
-import OcclusionVisual from '@components/Menus/Landing/visuals/OcclusionVisual';
+import React, { useState, useEffect } from "react";
+import styled from "styled-components";
+import PropTypes from "prop-types";
+import MenuWrapper from "../styles";
+import Button from "@components/Button";
+import IconComposer from "@components/svg/IconComposer";
+import IconContainer from "@components/svg/helpers/IconContainer";
+import { GAME_DURATION, MENU_TRANSITION_TIME } from "@constants/index";
+import { convertMsToTime } from "../../../utils";
+import fundingLogos from "@assets/image/funding.png";
+import rubinLogo from "@assets/image/rubin_over_black.png";
+import MovementVisual from "@components/Menus/Landing/visuals/MovementVisual";
+import OcclusionVisual from "@components/Menus/Landing/visuals/OcclusionVisual";
 
 const TitleBar = styled.div`
   display: flex;
@@ -72,23 +71,43 @@ const Instructions = styled.ul`
   }
 `;
 
+const ButtonContainer = styled.div`
+  display: flex;
+  gap: 1rem;
+`;
+
 const icons = {
-  star: 'Stars',
-  galaxy: 'Galaxies',
-  supernova: 'Supernovae',
-  comet: 'Comets',
-  asteroid: 'Asteroids',
+  star: "Stars",
+  galaxy: "Galaxies",
+  supernova: "Supernovae",
+  comet: "Comets",
+  asteroid: "Asteroids",
 };
 
-const LandingMenu = ({ onMenuAction }) => {
-  const [showMenu, setMenu] = useState(true);
+const LandingMenu = ({ onMenuClose, onMenuOpen, engine, menu }) => {
+  const [menuOpen, setMenuOpen] = useState(true);
+
   const handleGameStart = () => {
-    setMenu(false);
-    setTimeout(() => onMenuAction('start'), MENU_TRANSITION_TIME);
+    setMenuOpen(false);
   };
 
+  const handleSettingsOpen = () => {
+    onMenuOpen("settings");
+  };
+
+  useEffect(() => {
+    if (menuOpen === false) {
+      const timer = setTimeout(() => {
+        onMenuClose(menu);
+        engine.current.dispatch({ type: "gameStart" });
+      }, MENU_TRANSITION_TIME);
+
+      return () => clearTimeout(timer);
+    }
+  });
+
   return (
-    <BaseMenu {...{ showMenu }}>
+    <MenuWrapper open={menuOpen}>
       <TitleBar>
         <RubinLogo src={rubinLogo} height="110px" width="180px" />
         <LandingMenuTitle>Space Surveyors</LandingMenuTitle>
@@ -96,7 +115,7 @@ const LandingMenu = ({ onMenuAction }) => {
       <Instructions>
         <li>
           <p>
-            In Space Surveyors you will have{' '}
+            In Space Surveyors you will have{" "}
             <strong>{convertMsToTime(GAME_DURATION)}</strong> before the night
             ends to survey as many objects as possible. Look for these objects:
           </p>
@@ -129,14 +148,17 @@ const LandingMenu = ({ onMenuAction }) => {
           <OcclusionVisual />
         </li>
       </Instructions>
-      <Button onClick={handleGameStart}>Start</Button>
+      <ButtonContainer>
+        <Button onClick={handleSettingsOpen} styleAs="tertiary">
+          Settings
+        </Button>
+        <Button onClick={handleGameStart}>Start</Button>
+      </ButtonContainer>
       <FundingLogos src={fundingLogos} />
-    </BaseMenu>
+    </MenuWrapper>
   );
 };
 
-LandingMenu.propTypes = {
-  onMenuAction: PropTypes.func,
-};
+LandingMenu.propTypes = {};
 
 export default LandingMenu;

@@ -1,63 +1,57 @@
-import { GameAudio } from '@shapes/entities';
-import { GameSystem } from '@shapes/system';
-
-const stopAllAudio = (audio: GameAudio) => {
-  Object.keys(audio).forEach((key) => {
-    audio[key].stop();
-  });
-};
+import { Howler } from "howler";
+import { GameSystem } from "@shapes/system";
 
 const audioHandler: GameSystem = (entities, { events }) => {
   const event = events.find(
     (e) =>
-      e.type === 'gameStart' ||
-      e.type === 'timeStart' ||
-      e.type === 'timeEnd' ||
-      e.type === 'cameraExposing' ||
-      e.type === 'scoreUpdate' ||
-      e.type === 'cameraExposureEnd' ||
-      e.type === 'cameraMoving' ||
-      e.type === 'quit' ||
-      e.type === 'swapped'
+      e.type === "gameStart" ||
+      e.type === "timeStart" ||
+      e.type === "timeEnd" ||
+      e.type === "cameraExposing" ||
+      e.type === "scoreUpdate" ||
+      e.type === "cameraExposureEnd" ||
+      e.type === "cameraMoving" ||
+      e.type === "quit" ||
+      e.type === "swapped"
   );
 
   if (event) {
     const { audio } = entities;
 
     switch (event.type) {
-      case 'gameStart':
+      case "gameStart":
         audio.countdown.play();
         break;
-      case 'timeStart':
-        audio.soundtrack.play('background');
+      case "timeStart":
+        audio.soundtrack.play("background");
         break;
-      case 'timeEnd':
+      case "timeEnd":
         audio.moving.stop();
         break;
-      case 'cameraExposing':
+      case "cameraExposing":
         if (event.payload.isFirstExposure) {
           audio.moving.stop();
           audio.exposure.play();
         }
         break;
-      case 'cameraExposureEnd':
+      case "cameraExposureEnd":
         if (event.payload.failedCapture) {
           audio.failedCapture.play();
         } else {
           audio.capture.play();
         }
         break;
-      case 'cameraMoving':
+      case "cameraMoving":
         if (!audio.moving.playing()) {
           audio.moving.play();
         }
         break;
-      case 'quit':
-        stopAllAudio(audio);
-        audio.soundtrack.play('ambient');
+      case "quit":
+        Howler.stop();
+        audio.soundtrack.play("ambient");
         break;
-      case 'swapped':
-        stopAllAudio(audio);
+      case "swapped":
+        Howler.stop();
         break;
       default:
         break;

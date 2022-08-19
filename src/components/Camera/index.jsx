@@ -1,12 +1,12 @@
-import React, { useRef } from 'react';
-import useResizeObserver from 'use-resize-observer';
-import styled from 'styled-components';
-import { zStack } from '@styles/globalStyle';
-import Exposure from '@components/svg/Exposure';
-import CameraTarget from '@components/Camera/Target';
-import FocalPlaneContainer from '@components/Camera/FocalPlaneContainer';
-import { fullScreenAbsolute } from '@styles/mixins/appearance';
-import CenteredText from '@components/svg/helpers/CenteredText';
+import React, { useRef } from "react";
+import useResizeObserver from "use-resize-observer";
+import styled from "styled-components";
+import { zStack } from "@styles/globalStyle";
+import { Exposure, AnimatedExposure } from "@components/svg/Exposure";
+import CameraTarget from "@components/Camera/Target";
+import FocalPlaneContainer from "@components/Camera/FocalPlaneContainer";
+import { fullScreenAbsolute } from "@styles/mixins/appearance";
+import CenteredText from "@components/svg/helpers/CenteredText";
 
 const CameraContainer = styled.div`
   ${fullScreenAbsolute}
@@ -27,10 +27,11 @@ const CameraRenderer = ({
   physics,
   showEndgame,
   size,
+  paused,
 }) => {
   const { ref, width } = useResizeObserver();
   const { x, y } = physics;
-  const captureMessage = 'Capturing';
+  const captureMessage = "Capturing";
   const charSize = captureMessage.length / 2;
 
   return (
@@ -38,14 +39,17 @@ const CameraRenderer = ({
       {exposures &&
         exposures.map((exposure, i) => (
           <Exposure
-            key={`expo-${i}-${exposure.x}-${exposure.y}`}
+            key={`expo-${exposure.x}-${exposure.y}`}
             {...{ x: exposure.x, y: exposure.y, size, $pause: showEndgame }}
           />
         ))}
       <FocalPlaneContainer {...{ x, y, size }}>
+        {exposureRemaining && (
+          <AnimatedExposure {...{ size, $pause: paused }} />
+        )}
         <ExposureText
           ref={ref}
-          visibility={exposureRemaining ? 'visible' : 'hidden'}
+          visibility={exposureRemaining ? "visible" : "hidden"}
           $width={width}
           textLength="80%"
           {...{ charSize }}

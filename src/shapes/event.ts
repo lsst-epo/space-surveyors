@@ -1,21 +1,23 @@
 type GameEventName =
-  | 'started'
-  | 'resize'
-  | 'gameStart'
-  | 'timeStart'
-  | 'timeEnd'
-  | 'targetSet'
-  | 'cameraMoving'
-  | 'cameraExposing'
-  | 'cameraExposureEnd'
-  | 'scoreUpdate'
-  | 'spawnedObject'
-  | 'spawnedOcclusion'
-  | 'dawn'
-  | 'showFinish'
-  | 'quit'
-  | 'stopped'
-  | 'swapped';
+  | "started"
+  | "resize"
+  | "gameStart"
+  | "timeStart"
+  | "timeEnd"
+  | "targetSet"
+  | "cameraMoving"
+  | "cameraExposing"
+  | "cameraExposureEnd"
+  | "scoreUpdate"
+  | "spawnedObject"
+  | "spawnedOcclusion"
+  | "dawn"
+  | "showFinish"
+  | "quit"
+  | "stopped"
+  | "swapped"
+  | "pause"
+  | "stop";
 
 interface GameEvent {
   type: GameEventName;
@@ -27,37 +29,37 @@ interface TimedEvent extends GameEvent {
 }
 
 type GameInputEventName =
-  | 'onClick'
-  | 'onContextMenu'
-  | 'onDoubleClick'
-  | 'onDrag'
-  | 'onDragEnd'
-  | 'onDragEnter'
-  | 'onDragExit'
-  | 'onDragLeave'
-  | 'onDragOver'
-  | 'onDragStart'
-  | 'onDrop'
-  | 'onMouseDown'
-  | 'onMouseEnter'
-  | 'onMouseLeave'
-  | 'onMouseMove'
-  | 'onMouseOut'
-  | 'onMouseOver'
-  | 'onMouseUp'
-  | 'onWheel'
-  | 'onTouchCancel'
-  | 'onTouchEnd'
-  | 'onTouchMove'
-  | 'onTouchStart'
-  | 'onKeyDown'
-  | 'onKeyPress'
-  | 'onKeyUp';
+  | "onClick"
+  | "onContextMenu"
+  | "onDoubleClick"
+  | "onDrag"
+  | "onDragEnd"
+  | "onDragEnter"
+  | "onDragExit"
+  | "onDragLeave"
+  | "onDragOver"
+  | "onDragStart"
+  | "onDrop"
+  | "onMouseDown"
+  | "onMouseEnter"
+  | "onMouseLeave"
+  | "onMouseMove"
+  | "onMouseOut"
+  | "onMouseOver"
+  | "onMouseUp"
+  | "onWheel"
+  | "onTouchCancel"
+  | "onTouchEnd"
+  | "onTouchMove"
+  | "onTouchStart"
+  | "onKeyDown"
+  | "onKeyPress"
+  | "onKeyUp";
 
-type GameInputEvent = {
+interface GameInputEvent {
   name: GameInputEventName;
   payload?: any;
-};
+}
 
 export {
   GameEventName,
