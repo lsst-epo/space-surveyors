@@ -9,7 +9,7 @@ import { MENU_TRANSITION_TIME } from "@constants/index";
 import ScoreList from "@components/ScoreList";
 import { sum } from "../../../utils";
 import ShareScoreButton from "@components/ShareScoreButton";
-import MenuWrapper from "../styles";
+import { MenuResponsive, MenuWrapper } from "../styles";
 import Entities from "@entities/index";
 import Score from "@entities/score";
 
@@ -18,13 +18,7 @@ const SummaryMenuWrapper = styled(MenuWrapper)`
   color: var(--yellow);
 `;
 
-const SummaryMenuResponsive = styled.div`
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-  width: 800px;
-  max-width: 100%;
-
+const SummaryMenuResponsive = styled(MenuResponsive)`
   & > * + * {
     margin-top: 2em;
   }

@@ -61,7 +61,7 @@ const prepareExpiringObjects = (
   return object;
 };
 
-export const cullSkyObjects: GameSystem = (entities, { time }) => {
+const cullSkyObjects: GameSystem = (entities, { time }) => {
   const { current } = time;
   const { skyObjects, world } = entities;
 
@@ -83,7 +83,7 @@ export const cullSkyObjects: GameSystem = (entities, { time }) => {
   return entities;
 };
 
-export const spawnObjects: GameSystem = (entities, { dispatch, time }) => {
+const spawnObjects: GameSystem = (entities, { dispatch, time }) => {
   const { current } = time;
   const { skyObjects, world, state } = entities;
   const { stage, nextSpawn } = state;
@@ -137,3 +137,5 @@ export const spawnObjects: GameSystem = (entities, { dispatch, time }) => {
 
   return entities;
 };
+
+export default [spawnObjects, cullSkyObjects];

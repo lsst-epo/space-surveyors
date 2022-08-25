@@ -17,11 +17,22 @@ const Button = forwardRef(
     },
     ref
   ) => {
-    return (
+    return !!icon && !children ? (
+      <Styled.IconButton
+        ref={ref}
+        aria-disabled={isInactive || undefined}
+        className={className}
+        {...buttonProps}
+      >
+        <IconComposer icon={icon} size={iconSize} />
+      </Styled.IconButton>
+    ) : (
       <Styled.Button
         ref={ref}
         $isBlock={isBlock}
         $styleAs={styleAs}
+        $hasIcon={!!icon}
+        $isIcon={!!icon && !children}
         aria-disabled={isInactive || undefined}
         className={className}
         {...buttonProps}

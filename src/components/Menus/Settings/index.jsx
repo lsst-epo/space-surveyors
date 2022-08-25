@@ -1,58 +1,85 @@
 import Button from "@components/Button";
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useContext } from "react";
 import styled from "styled-components";
-import { useOnClickOutside, useKeyDownEvent } from "../../../hooks/listeners";
-import useFocusTrap from "../../../hooks/useFocusTrap";
-import MenuWrapper from "../styles";
+import { useOnClickOutside, useKeyDownEvent } from "@hooks/listeners";
+import useFocusTrap from "@hooks/useFocusTrap";
+import { SubmenuProvider } from "./contexts/Submenu";
+import { MENU_SLIDE_TIME } from "@constants/index";
+import { SettingsMenuOuter } from "./styles";
+import MainSubmenu from "./submenus/Main";
+import AudioSubmenu from "./submenus/Audio";
 
-const SettingsMenuWrapper = styled(MenuWrapper)`
-  background-color: rgba(0, 0, 0, 0.5);
-  justify-content: center;
-`;
+const Submenus = {
+  main: MainSubmenu,
+  audio: AudioSubmenu,
+};
 
-const SettingsModal = styled.div`
-  border-radius: 5px;
-  height: 80%;
-  min-width: 80%;
-  max-width: calc(100% - 0.5rem);
-  background-color: var(--neutral95);
-  padding: 1rem;
-`;
+const SettingsMenu = ({ onMenuClose, engine }) => {
+  const [menusOpen, setMenusOpen] = useState(["main"]);
 
-const SettingsMenu = ({
-  onMenuClose,
-  score,
-  engine,
-  boundingRect,
-  aspectRatio,
-}) => {
+  const [settingsOpen, setSettingsOpen] = useState(null);
+  const [mainMenuOverride, setMainOverride] = useState(null);
+
   useEffect(() => {
-    engine.current.dispatch({ type: "pause" });
-  }, []);
-
-  const handleCloseSettings = () => {
-    onMenuClose("settings");
-    engine.current.start();
-  };
-
-  const handleKeyDown = ({ key }) => {
-    if (key === "Escape") {
-      handleCloseSettings();
+    if (settingsOpen === null) {
+      engine.current.dispatch({ type: "pause" });
+      const timer = setTimeout(() => {
+        setSettingsOpen(true);
+        setMainOverride(true);
+      }, MENU_SLIDE_TIME);
+      return () => clearTimeout(timer);
     }
-  };
 
-  const ref = useRef();
-  useOnClickOutside(ref, handleCloseSettings);
-  useFocusTrap(ref, true);
-  useKeyDownEvent(handleKeyDown);
+    if (settingsOpen === false) {
+      onMenuClose("settings");
+      engine.current.dispatch({ type: "unpause" });
+    }
+
+    if (mainMenuOverride === false) {
+      const timer = setTimeout(() => setSettingsOpen(false), MENU_SLIDE_TIME);
+      return () => clearTimeout(timer);
+    }
+  }, [settingsOpen, mainMenuOverride, menusOpen]);
+
+  const handleSettingsClose = () => {
+    setMainOverride(false);
+  };
 
   return (
-    <SettingsMenuWrapper open>
-      <SettingsModal ref={ref}>
-        Settings
-        <Button icon="close" />
-      </SettingsModal>
-    </SettingsMenuWrapper>
+    <SettingsMenuOuter open={settingsOpen}>
+      <SubmenuProvider value={{ setMenusOpen, menusOpen }}>
+        <MainSubmenu
+          settingsCloseCallback={handleSettingsClose}
+          isOpen={mainMenuOverride}
+          engine={engine}
+        />
+      </SubmenuProvider>
+    </SettingsMenuOuter>
+
+    //     <MenuTitle>Settings</MenuTitle>
+    //     <SettingsList>
+    //       <Setting>
+    //         Music
+    //         <Button onClick={handleToggleMusic}>
+    //           {musicPlaying ? "Mute" : "Unmute"}
+    //         </Button>
+    //       </Setting>
+    //       <Setting>
+    //         Sound effects
+    //         <Button onClick={handleToggleEffects}>
+    //           {effectsPlaying ? "Mute" : "Unmute"}
+    //         </Button>
+    //       </Setting>
+    //       <Setting>
+    //         Language<div>EN | ES</div>
+    //       </Setting>
+    //     </SettingsList>
+    //     <MenuSubtitle>Credits</MenuSubtitle>
+    //     <CreditText>
+
+    //     </CreditText>
+
+    //     <Button onClick={handleCloseSettings}>Close</Button>
   );
 };
 

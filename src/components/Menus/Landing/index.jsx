@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import PropTypes from "prop-types";
-import MenuWrapper from "../styles";
+import { MenuWrapper, MenuTitle, MenuResponsive } from "../styles";
 import Button from "@components/Button";
 import IconComposer from "@components/svg/IconComposer";
 import IconContainer from "@components/svg/helpers/IconContainer";
@@ -19,13 +19,6 @@ const TitleBar = styled.div`
   gap: 2em;
   margin: 2em 0;
   flex-wrap: wrap;
-  width: 800px;
-  max-width: 100%;
-`;
-
-const LandingMenuTitle = styled.h1`
-  font-size: 3em;
-  font-style: italic;
 `;
 
 const IconLegend = styled.ul`
@@ -48,15 +41,11 @@ const RubinLogo = styled.img`
 `;
 
 const FundingLogos = styled.img`
-  width: 800px;
   margin-top: auto;
-  max-width: 100%;
 `;
 
 const Instructions = styled.ul`
   font-size: 1.5em;
-  width: 800px;
-  max-width: 100%;
   margin-bottom: 1em;
   list-style: none;
 
@@ -108,53 +97,56 @@ const LandingMenu = ({ onMenuClose, onMenuOpen, engine, menu }) => {
 
   return (
     <MenuWrapper open={menuOpen}>
-      <TitleBar>
-        <RubinLogo src={rubinLogo} height="110px" width="180px" />
-        <LandingMenuTitle>Space Surveyors</LandingMenuTitle>
-      </TitleBar>
-      <Instructions>
-        <li>
-          <p>
-            In Space Surveyors you will have{" "}
-            <strong>{convertMsToTime(GAME_DURATION)}</strong> before the night
-            ends to survey as many objects as possible. Look for these objects:
-          </p>
-          <IconLegend>
-            {Object.keys(icons).map((i) => (
-              <IconItem key={i}>
-                <IconContainer>
-                  <IconComposer icon={i} height="100%" />
-                </IconContainer>
-                {icons[i]}
-              </IconItem>
-            ))}
-          </IconLegend>
-          <p>
-            <strong>
-              Objects may be very small or faint in the night sky, how can you
-              optimize finding these difficult to see objects?
-            </strong>
-          </p>
-        </li>
-        <li>
-          When the timer starts, click or tap anywhere on the screen to move the
-          telescope to a new position and begin exposing an image.
-          <MovementVisual />
-        </li>
-        <li>
-          Celestial objects are not the only things in the night sky. Clouds,
-          airplanes, and satellites may disrupt your camera and prevent it from
-          surveying the objects you want.
-          <OcclusionVisual />
-        </li>
-      </Instructions>
-      <ButtonContainer>
-        <Button onClick={handleSettingsOpen} styleAs="tertiary">
-          Settings
-        </Button>
-        <Button onClick={handleGameStart}>Start</Button>
-      </ButtonContainer>
-      <FundingLogos src={fundingLogos} />
+      <MenuResponsive>
+        <TitleBar>
+          <RubinLogo src={rubinLogo} height="110px" width="180px" />
+          <MenuTitle>Space Surveyors</MenuTitle>
+        </TitleBar>
+        <Instructions>
+          <li>
+            <p>
+              In Space Surveyors you will have{" "}
+              <strong>{convertMsToTime(GAME_DURATION)}</strong> before the night
+              ends to survey as many objects as possible. Look for these
+              objects:
+            </p>
+            <IconLegend>
+              {Object.keys(icons).map((i) => (
+                <IconItem key={i}>
+                  <IconContainer>
+                    <IconComposer icon={i} height="100%" />
+                  </IconContainer>
+                  {icons[i]}
+                </IconItem>
+              ))}
+            </IconLegend>
+            <p>
+              <strong>
+                Objects may be very small or faint in the night sky, how can you
+                optimize finding these difficult to see objects?
+              </strong>
+            </p>
+          </li>
+          <li>
+            When the timer starts, click or tap anywhere on the screen to move
+            the telescope to a new position and begin exposing an image.
+            <MovementVisual />
+          </li>
+          <li>
+            Celestial objects are not the only things in the night sky. Clouds,
+            airplanes, and satellites may disrupt your camera and prevent it
+            from surveying the objects you want.
+            <OcclusionVisual />
+          </li>
+        </Instructions>
+        <ButtonContainer>
+          <Button onClick={handleSettingsOpen} styleAs="tertiary">
+            Settings
+          </Button>
+          <Button onClick={handleGameStart}>Start</Button>
+        </ButtonContainer>
+        <FundingLogos src={fundingLogos} />
+      </MenuResponsive>
     </MenuWrapper>
   );
 };

@@ -179,10 +179,10 @@ const onCameraExposureEnd: GameSystem = (entities, { events, dispatch }) => {
   return entities;
 };
 
-export {
+export default [
   setCameraTarget,
   onTargetSet,
   onCameraMoving,
   onCameraExposing,
   onCameraExposureEnd,
-};
+];

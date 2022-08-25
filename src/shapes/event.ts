@@ -17,7 +17,9 @@ type GameEventName =
   | "stopped"
   | "swapped"
   | "pause"
-  | "stop";
+  | "unpause"
+  | "mute"
+  | "unmute";
 
 interface GameEvent {
   type: GameEventName;

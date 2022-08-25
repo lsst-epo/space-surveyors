@@ -71,9 +71,6 @@ const SpaceSurveyors = () => {
       case "scoreUpdate":
         setScore({ ...payload });
         break;
-      case "stop":
-        engine.current.stop();
-        break;
       case "quit":
         handleMenuChange(["summary"]);
         break;
@@ -112,7 +109,7 @@ const SpaceSurveyors = () => {
           )}
           <Dome $left />
           <Dome />
-          <SettingsButton onClick={handleOpenSettings}>Settings</SettingsButton>
+          <SettingsButton onClick={handleOpenSettings} />
         </GameStageContainer>
       )}
       <HUD score={score} />
