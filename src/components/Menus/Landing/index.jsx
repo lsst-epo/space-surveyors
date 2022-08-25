@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useContext } from "react";
 import styled from "styled-components";
 import PropTypes from "prop-types";
 import { MenuWrapper, MenuTitle, MenuResponsive } from "../styles";
+import MenuContext from "@contexts/menus";
 import Button from "@components/Button";
 import IconComposer from "@components/svg/IconComposer";
 import IconContainer from "@components/svg/helpers/IconContainer";
@@ -73,30 +74,21 @@ const icons = {
   asteroid: "Asteroids",
 };
 
-const LandingMenu = ({ onMenuClose, onMenuOpen, engine, menu }) => {
-  const [menuOpen, setMenuOpen] = useState(true);
+const LandingMenu = ({ onMenuClose, engine, menu, isOpen }) => {
+  const { setMenus, openMenus } = useContext(MenuContext) || {};
 
   const handleGameStart = () => {
-    setMenuOpen(false);
+    onMenuClose(menu);
+
+    const timer = setTimeout(() => {
+      engine.current.dispatch({ type: "gameStart" });
+    }, MENU_TRANSITION_TIME);
+
+    return () => clearTimeout(timer);
   };
-
-  const handleSettingsOpen = () => {
-    onMenuOpen("settings");
-  };
-
-  useEffect(() => {
-    if (menuOpen === false) {
-      const timer = setTimeout(() => {
-        onMenuClose(menu);
-        engine.current.dispatch({ type: "gameStart" });
-      }, MENU_TRANSITION_TIME);
-
-      return () => clearTimeout(timer);
-    }
-  });
 
   return (
-    <MenuWrapper open={menuOpen}>
+    <MenuWrapper open={isOpen}>
       <MenuResponsive>
         <TitleBar>
           <RubinLogo src={rubinLogo} height="110px" width="180px" />
@@ -140,7 +132,10 @@ const LandingMenu = ({ onMenuClose, onMenuOpen, engine, menu }) => {
           </li>
         </Instructions>
         <ButtonContainer>
-          <Button onClick={handleSettingsOpen} styleAs="tertiary">
+          <Button
+            onClick={() => setMenus([...openMenus, "settings"])}
+            styleAs="tertiary"
+          >
             Settings
           </Button>
           <Button onClick={handleGameStart}>Start</Button>

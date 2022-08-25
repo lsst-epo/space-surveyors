@@ -2,7 +2,6 @@ import { GameAudio, GameSystem } from "@shapes/index";
 
 const pauseAudio = (audio: GameAudio) => {
   Object.keys(audio.instances).forEach((group) => {
-    console.log(group);
     audio[group].pause();
   });
 };

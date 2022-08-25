@@ -1,8 +1,8 @@
 import React, { useRef, useState, useContext, useEffect } from "react";
 import { useOnClickOutside, useKeyDownEvent } from "@hooks/listeners";
 import useFocusTrap from "@hooks/useFocusTrap";
-import SubmenuContext from "../contexts/Submenu";
 import { SettingsSubMenu, SettingsMenuInner } from "../styles";
+import MenuContext from "@contexts/menus";
 
 const Submenu = ({
   children,
@@ -12,7 +12,7 @@ const Submenu = ({
   menu,
 }) => {
   const menuRef = useRef();
-  const { setMenusOpen, menusOpen } = useContext(SubmenuContext) || {};
+  const { setMenus, openMenus } = useContext(MenuContext) || {};
   const [isOpen, setIsOpen] = useState(
     typeof openOverride === "boolean" ? openOverride : false
   );
@@ -33,10 +33,10 @@ const Submenu = ({
       closeCallback(menu, false);
     }
 
-    if (menusOpen && setMenusOpen) {
-      if (menusOpen.includes(menu)) {
-        setMenusOpen(
-          menusOpen.filter((menuId, index) => {
+    if (openMenus && setMenus) {
+      if (openMenus.includes(menu)) {
+        setMenus(
+          openMenus.filter((menuId, index) => {
             return menuId !== menu;
           })
         );
@@ -56,9 +56,9 @@ const Submenu = ({
       openCallback(menu, true);
     }
 
-    if (menusOpen && setMenusOpen) {
-      if (!menusOpen.includes(labelledbyId)) {
-        setMenusOpen([...menusOpen, labelledbyId]);
+    if (openMenus && setMenus) {
+      if (!openMenus.includes(labelledbyId)) {
+        setMenus([...openMenus, labelledbyId]);
       }
     }
   }
@@ -70,10 +70,9 @@ const Submenu = ({
     }
   }, [openOverride]);
 
-  // useFocusTrap(menuRef, isOpen);
+  useFocusTrap(menuRef, isOpen);
   useKeyDownEvent(handleKeyDown);
-
-  // useOnClickOutside(menuRef, handleClose);
+  useOnClickOutside(menuRef, handleClose);
 
   return (
     <SettingsMenuInner ref={menuRef} open={isOpen}>
