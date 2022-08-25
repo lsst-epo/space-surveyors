@@ -8,6 +8,7 @@ import Button from "@components/Button";
 export const SettingsMenuOuter = styled.div.attrs(({ open }) => ({
   style: {
     backgroundColor: open ? "rgba(0, 0, 0, 0.5)" : "rgba(0,0,0,0)",
+    pointerEvents: open ? "auto" : "none",
   },
 }))`
   ${fullScreenAbsolute}

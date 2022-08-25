@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import useResizeObserver from "use-resize-observer";
 import styled from "styled-components";
 import PropTypes from "prop-types";
@@ -71,34 +71,24 @@ const SummaryMenu = ({
   engine,
   boundingRect,
   aspectRatio,
+  isOpen,
+  menu,
 }) => {
   const { ref, width } = useResizeObserver();
-  const [menuOpen, setMenuOpen] = useState(null);
   const scoreSum = sum(Object.values(score));
 
-  useEffect(() => {
-    if (menuOpen === null) {
-      const timer = setTimeout(() => setMenuOpen(true), MENU_TRANSITION_TIME);
-      return () => clearTimeout(timer);
-    }
-
-    if (menuOpen === false) {
-      const timer = setTimeout(
-        () => onMenuClose("summary"),
-        MENU_TRANSITION_TIME
-      );
-      return () => clearTimeout(timer);
-    }
-  }, [menuOpen]);
-
   const handleGameRestart = () => {
-    setMenuOpen(false);
     engine.current.swap(Entities(boundingRect, aspectRatio));
-    engine.current.dispatch({ type: "gameStart" });
-    engine.current.dispatch({ type: "scoreUpdate", payload: Score() });
+    onMenuClose(menu);
+
+    const timer = setTimeout(() => {
+      engine.current.dispatch({ type: "gameStart" });
+      engine.current.dispatch({ type: "scoreUpdate", payload: Score() });
+    }, MENU_TRANSITION_TIME);
+    return () => clearTimeout(timer);
   };
   return (
-    <SummaryMenuWrapper open={menuOpen} ref={ref}>
+    <SummaryMenuWrapper open={isOpen} ref={ref}>
       <SummaryMenuResponsive>
         <SummaryTitle>Congratulations!</SummaryTitle>
         <ScoreSummary $width={width}>

@@ -1,6 +1,4 @@
 import React, { useRef, useState } from "react";
-import { useOnClickOutside, useKeyDownEvent } from "../../../hooks/listeners";
-import useFocusTrap from "../../../hooks/useFocusTrap";
 import Button from "@components/Button";
 import {
   SubmenuHeader,
