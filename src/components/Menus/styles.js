@@ -23,4 +23,19 @@ export const MenuWrapper = styled.div.attrs(({ open }) => ({
   transition-delay: ${MENU_SLIDE_DELAY}ms;
 `;
 
-export default MenuWrapper;
+export const MenuResponsive = styled.div`
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  width: 800px;
+  max-width: 100%;
+`;
+
+export const MenuTitle = styled.h1`
+  font-size: 3em;
+  font-style: italic;
+`;
+
+export const MenuSubtitle = styled.h2`
+  font-size: 2em;
+`;

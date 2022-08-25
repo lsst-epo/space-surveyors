@@ -9,7 +9,7 @@ const timeline: GameSystem = (entities, { time, input, dispatch }) => {
   const { stage } = state;
   const { timedEvents } = timer;
 
-  if (stage !== "menu") {
+  if (stage !== "paused") {
     if (stage === "running") {
       timer.timeRemaining = Math.max(
         0,
@@ -20,7 +20,7 @@ const timeline: GameSystem = (entities, { time, input, dispatch }) => {
     if (stage === "finished") {
       const mouseDown = input.find((x) => x.name === "onClick");
       if (mouseDown) {
-        state.stage = "menu";
+        state.stage = "paused";
         dispatch({ type: "quit" });
       }
     }
@@ -96,4 +96,4 @@ const onTimelineEvent: GameSystem = (entities, { events, time }) => {
   return entities;
 };
 
-export { timeline, onTimelineEvent };
+export default [timeline, onTimelineEvent];

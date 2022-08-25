@@ -1,23 +1,24 @@
 import { GameAudio, GameSystem } from "@shapes/index";
 
-const pauseAudio = (audio: GameAudio, savedAudio: string[]) => {
-  Object.keys(audio).forEach((key) => {
-    if (audio[key].playing()) {
-      savedAudio.push(key);
-      audio[key].pause();
-    }
+const pauseAudio = (audio: GameAudio) => {
+  Object.keys(audio.instances).forEach((group) => {
+    console.log(group);
+    audio[group].pause();
   });
 };
 
-const resumeAudio = (audio: GameAudio, savedAudio: string[]) => {
-  savedAudio.forEach((key) => {
-    if (audio[key] && !audio[key].playing()) {
-      audio[key].play();
-    }
+const resumeAudio = (audio: GameAudio) => {
+  Object.keys(audio.instances).forEach((group) => {
+    Object.keys(audio.instances[group]).forEach((sprite) => {
+      const id = audio.instances[group][sprite];
+      if (id) {
+        audio[group].play(id);
+      }
+    });
   });
 };
 
-const handlePause: GameSystem = (entities, { events, dispatch, time }) => {
+const handlePause: GameSystem = (entities, { events, time }) => {
   const pause = events.find((e) => e.type === "pause");
   const { state } = entities;
 
@@ -34,36 +35,37 @@ const handlePause: GameSystem = (entities, { events, dispatch, time }) => {
     camera.paused = true;
 
     // pause all audio and record what audio was playing
-    pauseAudio(audio, pauseState.audio);
+    pauseAudio(audio);
 
     // get the time the pause started
     pauseState.timestamp = current;
 
     // get all the events apart from pausing that were running before pause
     pauseState.events = events.filter(
-      (event) =>
-        event.type !== "stop" &&
-        event.type !== "stopped" &&
-        event.type !== "pause"
+      (event) => event.type !== "stopped" && event.type !== "pause"
     );
-
-    dispatch({ type: "stop" });
   }
 
   return entities;
 };
 
 const handleResume: GameSystem = (entities, { events, time, dispatch }) => {
-  const event = events.find((e) => e.type === "started");
+  const event = events.find((e) => e.type === "unpause");
   const { state } = entities;
+  const { pauseState } = state;
+  const { lastStage } = pauseState;
 
-  if (event && state.stage === "paused") {
+  if (
+    event &&
+    state.stage === "paused" &&
+    lastStage &&
+    lastStage !== "paused"
+  ) {
     const { audio, camera } = entities;
     const { current } = time;
-    const { pauseState } = state;
 
     // restore running or warmup status
-    state.stage = pauseState.lastStage;
+    state.stage = lastStage;
 
     // time elapsed on previous pause
     const timeElapsed = current - pauseState.timestamp;
@@ -76,8 +78,7 @@ const handleResume: GameSystem = (entities, { events, time, dispatch }) => {
     camera.paused = false;
 
     // resume all audio that was previously playing
-    resumeAudio(audio, pauseState.audio);
-    pauseState.audio = [];
+    resumeAudio(audio);
 
     // add to the total time paused
     state.timePaused += timeElapsed;
@@ -89,4 +90,4 @@ const handleResume: GameSystem = (entities, { events, time, dispatch }) => {
   return entities;
 };
 
-export { handlePause, handleResume };
+export default [handlePause, handleResume];

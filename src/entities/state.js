@@ -5,9 +5,8 @@ export default (boundingRect, aspectRatio) => {
   const timerStart = null;
   const endTime = null;
   const timePaused = 0;
-  const stage = "menu";
+  const stage = "paused";
   const pauseState = {
-    audio: [],
     events: [],
     lastStage: null,
     timestamp: null,

@@ -45,7 +45,7 @@ const CameraRenderer = ({
         ))}
       <FocalPlaneContainer {...{ x, y, size }}>
         {exposureRemaining && (
-          <AnimatedExposure {...{ size, $pause: paused }} />
+          <AnimatedExposure {...{ size, $pause: paused || showEndgame }} />
         )}
         <ExposureText
           ref={ref}

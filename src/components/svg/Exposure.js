@@ -26,7 +26,7 @@ const Exposure = styled(SVG).attrs(({ x = 0, y = 0, size, $pause }) => ({
     left: `${x}%`,
     top: `${y}%`,
     width: `${size}%`,
-    ...($pause && { opacity: 1 }),
+    animationFillMode: $pause ? "none" : "forwards",
   },
   src: ExposureSVG,
 }))`
@@ -34,12 +34,14 @@ const Exposure = styled(SVG).attrs(({ x = 0, y = 0, size, $pause }) => ({
   pointer-events: none;
   transform: translate(-50%, -50%);
   transition: opacity 500ms;
-  animation: ${fadeExposure} ${EXPOSURE_TIME * 3}ms forwards;
+  opacity: 1;
+  animation: ${fadeExposure} ${EXPOSURE_TIME * 3}ms;
   aspect-ratio: 1/1;
 `;
 
 const AnimatedExposure = styled(Exposure).attrs(({ $pause }) => ({
   style: {
+    animationFillMode: "forwards",
     animationPlayState: $pause ? "paused" : "running",
   },
 }))`

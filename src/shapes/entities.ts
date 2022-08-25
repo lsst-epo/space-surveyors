@@ -6,7 +6,7 @@ import { DynamicObject } from "@modules/DynamicObject";
 import { SkyObjectType } from "./objects";
 import { GameEvent } from "./event";
 
-type GameStage = "menu" | "warmup" | "running" | "finished" | "paused";
+type GameStage = "warmup" | "running" | "finished" | "paused";
 
 interface GameState {
   aspectRatio: number;
@@ -18,7 +18,6 @@ interface GameState {
   stage: GameStage;
   lastScore: any;
   pauseState: {
-    audio: string[];
     timestamp: number;
     lastStage: GameStage;
     events: GameEvent[];
@@ -43,7 +42,12 @@ interface SkyObjects {
 }
 
 interface GameAudio {
-  [key: string]: Howl;
+  music: Howl;
+  effects: Howl;
+  instances: {
+    music: { [key: string]: number };
+    effects: { [key: string]: number };
+  };
 }
 
 interface GameEntities {
