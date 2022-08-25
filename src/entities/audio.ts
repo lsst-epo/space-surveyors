@@ -1,6 +1,8 @@
 import { Howl } from "howler";
 import effectsMp3 from "@assets/audio/effects.mp3";
 import effectsWebm from "@assets/audio/effects.webm";
+import musicMp3 from "@assets/audio/space_surveyors_music.mp3";
+import musicWebm from "@assets/audio/space_surveyors_music.webm";
 
 export default () => {
   ["music", "effects"].forEach((item) => {
@@ -13,7 +15,7 @@ export default () => {
   const effectsMuted = localStorage.getItem("effects") === "false";
 
   const music = new Howl({
-    src: "https://storage.googleapis.com/space-surveyors/Space%20Surveyors.mp3",
+    src: [musicMp3, musicWebm],
     sprite: {
       background: [0, 60660],
       ambient: [60660, 11340],
