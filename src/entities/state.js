@@ -2,15 +2,9 @@ import { FIRST_SPAWN } from "@constants/index";
 
 export default (boundingRect, aspectRatio) => {
   const gameStart = null;
-  const timerStart = null;
+  const startTime = null;
   const endTime = null;
-  const timePaused = 0;
-  const stage = "paused";
-  const pauseState = {
-    events: [],
-    lastStage: null,
-    timestamp: null,
-  };
+  const stage = "menu";
   const nextSpawn = { ...FIRST_SPAWN };
   const lastScore = 0;
 
@@ -19,11 +13,9 @@ export default (boundingRect, aspectRatio) => {
     aspectRatio,
     boundingRect,
     gameStart,
-    timerStart,
+    startTime,
     endTime,
     stage,
     lastScore,
-    pauseState,
-    timePaused,
   };
 };

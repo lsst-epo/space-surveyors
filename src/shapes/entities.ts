@@ -1,27 +1,20 @@
-import { System } from "detect-collisions";
-import { Howl } from "howler";
-import { SkyObject } from "@modules/SkyObject/";
-import { TimedSkyObject } from "@modules/TimedSkyObject";
-import { DynamicObject } from "@modules/DynamicObject";
-import { SkyObjectType } from "./objects";
-import { GameEvent } from "./event";
+import { System } from 'detect-collisions';
+import { Howl } from 'howler';
+import { SkyObject } from '@modules/SkyObject/';
+import { TimedSkyObject } from '@modules/TimedSkyObject';
+import { DynamicObject } from '@modules/DynamicObject';
+import { SkyObjectType } from './objects';
 
-type GameStage = "warmup" | "running" | "finished" | "paused";
+type GameStage = 'menu' | 'warmup' | 'running' | 'finished';
 
 interface GameState {
   aspectRatio: number;
   boundingRect: DOMRectReadOnly;
   gameStart: number;
-  timerStart: number;
+  startTime: number;
   endTime: number;
-  timePaused: number;
   stage: GameStage;
   lastScore: any;
-  pauseState: {
-    timestamp: number;
-    lastStage: GameStage;
-    events: GameEvent[];
-  };
   nextSpawn: { [Key in SkyObjectType]: number };
 }
 
@@ -42,12 +35,7 @@ interface SkyObjects {
 }
 
 interface GameAudio {
-  music: Howl;
-  effects: Howl;
-  instances: {
-    music: { [key: string]: number };
-    effects: { [key: string]: number };
-  };
+  [key: string]: Howl;
 }
 
 interface GameEntities {

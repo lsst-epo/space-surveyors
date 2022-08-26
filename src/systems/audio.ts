@@ -1,89 +1,63 @@
-import { Howler } from "howler";
-import { GameSystem } from "@shapes/system";
-import { GameAudio } from "@shapes/entities";
+import { GameAudio } from '@shapes/entities';
+import { GameSystem } from '@shapes/system';
 
-const onAudioChange: GameSystem = (entities, { events }) => {
-  const event = events.find((e) => e.type === "mute" || e.type === "unmute");
-
-  if (event) {
-    const { audio } = entities;
-    const { payload: track } = event;
-
-    if (audio[track]) {
-      const muted = event.type === "mute";
-      audio[track].mute(muted);
-    }
-  }
-
-  return entities;
+const stopAllAudio = (audio: GameAudio) => {
+  Object.keys(audio).forEach((key) => {
+    audio[key].stop();
+  });
 };
-
-const stop = (audio: GameAudio, group: "music" | "effects", sprite: string) => {
-  audio[group].stop(audio.instances[group][sprite]);
-};
-
-const play = (audio: GameAudio, group: "music" | "effects", sprite: string) => {
-  audio.instances[group][sprite] = audio[group].play(sprite);
-};
-
-const playing = (
-  audio: GameAudio,
-  group: "music" | "effects",
-  sprite: string
-) => audio[group].playing(audio.instances[group][sprite]);
 
 const audioHandler: GameSystem = (entities, { events }) => {
   const event = events.find(
     (e) =>
-      e.type === "gameStart" ||
-      e.type === "timeStart" ||
-      e.type === "timeEnd" ||
-      e.type === "cameraExposing" ||
-      e.type === "scoreUpdate" ||
-      e.type === "cameraExposureEnd" ||
-      e.type === "cameraMoving" ||
-      e.type === "quit" ||
-      e.type === "swapped" ||
-      e.type === "pause"
+      e.type === 'gameStart' ||
+      e.type === 'timeStart' ||
+      e.type === 'timeEnd' ||
+      e.type === 'cameraExposing' ||
+      e.type === 'scoreUpdate' ||
+      e.type === 'cameraExposureEnd' ||
+      e.type === 'cameraMoving' ||
+      e.type === 'quit' ||
+      e.type === 'swapped'
   );
 
-  if (event && event.type !== "pause") {
+  if (event) {
     const { audio } = entities;
 
     switch (event.type) {
-      case "gameStart":
-        play(audio, "effects", "countdown");
+      case 'gameStart':
+        audio.countdown.play();
         break;
-      case "timeStart":
-        play(audio, "music", "background");
+      case 'timeStart':
+        audio.soundtrack.play('background');
         break;
-      case "timeEnd":
-        stop(audio, "effects", "moving");
+      case 'timeEnd':
+        audio.moving.stop();
         break;
-      case "cameraExposing":
+      case 'cameraExposing':
         if (event.payload.isFirstExposure) {
-          stop(audio, "effects", "moving");
-          play(audio, "effects", "exposure");
+          audio.moving.stop();
+          audio.exposure.play();
         }
         break;
-      case "cameraExposureEnd":
+      case 'cameraExposureEnd':
         if (event.payload.failedCapture) {
-          play(audio, "effects", "failedCapture");
+          audio.failedCapture.play();
         } else {
-          play(audio, "effects", "capture");
+          audio.capture.play();
         }
         break;
-      case "cameraMoving":
-        if (!playing(audio, "effects", "moving")) {
-          play(audio, "effects", "moving");
+      case 'cameraMoving':
+        if (!audio.moving.playing()) {
+          audio.moving.play();
         }
         break;
-      case "quit":
-        Howler.stop();
-        play(audio, "music", "ambient");
+      case 'quit':
+        stopAllAudio(audio);
+        audio.soundtrack.play('ambient');
         break;
-      case "swapped":
-        Howler.stop();
+      case 'swapped':
+        stopAllAudio(audio);
         break;
       default:
         break;
@@ -93,4 +67,4 @@ const audioHandler: GameSystem = (entities, { events }) => {
   return entities;
 };
 
-export default [audioHandler, onAudioChange];
+export { audioHandler };

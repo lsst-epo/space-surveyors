@@ -39,7 +39,6 @@ export default defineConfig({
       "@constants": resolve(__dirname, "./src/constants"),
       "@contexts": resolve(__dirname, "./src/contexts"),
       "@entities": resolve(__dirname, "./src/entities"),
-      "@hooks": resolve(__dirname, "./src/hooks"),
       "@modules": resolve(__dirname, "./src/modules"),
       "@shapes": resolve(__dirname, "./src/shapes"),
       "@styles": resolve(__dirname, "./src/styles"),

@@ -1,6 +1,6 @@
 {
   "name": "space-surveyors",
-  "version": "0.9.1-beta",
+  "version": "0.8.4-beta",
   "author": "Rubin EPO",
   "license": "MIT",
   "homepage": "https://lsst-epo.github.io/space-surveyors",
@@ -33,7 +33,6 @@
   "dependencies": {
     "copy-to-clipboard": "^3.3.2",
     "detect-collisions": "6.0.2",
-    "focus-trap": "^7.0.0",
     "howler": "^2.2.3",
     "prop-types": "^15.8.1",
     "random-js-no-node": "^2.1.0-b",
