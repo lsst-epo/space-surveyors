@@ -20,8 +20,8 @@ const WorldDebug = ({ occlusions, system }) => {
     ctx.strokeStyle = "#FFFFFF";
     ctx.beginPath();
 
-    occlusions.draw(ctx);
     system.draw(ctx);
+    occlusions.draw(ctx);
 
     ctx.scale(1, 1);
     ctx.stroke();
@@ -30,6 +30,8 @@ const WorldDebug = ({ occlusions, system }) => {
   useEffect(() => {
     const canvas = canvasRef.current;
     const context = canvas.getContext("2d");
+    context.canvas.width = 200;
+    context.canvas.height = 200;
     draw(context);
   }, [draw]);
 
