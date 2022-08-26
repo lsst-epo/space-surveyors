@@ -36,7 +36,6 @@ export default (aspectRatio) => {
     FocalPlaneBounding(size, size * aspectRatio),
     { center: true, isTrigger: true }
   );
-  const paused = false;
 
   const properties = {
     showEndgame,
@@ -49,7 +48,6 @@ export default (aspectRatio) => {
     exposureRemaining,
     physics,
     size,
-    paused,
   };
 
   return {

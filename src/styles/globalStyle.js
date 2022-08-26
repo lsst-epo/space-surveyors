@@ -72,7 +72,6 @@ export const zStack = {
   timer: 50,
   game: 75,
   hud: 100,
-  settingsButton: 150,
   menu: 200,
 };
 

@@ -34,7 +34,6 @@
       "@components/*": ["src/components/*"],
       "@constants/*": ["src/constants/*"],
       "@contexts/*": ["src/contexts/*"],
-      "@hooks/*": ["src/hooks/*"],
       "@entities/*": ["src/entities/*"],
       "@modules/*": ["src/modules/*"],
       "@shapes/*": ["src/shapes/*"],

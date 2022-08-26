@@ -1,7 +1,7 @@
-import React from "react";
-import styled from "styled-components";
-import FocalPlane from "@components/svg/FocalPlane";
-import IconComposer from "@components/svg/IconComposer";
+import React from 'react';
+import styled from 'styled-components';
+import FocalPlane from '@components/svg/FocalPlane';
+import IconComposer from '@components/svg/IconComposer';
 
 const StyledFocalPlane = styled.svg.attrs(({ x, y, size }) => ({
   style: {

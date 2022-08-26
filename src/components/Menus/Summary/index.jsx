@@ -1,24 +1,27 @@
-import React from "react";
-import useResizeObserver from "use-resize-observer";
-import styled from "styled-components";
-import PropTypes from "prop-types";
-import { BREAK_TABLET_MIN, getRawPx } from "@styles/globalStyle";
-import BaseMenu from "@components/Menus/BaseMenu";
-import Button from "@components/Button";
-import { MENU_TRANSITION_TIME } from "@constants/index";
-import ScoreList from "@components/ScoreList";
-import { sum } from "../../../utils";
-import ShareScoreButton from "@components/ShareScoreButton";
-import { MenuResponsive, MenuWrapper } from "../styles";
-import Entities from "@entities/index";
-import Score from "@entities/score";
+import React, { useState, useEffect } from 'react';
+import useResizeObserver from 'use-resize-observer';
+import styled from 'styled-components';
+import PropTypes from 'prop-types';
+import { BREAK_TABLET_MIN, getRawPx } from '@styles/globalStyle';
+import BaseMenu from '@components/Menus/BaseMenu';
+import Button from '@components/Button';
+import { MENU_TRANSITION_TIME } from '@constants/index';
+import ScoreList from '@components/ScoreList';
+import { sum } from '../../../utils';
+import ShareScoreButton from '@components/ShareScoreButton';
 
-const SummaryMenuWrapper = styled(MenuWrapper)`
+const SummaryMenuContainer = styled(BaseMenu)`
   justify-content: center;
   color: var(--yellow);
 `;
 
-const SummaryMenuResponsive = styled(MenuResponsive)`
+const SummaryMenuResponsive = styled.div`
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  width: 800px;
+  max-width: 100%;
+
   & > * + * {
     margin-top: 2em;
   }
@@ -33,7 +36,7 @@ const ScoreSummary = styled.div`
   display: flex;
   align-items: center;
   ${({ $width }) =>
-    $width < getRawPx(BREAK_TABLET_MIN) ? "flex-direction: column" : ""};
+    $width < getRawPx(BREAK_TABLET_MIN) ? 'flex-direction: column' : ''};
   font-size: 2em;
   line-height: 1;
   font-weight: bold;
@@ -51,8 +54,8 @@ const ScaledScoreList = styled(ScoreList)`
 
   ${({ $width }) =>
     $width < getRawPx(BREAK_TABLET_MIN)
-      ? "& > li {justify-content: center}"
-      : ""};
+      ? '& > li {justify-content: center}'
+      : ''};
 `;
 
 const ButtonContainer = styled.div`
@@ -65,30 +68,20 @@ const LinkContainer = styled(ButtonContainer)`
   color: var(--offWhite);
 `;
 
-const SummaryMenu = ({
-  onMenuClose,
-  score,
-  engine,
-  boundingRect,
-  aspectRatio,
-  isOpen,
-  menu,
-}) => {
+const SummaryMenu = ({ onMenuAction, score }) => {
   const { ref, width } = useResizeObserver();
+  const [showMenu, setMenu] = useState(false);
   const scoreSum = sum(Object.values(score));
 
-  const handleGameRestart = () => {
-    engine.current.swap(Entities(boundingRect, aspectRatio));
-    onMenuClose(menu);
+  useEffect(() => {
+    const timer = setTimeout(() => setMenu(true), MENU_TRANSITION_TIME);
+  }, []);
 
-    const timer = setTimeout(() => {
-      engine.current.dispatch({ type: "gameStart" });
-      engine.current.dispatch({ type: "scoreUpdate", payload: Score() });
-    }, MENU_TRANSITION_TIME);
-    return () => clearTimeout(timer);
+  const handleGameRestart = () => {
+    onMenuAction('restart');
   };
   return (
-    <SummaryMenuWrapper open={isOpen} ref={ref}>
+    <SummaryMenuContainer {...{ showMenu }} ref={ref}>
       <SummaryMenuResponsive>
         <SummaryTitle>Congratulations!</SummaryTitle>
         <ScoreSummary $width={width}>
@@ -104,11 +97,12 @@ const SummaryMenu = ({
         <a>Visit the Solar System on the Orbit Viewer</a>
       </LinkContainer> */}
       </SummaryMenuResponsive>
-    </SummaryMenuWrapper>
+    </SummaryMenuContainer>
   );
 };
 
 SummaryMenu.propTypes = {
+  onMenuAction: PropTypes.func,
   score: PropTypes.object,
 };
 

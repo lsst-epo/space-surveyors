@@ -1,33 +1,34 @@
-import React from "react";
-import PropTypes from "prop-types";
-import SVG from "react-inlinesvg";
-import icons from "../index";
+import React from 'react';
+import PropTypes from 'prop-types';
+import SVG from 'react-inlinesvg';
+import icons from '../index';
 
 const IconComposer = (props) => {
   const {
     children,
     className,
-    fill = "currentColor",
+    size,
+    fill,
     stroke,
     icon,
     color,
     width,
     height,
     style,
-    size,
   } = props;
-  const IconComponent = props.renderAsImg ? "img" : SVG;
+  const IconComponent = props.renderAsImg ? 'img' : SVG;
 
   return (
     <IconComponent
       src={icons[icon]}
       {...{
         className,
+        size,
         fill,
         stroke,
         color,
-        width: width || size,
-        height: height || size,
+        width,
+        height,
         style,
         children,
       }}
