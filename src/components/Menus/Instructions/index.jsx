@@ -10,8 +10,8 @@ import { GAME_DURATION, MENU_TRANSITION_TIME } from "@constants/index";
 import { convertMsToTime } from "../../../utils";
 import fundingLogos from "@assets/image/funding.png";
 import rubinLogo from "@assets/image/rubin_over_black.png";
-import MovementVisual from "@components/Menus/Landing/visuals/MovementVisual";
-import OcclusionVisual from "@components/Menus/Landing/visuals/OcclusionVisual";
+import MovementVisual from "@components/Menus/Instructions/visuals/MovementVisual";
+import OcclusionVisual from "@components/Menus/Instructions/visuals/OcclusionVisual";
 
 const TitleBar = styled.div`
   display: flex;
@@ -74,7 +74,7 @@ const icons = {
   asteroid: "Asteroids",
 };
 
-const LandingMenu = ({ onMenuClose, engine, menu, isOpen }) => {
+const InstructionsMenu = ({ onMenuClose, engine, menu, isOpen }) => {
   const { setMenus, openMenus } = useContext(MenuContext) || {};
 
   const handleGameStart = () => {
@@ -138,7 +138,7 @@ const LandingMenu = ({ onMenuClose, engine, menu, isOpen }) => {
           >
             Settings
           </Button>
-          <Button onClick={handleGameStart}>Start</Button>
+          <Button onClick={handleGameStart}>Play</Button>
         </ButtonContainer>
         <FundingLogos src={fundingLogos} />
       </MenuResponsive>
@@ -146,6 +146,4 @@ const LandingMenu = ({ onMenuClose, engine, menu, isOpen }) => {
   );
 };
 
-LandingMenu.propTypes = {};
-
-export default LandingMenu;
+export default InstructionsMenu;

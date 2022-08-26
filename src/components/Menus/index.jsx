@@ -1,18 +1,20 @@
 import React, { useContext } from "react";
-import LandingMenu from "@components/Menus/Landing";
+import InstructionsMenu from "@components/Menus/Instructions";
 import SummaryMenu from "@components/Menus/Summary";
 import FinishedScreen from "@components/Menus/Finish";
 import SettingsMenu from "@components/Menus/Settings";
+import IntroScreen from "@components/Menus/Intro";
 import MenuContext from "@contexts/menus";
 
 const Menus = {
-  landing: LandingMenu,
+  instructions: InstructionsMenu,
   summary: SummaryMenu,
   finished: FinishedScreen,
   settings: SettingsMenu,
+  intro: IntroScreen,
 };
 
-const GameMenus = ({ engine, score, boundingRect, aspectRatio }) => {
+const GameMenus = ({ engine, score }) => {
   const { setMenus, openMenus } = useContext(MenuContext) || {};
 
   const handleMenuClose = (closedMenu) => {
@@ -34,7 +36,7 @@ const GameMenus = ({ engine, score, boundingRect, aspectRatio }) => {
         onMenuClose={handleMenuClose}
         onMenuOpen={handleMenuOpen}
         isOpen={openMenus.includes(menu)}
-        {...{ score, aspectRatio, boundingRect, engine, menu }}
+        {...{ score, engine, menu }}
       />
     );
   });
