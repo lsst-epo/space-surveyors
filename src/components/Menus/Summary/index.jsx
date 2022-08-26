@@ -21,7 +21,7 @@ import DimensionsContext from "@contexts/dimensions";
 
 const SummaryMenu = ({ onMenuClose, score, engine, isOpen, menu }) => {
   const { dimensions } = useContext(DimensionsContext);
-  const { aspectRatio } = dimensions;
+  const { aspectRatio, boundingRect } = dimensions;
   const { ref, width } = useResizeObserver();
   const scoreSum = sum(Object.values(score));
 
