@@ -1,5 +1,5 @@
-import { System } from 'detect-collisions';
-// import WorldDebug from '@components/WorldDebug';
+import { System } from "detect-collisions";
+import WorldDebug from "@components/WorldDebug";
 
 export default () => {
   const system = new System();
@@ -8,6 +8,6 @@ export default () => {
   return {
     system,
     occlusions,
-    // renderer: <WorldDebug occlusions />,
+    renderer: <WorldDebug {...{ system, occlusions }} />,
   };
 };

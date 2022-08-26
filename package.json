@@ -46,7 +46,7 @@
     "@vitejs/plugin-react": "^2.0.1",
     "babel-plugin-styled-components": "^2.0.7",
     "copy-to-clipboard": "^3.3.2",
-    "detect-collisions": "6.0.2",
+    "detect-collisions": "^6.4.1",
     "focus-trap": "^7.0.0",
     "gh-pages": "^4.0.0",
     "howler": "^2.2.3",

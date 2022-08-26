@@ -33,9 +33,12 @@ export default (aspectRatio) => {
   const exposureRemaining = null;
   const physics = new Polygon(
     { x: 50 - offset, y: 50 - offset },
-    FocalPlaneBounding(size, size * aspectRatio),
+    FocalPlaneBounding,
     { center: true, isTrigger: true }
   );
+
+  physics.setScale(size, size * aspectRatio);
+
   const paused = false;
 
   const properties = {
