@@ -1,4 +1,4 @@
-import { GameSystem, GameState, SkyObjectType } from '@shapes/index';
+import { GameSystem, GameState, SkyObjectType } from "@shapes/index";
 import {
   FADE_TIME,
   MAX_DYNAMIC_OBJECTS,
@@ -6,11 +6,15 @@ import {
   MAX_TIMED_OBJECTS,
   SPAWN_INTERVAL,
   WEIGHTS_SPAWN,
-} from '@constants/index';
-import { getRandomInt, getRandomWeightedValue } from '../utils';
-import { System } from 'detect-collisions';
-import { TimedSkyObject } from '@modules/TimedSkyObject';
-import { DynamicObject } from '@modules/DynamicObject';
+} from "@constants/index";
+import {
+  getRandomInt,
+  getRandomWeightedValue,
+  timeFromTimerStart,
+} from "../utils";
+import { System } from "detect-collisions";
+import { TimedSkyObject } from "@modules/TimedSkyObject";
+import { DynamicObject } from "@modules/DynamicObject";
 
 const spawnObject = (
   type: SkyObjectType,
@@ -32,7 +36,7 @@ const spawnObject = (
     const { aspectRatio } = state;
 
     let newObject =
-      type === 'supernova'
+      type === "supernova"
         ? new TimedSkyObject(type, timestamp, aspectRatio)
         : new DynamicObject(type, aspectRatio);
     objects.push(newObject);
@@ -57,7 +61,7 @@ const prepareExpiringObjects = (
   return object;
 };
 
-export const cullSkyObjects: GameSystem = (entities, { time }) => {
+const cullSkyObjects: GameSystem = (entities, { time }) => {
   const { current } = time;
   const { skyObjects, world } = entities;
 
@@ -79,19 +83,19 @@ export const cullSkyObjects: GameSystem = (entities, { time }) => {
   return entities;
 };
 
-export const spawnObjects: GameSystem = (entities, { dispatch, time }) => {
+const spawnObjects: GameSystem = (entities, { dispatch, time }) => {
   const { current } = time;
   const { skyObjects, world, state } = entities;
-  const { stage, nextSpawn, startTime } = state;
+  const { stage, nextSpawn } = state;
   const { system, occlusions } = world;
   const { occludingObjects, timedObjects, movingObjects } = skyObjects;
 
   const objectTypes = {
-    cloud: 'occlusion',
-    airplane: 'occlusion',
-    supernova: 'timedObject',
-    asteroid: 'dynamicObject',
-    comet: 'dynamicObject',
+    cloud: "occlusion",
+    airplane: "occlusion",
+    supernova: "timedObject",
+    asteroid: "dynamicObject",
+    comet: "dynamicObject",
   };
 
   const objects = {
@@ -107,14 +111,14 @@ export const spawnObjects: GameSystem = (entities, { dispatch, time }) => {
   };
 
   const event = {
-    occlusion: 'spawnedOcclusion',
-    timedObject: 'spawnedObject',
-    dynamicObject: 'spawnedObject',
+    occlusion: "spawnedOcclusion",
+    timedObject: "spawnedObject",
+    dynamicObject: "spawnedObject",
   };
 
-  if (stage === 'running') {
+  if (stage === "running") {
     Object.keys(nextSpawn).forEach((group) => {
-      if (nextSpawn[group] < current - startTime) {
+      if (nextSpawn[group] < timeFromTimerStart(current, state)) {
         const weights = WEIGHTS_SPAWN[group];
         const object = getRandomWeightedValue(weights) as SkyObjectType;
         const objectType = objectTypes[object];
@@ -133,3 +137,5 @@ export const spawnObjects: GameSystem = (entities, { dispatch, time }) => {
 
   return entities;
 };
+
+export default [spawnObjects, cullSkyObjects];

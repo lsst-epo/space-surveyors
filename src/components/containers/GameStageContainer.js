@@ -1,8 +1,8 @@
-import React from 'react';
-import styled from 'styled-components';
-import { zStack } from '@styles/globalStyle';
+import React from "react";
+import styled from "styled-components";
+import { zStack } from "@styles/globalStyle";
 
-export const GameStageContainer = styled.div.attrs(({ aspectRatio }) => ({
+const GameStageContainer = styled.div.attrs(({ aspectRatio }) => ({
   style: {
     aspectRatio,
   },
@@ -12,3 +12,5 @@ export const GameStageContainer = styled.div.attrs(({ aspectRatio }) => ({
   position: relative;
   z-index: ${zStack.game};
 `;
+
+export default GameStageContainer;
