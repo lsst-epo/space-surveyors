@@ -1,5 +1,5 @@
-import React, { useRef, useEffect } from 'react';
-import styled from 'styled-components';
+import React, { useRef, useEffect } from "react";
+import styled from "styled-components";
 
 const WorldCanvas = styled.canvas`
   background: rgba(0, 0, 0, 0.5);
@@ -12,16 +12,16 @@ const WorldCanvas = styled.canvas`
   z-index: 1000;
 `;
 
-const WorldDebug = ({ occlusions }) => {
+const WorldDebug = ({ occlusions, system }) => {
   const canvasRef = useRef(null);
 
   const draw = (ctx) => {
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    ctx.strokeStyle = '#FFFFFF';
+    ctx.strokeStyle = "#FFFFFF";
     ctx.beginPath();
 
     occlusions.draw(ctx);
-    // system.drawBVH(ctx);
+    system.draw(ctx);
 
     ctx.scale(1, 1);
     ctx.stroke();
@@ -29,7 +29,7 @@ const WorldDebug = ({ occlusions }) => {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
+    const context = canvas.getContext("2d");
     draw(context);
   }, [draw]);
 
