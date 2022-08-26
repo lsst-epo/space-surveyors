@@ -14,13 +14,16 @@ import HUD from "@components/HUD/hud";
 import Dome from "@components/HUD/dome";
 import SettingsButton from "@components/SettingsButton";
 import { MenuProvider } from "@contexts/menus";
+import { DimensionsProvider } from "@contexts/dimensions";
 
 const SpaceSurveyors = () => {
   const initialDimensions = {
     boundingRect: null,
     aspectRatio: null,
+    fullWidth: null,
+    fullHeight: null,
   };
-  const [openMenus, setMenus] = useState(["landing"]);
+  const [openMenus, setMenus] = useState(["intro"]);
   const [score, setScore] = useState(Score());
   const [dimensions, setDimensions] = useState(initialDimensions);
   const engine = useRef();
@@ -33,13 +36,12 @@ const SpaceSurveyors = () => {
   };
 
   const handleOuterResize = ({ width, height }) => {
-    const { aspectRatio } = dimensions;
-    if (!aspectRatio) {
-      setDimensions({
-        ...dimensions,
-        aspectRatio: getAspectRatio(width / (height * GAME_FIELD_SIZE)),
-      });
-    }
+    setDimensions({
+      ...dimensions,
+      aspectRatio: getAspectRatio(width / (height * GAME_FIELD_SIZE)),
+      fullWidth: width,
+      fullHeight: height,
+    });
   };
 
   const {
@@ -79,33 +81,33 @@ const SpaceSurveyors = () => {
       className="space-surveyors-container"
       ref={outerResizeRef}
     >
-      <MenuProvider value={{ setMenus, openMenus }}>
-        <GameMenus
-          {...{
-            score,
-            aspectRatio,
-            boundingRect,
-            engine,
-          }}
-        />
-        {aspectRatio && (
-          <GameStageContainer ref={resizeRef} aspectRatio={aspectRatio}>
-            {boundingRect && (
-              <GameEngine
-                style={{ width: "100%", height: "100%", overflow: "hidden" }}
-                ref={engine}
-                entities={Entities(boundingRect, aspectRatio)}
-                systems={Systems}
-                onEvent={handleEvent}
-              ></GameEngine>
-            )}
-            <Dome $left />
-            <Dome />
-            <SettingsButton />
-          </GameStageContainer>
-        )}
-        <HUD score={score} />
-      </MenuProvider>
+      <DimensionsProvider value={{ setDimensions, dimensions }}>
+        <MenuProvider value={{ setMenus, openMenus }}>
+          <GameMenus
+            {...{
+              score,
+              engine,
+            }}
+          />
+          {aspectRatio && (
+            <GameStageContainer ref={resizeRef} aspectRatio={aspectRatio}>
+              {boundingRect && (
+                <GameEngine
+                  style={{ width: "100%", height: "100%", overflow: "hidden" }}
+                  ref={engine}
+                  entities={Entities(boundingRect, aspectRatio)}
+                  systems={Systems}
+                  onEvent={handleEvent}
+                ></GameEngine>
+              )}
+              <Dome $left />
+              <Dome />
+              <SettingsButton />
+            </GameStageContainer>
+          )}
+          <HUD score={score} />
+        </MenuProvider>
+      </DimensionsProvider>
     </SpaceSurveyorsContainer>
   );
 };
