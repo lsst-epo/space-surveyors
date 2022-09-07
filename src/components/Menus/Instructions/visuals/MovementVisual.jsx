@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
-import CameraTarget from '@components/Camera/Target';
-import FocalPlane from '@components/svg/FocalPlane';
-import NightSkyVisual from '@components/Menus/Landing/visuals/NightSkyVisual';
+import React, { useState, useEffect } from "react";
+import styled from "styled-components";
+import CameraTarget from "@components/Camera/Target";
+import FocalPlane from "@components/svg/FocalPlane";
+import NightSkyVisual from "./NightSkyVisual";
 
 const StyledFocalPlane = styled(FocalPlane).attrs(({ x, y }) => ({
   style: { left: `${x}%`, top: `${y}%` },

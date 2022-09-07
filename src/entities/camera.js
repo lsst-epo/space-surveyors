@@ -1,13 +1,13 @@
-import React from 'react';
-import CameraRenderer from '@components/Camera';
-import { Polygon } from 'detect-collisions';
-import { FocalPlaneBounding } from '@constants/objects/boundings/FocalPlaneBounding';
+import React from "react";
+import CameraRenderer from "@components/Camera";
+import { Polygon } from "detect-collisions";
+import { FocalPlaneBounding } from "@constants/objects/boundings/FocalPlaneBounding";
 import {
   CAMERA_MOVE,
   MAX_CAMERA_MOVE,
   MIN_CAMERA_MOVE,
-} from '@constants/index';
-import { round, getScaledObjectSize, scaleByAspectRatio } from '../utils';
+} from "@constants/index";
+import { round, getScaledObjectSize, scaleByAspectRatio } from "../utils";
 
 const cameraSizeConfig = {
   min: 15,
@@ -36,6 +36,7 @@ export default (aspectRatio) => {
     FocalPlaneBounding(size, size * aspectRatio),
     { center: true, isTrigger: true }
   );
+  const paused = false;
 
   const properties = {
     showEndgame,
@@ -48,7 +49,7 @@ export default (aspectRatio) => {
     exposureRemaining,
     physics,
     size,
-    size,
+    paused,
   };
 
   return {

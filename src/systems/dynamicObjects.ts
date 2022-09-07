@@ -1,12 +1,5 @@
-import {
-  MAX_DYNAMIC_OBJECTS,
-  MAX_OCCLUDING_OBJECTS,
-  SPAWN_INTERVAL,
-} from '@constants/index';
-import { DynamicObject } from '@modules/DynamicObject';
-import { GameState, GameSystem, SkyObjectType } from '@shapes/index';
-import { System } from 'detect-collisions';
-import { getRandomInt } from '../utils';
+import { DynamicObject } from "@modules/DynamicObject";
+import { GameSystem } from "@shapes/index";
 
 const moveDynamicObject = (object: DynamicObject) => {
   const { x: deltaX, y: deltaY } = object.delta;
@@ -30,40 +23,13 @@ const isInsideBounds = (object: DynamicObject): boolean => {
   return false;
 };
 
-export const spawnDynamicObject = (
-  type: SkyObjectType,
-  objects: DynamicObject[],
-  system: System,
-  state: GameState,
-  group: string
-) => {
-  const rateLimit = {
-    cloud: MAX_OCCLUDING_OBJECTS,
-    airplane: MAX_OCCLUDING_OBJECTS,
-    asteroid: MAX_DYNAMIC_OBJECTS,
-    comet: MAX_DYNAMIC_OBJECTS,
-  };
-
-  if (objects.length < rateLimit[type]) {
-    const { aspectRatio } = state;
-    const newOcclusion = new DynamicObject(type, aspectRatio);
-    objects.push(newOcclusion);
-    system.insert(newOcclusion.physics);
-  }
-
-  state.nextSpawn[group] += getRandomInt(
-    SPAWN_INTERVAL[group].min,
-    SPAWN_INTERVAL[group].max
-  );
-};
-
-export const moveDynamicObjects: GameSystem = (entities) => {
+const moveDynamicObjects: GameSystem = (entities) => {
   const { skyObjects, state } = entities;
   const { stage } = state;
   const { occludingObjects, movingObjects } = skyObjects;
 
   if (
-    stage !== 'menu' &&
+    stage !== "paused" &&
     (occludingObjects.length > 0 || movingObjects.length > 0)
   ) {
     occludingObjects.forEach(moveDynamicObject);
@@ -73,7 +39,7 @@ export const moveDynamicObjects: GameSystem = (entities) => {
   return entities;
 };
 
-export const cullDynamicObjects: GameSystem = (entities) => {
+const cullDynamicObjects: GameSystem = (entities) => {
   const { skyObjects, world } = entities;
   const { occlusions, system } = world;
   const { occludingObjects, movingObjects } = skyObjects;
@@ -107,3 +73,5 @@ export const cullDynamicObjects: GameSystem = (entities) => {
 
   return entities;
 };
+
+export default [moveDynamicObjects, cullDynamicObjects];

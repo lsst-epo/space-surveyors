@@ -1,16 +1,16 @@
-import React from 'react';
-import useResizeObserver from 'use-resize-observer';
-import PropTypes from 'prop-types';
-import styled from 'styled-components';
-import { GAME_DURATION, MIN_OBJECT_Y } from '@constants/index';
-import { convertMsToTime } from '@utils/';
+import React from "react";
+import useResizeObserver from "use-resize-observer";
+import PropTypes from "prop-types";
+import styled from "styled-components";
+import { GAME_DURATION, MIN_OBJECT_Y } from "@constants/index";
+import { convertMsToTime } from "../../utils";
 import {
   zStack,
   BREAK_TABLET_MIN,
   BREAK_DESKTOP,
   getRawPx,
-} from '@styles/globalStyle';
-import LinearProgress from '@components/Progress';
+} from "@styles/globalStyle";
+import LinearProgress from "@components/Progress";
 
 const StyledTimeContainer = styled.div`
   position: absolute;
@@ -26,7 +26,7 @@ const StyledTimeContainer = styled.div`
   justify-content: space-evenly;
   align-items: center;
   font-size: ${({ width }) =>
-    width > getRawPx(BREAK_TABLET_MIN) ? '2.5em' : '1.5em'};
+    width > getRawPx(BREAK_TABLET_MIN) ? "2.5em" : "1.5em"};
   font-weight: bold;
   font-variant-numeric: tabular-nums;
   pointer-events: none;

@@ -1,12 +1,13 @@
-import { Edge, RangedValue, TargetedRangedValue, WeightedBins } from '.';
+import { Edge, RangedValue, TargetedRangedValue, WeightedBins } from ".";
 
 export type SkyObjectType =
-  | 'star'
-  | 'asteroid'
-  | 'comet'
-  | 'galaxy'
-  | 'supernova'
-  | 'cloud';
+  | "star"
+  | "asteroid"
+  | "comet"
+  | "galaxy"
+  | "supernova"
+  | "cloud"
+  | "airplane";
 
 export interface ObjectConfig {
   color?: string;

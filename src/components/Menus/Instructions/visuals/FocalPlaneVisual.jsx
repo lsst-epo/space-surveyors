@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import styled, { keyframes, css } from 'styled-components';
-import FocalPlane from '@components/svg/FocalPlane';
-import NightSkyVisual from '@components/Menus/Landing/visuals/NightSkyVisual';
-import moonImg from '@assets/image/moon.png';
+import React, { useState } from "react";
+import styled, { keyframes, css } from "styled-components";
+import FocalPlane from "@components/svg/FocalPlane";
+import NightSkyVisual from "@components/Menus/Instructions/visuals/NightSkyVisual";
+import moonImg from "@assets/image/moon.png";
 
 const fade = keyframes`
 from {
@@ -31,7 +31,7 @@ const AnimatedMoonContainer = styled.div`
 `;
 
 const animationDelays = () => {
-  let delays = '';
+  let delays = "";
 
   for (let i = 1; i < 8; i++) {
     delays += `&:nth-child(${i}){

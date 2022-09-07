@@ -1,12 +1,12 @@
 # Space Surveyors
 
-Space Surveyors is built as library package using `tsdx` with a `Parcel` example.
+Space Surveyors is built as library package using `Vite` with a built-in example application
 
 ## Commands
 
-TSDX scaffolds the package inside `/src`, and also sets up a [Parcel](https://parceljs.org) playground for it inside `/example`.
+Vite scaffolds the package inside `/src`, and also sets up a playground for it inside `/example`.
 
-The recommended workflow is to run TSDX in one terminal:
+The recommended workflow is to build the library in one terminal:
 
 ```bash
 yarn start
@@ -19,15 +19,13 @@ Then run the example inside another:
 ```bash
 cd example
 
-npm i # or yarn to install dependencies
-npm start # or yarn start
+yarn # install dependencies
+yarn start # or yarn start
 ```
 
-The default example imports and live reloads whatever is in `/dist`, so if you are seeing an out of date component, make sure TSDX is running in watch mode like we recommend above. **No symlinking required**, we use [Parcel's aliasing](https://parceljs.org/module_resolution.html#aliases).
+The example imports and live reloads whatever is in `/dist`, so if you are seeing an out of date component, make sure Vite is running in `--watch` mode. The library is imported into the example using Vite's `resolve.alias` so no additional aliasing is required.
 
-To do a one-off build, use `npm run build` or `yarn build`.
-
-To run tests, use `npm test` or `yarn test`.
+To do a one-off build of the library package, use `npm run prepare` or `yarn prepare`.
 
 ## Deployment
 
