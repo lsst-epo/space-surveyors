@@ -13,6 +13,8 @@ import language from "@assets/svg/language.svg";
 import help from "@assets/svg/help.svg";
 import info from "@assets/svg/info.svg";
 import audio from "@assets/svg/audio.svg";
+import fullscreen from "@assets/svg/fullscreen.svg";
+import fullscreenExit from "@assets/svg/fullscreen_exit.svg";
 
 export default {
   asteroid,
@@ -30,4 +32,6 @@ export default {
   help,
   info,
   audio,
+  fullscreen,
+  fullscreenExit,
 };

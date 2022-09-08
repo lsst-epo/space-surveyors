@@ -1,6 +1,6 @@
 import { FIRST_SPAWN } from "@constants/index";
 
-export default (boundingRect, aspectRatio) => {
+export default (aspectRatio) => {
   const gameStart = null;
   const timerStart = null;
   const endTime = null;
@@ -17,7 +17,6 @@ export default (boundingRect, aspectRatio) => {
   return {
     nextSpawn,
     aspectRatio,
-    boundingRect,
     gameStart,
     timerStart,
     endTime,

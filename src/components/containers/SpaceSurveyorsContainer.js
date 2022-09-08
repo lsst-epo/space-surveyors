@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled from "styled-components";
 
 const SpaceSurveyorsContainer = styled.div`
   background: var(--neutral95);
@@ -14,7 +14,7 @@ const SpaceSurveyorsContainer = styled.div`
   justify-content: center;
 
   &:after {
-    content: '';
+    content: "";
     background: #313333;
     position: absolute;
     top: 0;
