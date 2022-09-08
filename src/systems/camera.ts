@@ -19,10 +19,12 @@ const setCameraTarget: GameSystem = (entities, { input, dispatch }) => {
 
   if (mouseDown && stage === "running") {
     const { payload } = mouseDown;
-    const { pageX: x, pageY: y } = payload;
-    const { state } = entities;
-    const { boundingRect } = state;
-    const nextPosition = getRelativePosition(x, y, boundingRect);
+    const { pageX: x, pageY: y, target } = payload;
+    const nextPosition = getRelativePosition(
+      x,
+      y,
+      target.getBoundingClientRect()
+    );
 
     dispatch({ type: "targetSet", payload: nextPosition });
   }

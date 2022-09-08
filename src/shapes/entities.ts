@@ -10,7 +10,6 @@ type GameStage = "warmup" | "running" | "finished" | "paused";
 
 interface GameState {
   aspectRatio: number;
-  boundingRect: DOMRectReadOnly;
   gameStart: number;
   timerStart: number;
   endTime: number;

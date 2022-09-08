@@ -1,7 +1,6 @@
 import { createContext } from "react";
 
 const DimensionsContext = createContext({
-  boundingRect: null,
   aspectRatio: null,
   fullWidth: null,
   fullHeight: null,

@@ -1,4 +1,4 @@
-import onResize from "./resize";
+import Resize from "./resize";
 import Timeline from "./timer";
 import Camera from "./camera";
 import SkyObjects from "./sky";
@@ -10,12 +10,12 @@ const Systems = [
   // pause needs to go first so other systems
   // have an accurate timer of how much pause time has occurred
   ...Pause,
+  ...Resize,
   ...Audio,
   ...Timeline,
   ...Camera,
   ...SkyObjects,
   ...DynamicObjects,
-  onResize,
 ];
 
 export default Systems;

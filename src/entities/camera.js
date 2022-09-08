@@ -2,40 +2,28 @@ import React from "react";
 import CameraRenderer from "@components/Camera";
 import { Polygon } from "detect-collisions";
 import { FocalPlaneBounding } from "@constants/objects/boundings/FocalPlaneBounding";
-import {
-  CAMERA_MOVE,
-  MAX_CAMERA_MOVE,
-  MIN_CAMERA_MOVE,
-} from "@constants/index";
-import { round, getScaledObjectSize, scaleByAspectRatio } from "../utils";
-
-const cameraSizeConfig = {
-  min: 15,
-  target: 25,
-  max: 30,
-};
+import { getScaledObjectSize, scaleByAspectRatio } from "../utils";
+import cameraConfig from "@constants/objects/camera";
 
 export default (aspectRatio) => {
-  const size = getScaledObjectSize(cameraSizeConfig, aspectRatio);
+  const size = getScaledObjectSize(cameraConfig.size, aspectRatio);
   const showEndgame = false;
-  const offset = round(size / 2);
   const nextPosition = null;
   const delta = { x: null, y: null };
   const maxMove = scaleByAspectRatio(
     aspectRatio,
-    CAMERA_MOVE,
-    MIN_CAMERA_MOVE,
-    MAX_CAMERA_MOVE
+    cameraConfig.speed.target,
+    cameraConfig.speed.min,
+    cameraConfig.speed.max
   );
   const steps = 0;
   const exposures = [];
   const exposureStartTime = null;
   const exposureRemaining = null;
-  const physics = new Polygon(
-    { x: 50 - offset, y: 50 - offset },
-    FocalPlaneBounding,
-    { center: true, isTrigger: true }
-  );
+  const physics = new Polygon({ x: 50, y: 50 }, FocalPlaneBounding, {
+    center: true,
+    isTrigger: true,
+  });
 
   physics.setScale(size, size * aspectRatio);
 

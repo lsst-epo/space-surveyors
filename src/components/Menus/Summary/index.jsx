@@ -21,12 +21,12 @@ import DimensionsContext from "@contexts/dimensions";
 
 const SummaryMenu = ({ onMenuClose, score, engine, isOpen, menu }) => {
   const { dimensions } = useContext(DimensionsContext);
-  const { aspectRatio, boundingRect } = dimensions;
+  const { aspectRatio } = dimensions;
   const { ref, width } = useResizeObserver();
   const scoreSum = sum(Object.values(score));
 
   const handleGameRestart = () => {
-    engine.current.swap(Entities(boundingRect, aspectRatio));
+    engine.current.swap(Entities(aspectRatio));
     onMenuClose(menu);
 
     const timer = setTimeout(() => {

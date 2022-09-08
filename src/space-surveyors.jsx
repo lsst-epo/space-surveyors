@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import styled from "styled-components";
 import useResizeObserver from "use-resize-observer";
 import { GameEngine } from "react-game-engine";
@@ -12,13 +12,12 @@ import Score from "@entities/score";
 import Systems from "@systems/index";
 import HUD from "@components/HUD/hud";
 import Dome from "@components/HUD/dome";
-import SettingsButton from "@components/SettingsButton";
+import SettingsButtons from "@components/SettingsButtons";
 import { MenuProvider } from "@contexts/menus";
 import { DimensionsProvider } from "@contexts/dimensions";
 
 const SpaceSurveyors = () => {
   const initialDimensions = {
-    boundingRect: null,
     aspectRatio: null,
     fullWidth: null,
     fullHeight: null,
@@ -27,15 +26,8 @@ const SpaceSurveyors = () => {
   const [score, setScore] = useState(Score());
   const [dimensions, setDimensions] = useState(initialDimensions);
   const engine = useRef();
-  const resizeRef = useRef(null);
 
   const handleResize = ({ width, height }) => {
-    const boundingRect = resizeRef.current.getBoundingClientRect();
-
-    setDimensions({ ...dimensions, boundingRect });
-  };
-
-  const handleOuterResize = ({ width, height }) => {
     setDimensions({
       ...dimensions,
       aspectRatio: getAspectRatio(width / (height * GAME_FIELD_SIZE)),
@@ -44,16 +36,13 @@ const SpaceSurveyors = () => {
     });
   };
 
-  const {
-    ref: outerResizeRef,
-    width: outerWidth,
-    height: outerHeight,
-  } = useResizeObserver({ onResize: handleOuterResize });
+  useEffect(() => {
+    if (engine.current) {
+      engine.current.dispatch({ type: "resize", payload: dimensions });
+    }
+  }, [dimensions.aspectRatio]);
 
-  const { width, height } = useResizeObserver({
-    ref: resizeRef,
-    onResize: handleResize,
-  });
+  const { ref: resizeRef } = useResizeObserver({ onResize: handleResize });
 
   const handleEvent = (event) => {
     const { type, payload } = event;
@@ -74,12 +63,12 @@ const SpaceSurveyors = () => {
     }
   };
 
-  const { boundingRect, aspectRatio } = dimensions;
+  const { aspectRatio } = dimensions;
 
   return (
     <SpaceSurveyorsContainer
       className="space-surveyors-container"
-      ref={outerResizeRef}
+      ref={resizeRef}
     >
       <DimensionsProvider value={{ setDimensions, dimensions }}>
         <MenuProvider value={{ setMenus, openMenus }}>
@@ -90,22 +79,20 @@ const SpaceSurveyors = () => {
             }}
           />
           {aspectRatio && (
-            <GameStageContainer ref={resizeRef} aspectRatio={aspectRatio}>
-              {boundingRect && (
-                <GameEngine
-                  style={{ width: "100%", height: "100%", overflow: "hidden" }}
-                  ref={engine}
-                  entities={Entities(boundingRect, aspectRatio)}
-                  systems={Systems}
-                  onEvent={handleEvent}
-                ></GameEngine>
-              )}
+            <GameStageContainer aspectRatio={aspectRatio}>
+              <GameEngine
+                style={{ width: "100%", height: "100%", overflow: "hidden" }}
+                ref={engine}
+                entities={Entities(aspectRatio)}
+                systems={Systems}
+                onEvent={handleEvent}
+              ></GameEngine>
               <Dome $left />
               <Dome />
-              <SettingsButton />
             </GameStageContainer>
           )}
           <HUD score={score} />
+          <SettingsButtons gameContainer={resizeRef} />
         </MenuProvider>
       </DimensionsProvider>
     </SpaceSurveyorsContainer>

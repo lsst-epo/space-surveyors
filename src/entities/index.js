@@ -7,10 +7,10 @@ import World from "./world";
 import SkyObjects from "./skyObjects";
 import Audio from "./audio";
 
-export default async (boundingRect, aspectRatio) => {
+export default async (aspectRatio) => {
   const backdrop = Backdrop();
   const timer = Timer();
-  const state = State(boundingRect, aspectRatio);
+  const state = State(aspectRatio);
   const camera = Camera(aspectRatio);
   const score = Score();
   const world = World();
