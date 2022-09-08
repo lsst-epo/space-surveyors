@@ -25,11 +25,13 @@ const SettingsButtons = ({ gameContainer }) => {
 
   return (
     <SettingsContainer>
-      <Button
-        onClick={() => toggleFullscreen()}
-        icon={screenfull.isFullscreen ? "fullscreenExit" : "fullscreen"}
-        iconSize="1em"
-      />
+      {screenfull.isEnabled && (
+        <Button
+          onClick={() => toggleFullscreen()}
+          icon={screenfull.isFullscreen ? "fullscreenExit" : "fullscreen"}
+          iconSize="1em"
+        />
+      )}
       <Button
         onClick={() => setMenus([...openMenus, "settings"])}
         icon="hamburger"
