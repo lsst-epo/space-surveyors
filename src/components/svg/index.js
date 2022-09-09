@@ -15,13 +15,19 @@ import info from "@assets/svg/info.svg";
 import audio from "@assets/svg/audio.svg";
 import fullscreen from "@assets/svg/fullscreen.svg";
 import fullscreenExit from "@assets/svg/fullscreen_exit.svg";
+import chain from "@assets/svg/chain.svg";
+import facebook from "@assets/svg/facebook.svg";
+import twitter from "@assets/svg/twitter.svg";
+import email from "@assets/svg/email.svg";
 
 export default {
+  chain,
   asteroid,
   cloudDay,
   comet,
   exposure,
   focalPlane,
+  facebook,
   galaxy,
   star,
   supernova,
@@ -34,4 +40,6 @@ export default {
   audio,
   fullscreen,
   fullscreenExit,
+  twitter,
+  email,
 };
