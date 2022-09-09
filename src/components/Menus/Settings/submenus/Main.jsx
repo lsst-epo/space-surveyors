@@ -14,20 +14,22 @@ import {
 import Submenu from ".";
 import AudioSubmenu from "./Audio";
 import InfoSubmenu from "./Info";
-import { Trans } from "react-i18next";
+import ShareSubmenu from "./Share";
 import LanguageSubmenu from "./Language";
+import { Trans } from "react-i18next";
 
 const menuItems = {
   language: "menus.settings.main.language",
   audio: "menus.settings.main.audio",
   // help: "Help",
-  // share: "Share Space Surveyors",
+  share: "Share Space Surveyors",
   info: "menus.settings.main.info",
 };
 
 const Submenus = {
   audio: AudioSubmenu,
   info: InfoSubmenu,
+  share: ShareSubmenu,
   language: LanguageSubmenu,
 };
 

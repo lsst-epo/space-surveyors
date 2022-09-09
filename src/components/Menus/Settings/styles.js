@@ -124,3 +124,9 @@ export const CreditList = styled.dl`
     font-weight: bold;
   }
 `;
+
+export const ShareButtonsList = styled.ul`
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+`;
