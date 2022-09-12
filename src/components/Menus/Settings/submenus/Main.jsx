@@ -15,9 +15,10 @@ import Submenu from ".";
 import AudioSubmenu from "./Audio";
 import InfoSubmenu from "./Info";
 import { Trans } from "react-i18next";
+import LanguageSubmenu from "./Language";
 
 const menuItems = {
-  // language: "Language",
+  language: "menus.settings.main.language",
   audio: "menus.settings.main.audio",
   // help: "Help",
   // share: "Share Space Surveyors",
@@ -27,6 +28,7 @@ const menuItems = {
 const Submenus = {
   audio: AudioSubmenu,
   info: InfoSubmenu,
+  language: LanguageSubmenu,
 };
 
 const MainSubmenu = ({ isOpen, settingsCloseCallback, engine }) => {

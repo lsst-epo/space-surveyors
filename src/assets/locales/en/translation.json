@@ -25,12 +25,19 @@
         "additional_development": "Additional Development",
         "testing": "Testing"
       },
+      "language": {
+        "title": "Language Selection",
+        "description": "Choose your language",
+        "en": "English",
+        "es": "Español"
+      },
       "main": {
         "title": "Main menu",
         "description": "Settings and more",
         "section": "Settings",
         "audio": "Audio Settings",
-        "info": "About Space Surveyors"
+        "info": "About Space Surveyors",
+        "language": "Language"
       }
     },
     "summary": {
