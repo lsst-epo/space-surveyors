@@ -5,7 +5,7 @@ import {
   STATIC_OBJECTS_PER_CELL,
   STATIC_ROWS,
 } from "@constants/index";
-import { getPositionInCell, getRandomWeightedValue } from "../utils";
+import { getPositionInCell, getRandomWeightedValue } from "@lib/utils";
 import { SkyObject } from "@modules/SkyObject/";
 
 export default async (aspectRatio) => {

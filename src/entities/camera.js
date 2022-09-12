@@ -2,7 +2,7 @@ import React from "react";
 import CameraRenderer from "@components/Camera";
 import { Polygon } from "detect-collisions";
 import { FocalPlaneBounding } from "@constants/objects/boundings/FocalPlaneBounding";
-import { getScaledObjectSize, scaleByAspectRatio } from "../utils";
+import { getScaledObjectSize, scaleByAspectRatio } from "@lib/utils";
 import cameraConfig from "@constants/objects/camera";
 
 export default (aspectRatio) => {

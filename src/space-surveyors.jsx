@@ -3,7 +3,7 @@ import styled from "styled-components";
 import useResizeObserver from "use-resize-observer";
 import { GameEngine } from "react-game-engine";
 import { GAME_FIELD_SIZE } from "@constants/index";
-import { getAspectRatio } from "./utils";
+import { getAspectRatio } from "@lib/utils";
 import SpaceSurveyorsContainer from "@components/containers/SpaceSurveyorsContainer";
 import GameStageContainer from "@components/containers/GameStageContainer";
 import GameMenus from "@components/Menus";

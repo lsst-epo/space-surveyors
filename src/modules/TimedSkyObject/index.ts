@@ -1,6 +1,6 @@
-import { SkyObject } from '@modules/SkyObject';
-import { GamePosition, SkyObjectType, TimedObjectConfig } from '@shapes/index';
-import { getBrightness, getRandomInt } from '../../utils';
+import { SkyObject } from "@modules/SkyObject";
+import { GamePosition, SkyObjectType, TimedObjectConfig } from "@shapes/index";
+import { getBrightness, getRandomInt } from "@lib/utils";
 
 export class TimedSkyObject extends SkyObject {
   public expiration: number;

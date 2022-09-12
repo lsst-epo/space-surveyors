@@ -1,6 +1,6 @@
 import { GameSystem } from "@shapes/system";
 import cameraConfig from "@constants/objects/camera";
-import { getScaledObjectSize, scaleByAspectRatio } from "../utils";
+import { getScaledObjectSize, scaleByAspectRatio } from "@lib/utils";
 import { SkyObject } from "@modules/SkyObject";
 import { DynamicObject } from "@modules/DynamicObject";
 import { TimedSkyObject } from "@modules/TimedSkyObject";

@@ -40,6 +40,7 @@ export default defineConfig({
       "@contexts": resolve(__dirname, "./src/contexts"),
       "@entities": resolve(__dirname, "./src/entities"),
       "@hooks": resolve(__dirname, "./src/hooks"),
+      "@lib": resolve(__dirname, "./src/lib"),
       "@modules": resolve(__dirname, "./src/modules"),
       "@shapes": resolve(__dirname, "./src/shapes"),
       "@styles": resolve(__dirname, "./src/styles"),

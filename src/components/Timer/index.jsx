@@ -3,7 +3,7 @@ import useResizeObserver from "use-resize-observer";
 import PropTypes from "prop-types";
 import styled from "styled-components";
 import { GAME_DURATION, MIN_OBJECT_Y } from "@constants/index";
-import { convertMsToTime } from "../../utils";
+import { convertMsToTime } from "@lib/utils";
 import {
   zStack,
   BREAK_TABLET_MIN,
@@ -11,6 +11,7 @@ import {
   getRawPx,
 } from "@styles/globalStyle";
 import LinearProgress from "@components/Progress";
+import { Trans } from "react-i18next";
 
 const StyledTimeContainer = styled.div`
   position: absolute;
@@ -39,7 +40,9 @@ const TimerRenderer = ({ timeRemaining }) => {
   );
   return (
     <StyledTimeContainer role="timer" ref={ref} width={width}>
-      Time left: {convertMsToTime(timeRemaining)}
+      <Trans values={{ remaining: convertMsToTime(timeRemaining) }}>
+        timer
+      </Trans>
       <LinearProgress value={percentTimeRemaining}></LinearProgress>
     </StyledTimeContainer>
   );

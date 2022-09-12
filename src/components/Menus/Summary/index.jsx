@@ -1,9 +1,8 @@
 import React, { useContext } from "react";
-import useResizeObserver from "use-resize-observer";
-import styled from "styled-components";
 import PropTypes from "prop-types";
+import useResizeObserver from "use-resize-observer";
 import { MENU_TRANSITION_TIME } from "@constants/index";
-import { sum } from "../../../utils";
+import { sum } from "@lib/utils";
 import Entities from "@entities/index";
 import Score from "@entities/score";
 import Button from "@components/Button";
@@ -18,6 +17,7 @@ import {
   ButtonContainer,
 } from "./styles";
 import DimensionsContext from "@contexts/dimensions";
+import { Trans } from "react-i18next";
 
 const SummaryMenu = ({ onMenuClose, score, engine, isOpen, menu }) => {
   const { dimensions } = useContext(DimensionsContext);
@@ -38,13 +38,21 @@ const SummaryMenu = ({ onMenuClose, score, engine, isOpen, menu }) => {
   return (
     <SummaryMenuWrapper open={isOpen} ref={ref}>
       <SummaryMenuResponsive>
-        <SummaryTitle>Congratulations!</SummaryTitle>
+        <SummaryTitle>
+          <Trans>menus.summary.title</Trans>
+        </SummaryTitle>
         <ScoreSummary $width={width}>
-          You discovered <ScoreStandout>{scoreSum}</ScoreStandout> new objects!
+          <Trans
+            i18nKey="menus.summary.summary"
+            components={[<ScoreStandout>{scoreSum}</ScoreStandout>]}
+            values={{ score: scoreSum }}
+          ></Trans>
         </ScoreSummary>
         <ScaledScoreList $width={width} {...{ score }} />
         <ButtonContainer>
-          <Button onClick={handleGameRestart}>Play again!</Button>
+          <Button onClick={handleGameRestart}>
+            <Trans>generics.actions.play_again</Trans>
+          </Button>
           <ShareScoreButton score={score} total={scoreSum} />
         </ButtonContainer>
         {/* <LinkContainer>

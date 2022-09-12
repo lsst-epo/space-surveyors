@@ -3,9 +3,10 @@ import { MENU_TRANSITION_TIME } from "@constants/index";
 import DimensionsContext from "@contexts/dimensions";
 import MenuContext from "@contexts/menus";
 import useFocusTrap from "@hooks/useFocusTrap";
-import { closest } from "../../../utils";
+import { closest } from "@lib/utils";
 import { IntroContainer, IntroButtonContainer } from "./styles";
 import Button from "@components/Button";
+import { Trans } from "react-i18next";
 
 const IntroScreen = ({ isOpen, onMenuClose, menu, engine }) => {
   const menuRef = useRef();
@@ -44,10 +45,10 @@ const IntroScreen = ({ isOpen, onMenuClose, menu, engine }) => {
           styleAs="tertiary"
           onClick={handleInstructions}
         >
-          Instructions
+          <Trans>generics.actions.instructions</Trans>
         </Button>
         <Button isBlock={imageSize === "m"} onClick={handleGameStart}>
-          Play
+          <Trans>generics.actions.play</Trans>
         </Button>
       </IntroButtonContainer>
     </IntroContainer>

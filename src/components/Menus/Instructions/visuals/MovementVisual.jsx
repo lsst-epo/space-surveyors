@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
-import CameraTarget from "@components/Camera/Target";
+import * as Styled from "@components/Camera/styles";
 import FocalPlane from "@components/svg/FocalPlane";
 import NightSkyVisual from "./NightSkyVisual";
 
@@ -29,7 +29,7 @@ const MovementVisual = () => {
   return (
     <NightSkyVisual>
       <StyledFocalPlane x={cameraPos} y={50} />
-      {targetPos && <CameraTarget x={targetPos} y={50} size={30} />}
+      {targetPos && <Styled.CameraTarget x={targetPos} y={50} size={30} />}
     </NightSkyVisual>
   );
 };

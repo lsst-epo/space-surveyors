@@ -12,7 +12,7 @@ import {
   getNewPosition,
   round,
   scaleByAspectRatio,
-} from "../../utils";
+} from "@lib/utils";
 
 export class DynamicObject extends SkyObject {
   public delta: GamePosition;

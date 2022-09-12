@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Checkbox from "@components/Checkbox";
 import Button from "@components/Button";
+import { useTranslation, Trans } from "react-i18next";
 import {
   SubmenuHeader,
   SubmenuTitle,
@@ -15,6 +16,7 @@ import {
 import Submenu from ".";
 
 const AudioSubmenu = ({ toggleMenuCallback, isOpen, menu, engine }) => {
+  const { t } = useTranslation();
   const [musicPlaying, setMusic] = useState(
     localStorage.getItem("music") === "true"
   );
@@ -48,9 +50,11 @@ const AudioSubmenu = ({ toggleMenuCallback, isOpen, menu, engine }) => {
     >
       <SubmenuHeader>
         <div>
-          <SubmenuTitle>Audio settings</SubmenuTitle>
+          <SubmenuTitle>
+            <Trans>menus.settings.audio.title</Trans>
+          </SubmenuTitle>
           <SubmenuDescription>
-            Turn music and effects on and off
+            <Trans>menus.settings.audio.description</Trans>
           </SubmenuDescription>
         </div>
         <Button
@@ -62,12 +66,12 @@ const AudioSubmenu = ({ toggleMenuCallback, isOpen, menu, engine }) => {
       <SubmenuContentWrapper>
         <SubmenuSection>
           <Checkbox
-            label="Music"
+            label={t("menus.settings.audio.music")}
             checked={musicPlaying}
             toggleCallback={handleToggleMusic}
           />
           <Checkbox
-            label="Effects"
+            label={t("menus.settings.audio.effects")}
             checked={effectsPlaying}
             toggleCallback={handleToggleEffects}
           />
