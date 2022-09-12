@@ -1,77 +1,21 @@
 import React, { useContext } from "react";
-import styled from "styled-components";
-import PropTypes from "prop-types";
-import { MenuWrapper, MenuTitle, MenuResponsive } from "../styles";
 import MenuContext from "@contexts/menus";
 import Button from "@components/Button";
 import IconComposer from "@components/svg/IconComposer";
 import IconContainer from "@components/svg/helpers/IconContainer";
 import { GAME_DURATION, MENU_TRANSITION_TIME } from "@constants/index";
-import { convertMsToTime } from "../../../utils";
-import fundingLogos from "@assets/image/funding.png";
-import rubinLogo from "@assets/image/rubin_over_black.png";
+import { convertMsToTime } from "@lib/utils";
 import MovementVisual from "@components/Menus/Instructions/visuals/MovementVisual";
 import OcclusionVisual from "@components/Menus/Instructions/visuals/OcclusionVisual";
-
-const TitleBar = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2em;
-  margin: 2em 0;
-  flex-wrap: wrap;
-`;
-
-const IconLegend = styled.ul`
-  color: var(--offWhite);
-  display: flex;
-  justify-content: space-evenly;
-  align-items: center;
-  list-style: none;
-  flex-wrap: wrap;
-`;
-
-const IconItem = styled.li`
-  display: flex;
-  align-items: center;
-  line-height: 1.5;
-`;
-
-const RubinLogo = styled.img`
-  height: 110px;
-`;
-
-const FundingLogos = styled.img`
-  margin-top: auto;
-`;
-
-const Instructions = styled.ul`
-  font-size: 1.5em;
-  margin-bottom: 1em;
-  list-style: none;
-
-  & > li {
-    & > * {
-      margin-top: 1em;
-    }
-  }
-
-  & > li + li {
-    margin-top: 1em;
-  }
-`;
-
-const ButtonContainer = styled.div`
-  display: flex;
-  gap: 1rem;
-`;
+import { Trans } from "react-i18next";
+import * as Styled from "../styles";
 
 const icons = {
-  star: "Stars",
-  galaxy: "Galaxies",
-  supernova: "Supernovae",
-  comet: "Comets",
-  asteroid: "Asteroids",
+  star: "generics.objects.star_other",
+  galaxy: "generics.objects.galaxy_other",
+  supernova: "generics.objects.supernova_other",
+  comet: "generics.objects.comet_other",
+  asteroid: "generics.objects.asteroid_other",
 };
 
 const InstructionsMenu = ({ onMenuClose, engine, menu, isOpen }) => {
@@ -88,61 +32,59 @@ const InstructionsMenu = ({ onMenuClose, engine, menu, isOpen }) => {
   };
 
   return (
-    <MenuWrapper open={isOpen}>
-      <MenuResponsive>
-        <TitleBar>
-          <RubinLogo src={rubinLogo} height="110px" width="180px" />
-          <MenuTitle>Space Surveyors</MenuTitle>
-        </TitleBar>
-        <Instructions>
+    <Styled.MenuWrapper open={isOpen}>
+      <Styled.MenuResponsive>
+        <Styled.TitleBar>
+          <Styled.RubinLogo />
+          <Styled.MenuTitle>
+            <Trans>menus.instructions.title</Trans>
+          </Styled.MenuTitle>
+        </Styled.TitleBar>
+        <Styled.Instructions>
           <li>
             <p>
-              In Space Surveyors you will have{" "}
-              <strong>{convertMsToTime(GAME_DURATION)}</strong> before the night
-              ends to survey as many objects as possible. Look for these
-              objects:
+              <Trans
+                i18nKey="menus.instructions.0"
+                values={{ duration: convertMsToTime(GAME_DURATION) }}
+              />
             </p>
-            <IconLegend>
+            <Styled.IconLegend>
               {Object.keys(icons).map((i) => (
-                <IconItem key={i}>
+                <Styled.IconItem key={i}>
                   <IconContainer>
                     <IconComposer icon={i} height="100%" />
                   </IconContainer>
-                  {icons[i]}
-                </IconItem>
+                  <Trans>{icons[i]}</Trans>
+                </Styled.IconItem>
               ))}
-            </IconLegend>
+            </Styled.IconLegend>
             <p>
-              <strong>
-                Objects may be very small or faint in the night sky, how can you
-                optimize finding these difficult to see objects?
-              </strong>
+              <Trans>menus.instructions.1</Trans>
             </p>
           </li>
           <li>
-            When the timer starts, click or tap anywhere on the screen to move
-            the telescope to a new position and begin exposing an image.
+            <Trans>menus.instructions.2</Trans>
             <MovementVisual />
           </li>
           <li>
-            Celestial objects are not the only things in the night sky. Clouds,
-            airplanes, and satellites may disrupt your camera and prevent it
-            from surveying the objects you want.
+            <Trans>menus.instructions.3</Trans>
             <OcclusionVisual />
           </li>
-        </Instructions>
-        <ButtonContainer>
+        </Styled.Instructions>
+        <Styled.ButtonContainer>
           <Button
             onClick={() => setMenus([...openMenus, "settings"])}
             styleAs="tertiary"
           >
-            Settings
+            <Trans>generics.actions.settings</Trans>
           </Button>
-          <Button onClick={handleGameStart}>Play</Button>
-        </ButtonContainer>
-        <FundingLogos src={fundingLogos} />
-      </MenuResponsive>
-    </MenuWrapper>
+          <Button onClick={handleGameStart}>
+            <Trans>generics.actions.play</Trans>
+          </Button>
+        </Styled.ButtonContainer>
+        <Styled.FundingLogos />
+      </Styled.MenuResponsive>
+    </Styled.MenuWrapper>
   );
 };
 

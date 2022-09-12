@@ -1,7 +1,7 @@
 import { GameSystem } from "@shapes/system";
 import { GAME_DURATION } from "@constants/index";
 import { TimedEvent } from "@shapes/event";
-import { timeFromGameStart, timeFromTimerStart } from "../utils";
+import { timeFromGameStart, timeFromTimerStart } from "@lib/utils";
 
 const timeline: GameSystem = (entities, { time, input, dispatch }) => {
   const { timer, state } = entities;

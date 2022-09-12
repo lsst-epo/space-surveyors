@@ -13,6 +13,7 @@ import {
   CreditList,
 } from "../styles";
 import Submenu from ".";
+import { Trans } from "react-i18next";
 
 const InfoSubmenu = ({ toggleMenuCallback, isOpen, menu, engine }) => {
   return (
@@ -24,8 +25,12 @@ const InfoSubmenu = ({ toggleMenuCallback, isOpen, menu, engine }) => {
     >
       <SubmenuHeader>
         <div>
-          <SubmenuTitle>About Space Surveyors</SubmenuTitle>
-          <SubmenuDescription>Credits</SubmenuDescription>
+          <SubmenuTitle>
+            <Trans>menus.settings.info.title</Trans>
+          </SubmenuTitle>
+          <SubmenuDescription>
+            <Trans>menus.settings.info.description</Trans>
+          </SubmenuDescription>
         </div>
         <Button
           icon="close"
@@ -36,15 +41,25 @@ const InfoSubmenu = ({ toggleMenuCallback, isOpen, menu, engine }) => {
       <SubmenuContentWrapper>
         <SubmenuSection>
           <CreditList>
-            <dt>Designer</dt>
+            <dt>
+              <Trans>menus.settings.info.designer</Trans>
+            </dt>
             <dd>José Pinto</dd>
-            <dt>Developer</dt>
+            <dt>
+              <Trans>menus.settings.info.developer</Trans>
+            </dt>
             <dd>Alexandra Goff</dd>
-            <dt>Astronomy Data</dt>
+            <dt>
+              <Trans>menus.settings.info.astronomy_data</Trans>
+            </dt>
             <dd>Clare Higgs</dd>
-            <dt>Additional Development</dt>
+            <dt>
+              <Trans>menus.settings.info.additional_development</Trans>
+            </dt>
             <dd>Blake Mason</dd>
-            <dt>Testing</dt>
+            <dt>
+              <Trans>menus.settings.info.testing</Trans>
+            </dt>
             <dd>
               Lauren Corlies, Stephanie Deppe, Ardis Herrold, Kristen Metzger,
               Eric Rosas

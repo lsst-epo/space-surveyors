@@ -1,0 +1,71 @@
+{
+  "menus": {
+    "finish": "Time's up!",
+    "hud": { "score": "Discovered objects tonight <0>{{score}}</0>" },
+    "instructions": {
+      "title": "Space Surveyors",
+      "0": "In Space Surveyors you will have <strong>{{duration}}</strong> before the night ends to survey as many objects as possible. Look for these objects:",
+      "1": "<strong>Objects may be very small or faint in the night sky, how can you optimize finding these difficult to see objects?</strong>",
+      "2": "When the timer starts, click or tap anywhere on the screen to move the telescope to a new position and begin exposing an image.",
+      "3": "Celestial objects are not the only things in the night sky. Clouds, airplanes, and satellites may disrupt your camera and prevent it from surveying the objects you want."
+    },
+    "settings": {
+      "audio": {
+        "title": "Audio settings",
+        "description": "Turn music and effects on and off",
+        "music": "Music",
+        "effects": "Effects"
+      },
+      "info": {
+        "title": "About Space Surveyors",
+        "description": "Credits",
+        "designer": "Designer",
+        "developer": "Developer",
+        "astronomy_data": "Astronomy Data",
+        "additional_development": "Additional Development",
+        "testing": "Testing"
+      },
+      "main": {
+        "title": "Main menu",
+        "description": "Settings and more",
+        "section": "Settings",
+        "audio": "Audio Settings",
+        "info": "About Space Surveyors"
+      }
+    },
+    "summary": {
+      "title": "Congratulations!",
+      "summary": "You discovered <0>{{score}}</0> new objects!"
+    }
+  },
+  "generics": {
+    "actions": {
+      "play": "Play",
+      "play_again": "Play again!",
+      "instructions": "Instructions",
+      "settings": "Settings",
+      "restart": "Restart",
+      "copied": "Copied!",
+      "share_score": "Share score"
+    },
+    "objects": {
+      "star_one": "Star",
+      "star_other": "Stars",
+      "galaxy_one": "Galaxy",
+      "galaxy_other": "Galaxies",
+      "supernova_one": "Supernova",
+      "supernova_other": "Supernovae",
+      "comet_one": "Comet",
+      "comet_other": "Comets",
+      "asteroid_one": "Asteroid",
+      "asteroid_other": "Asteroids"
+    }
+  },
+  "gameplay": {
+    "camera": {
+      "capture": "Capturing"
+    }
+  },
+  "share_copy": "I discovered {{total}} objects in Rubin #SpaceSurveyors\r\n\r\n🪨 - {{asteroid}} ☄️ - {{comet}} 🌌 - {{galaxy}} ⭐ - {{star}} 💥 - {{supernova}}\r\n\r\n{{url}}",
+  "timer": "Time left: {{remaining}}"
+}

@@ -11,7 +11,7 @@ import {
   getNewPosition,
   getScaledObjectSize,
   getUuid,
-} from "../../utils";
+} from "@lib/utils";
 import { SkyObjectConfigs } from "@constants/index";
 import boundings from "@constants/objects/boundings";
 

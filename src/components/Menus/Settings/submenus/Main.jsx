@@ -14,13 +14,14 @@ import {
 import Submenu from ".";
 import AudioSubmenu from "./Audio";
 import InfoSubmenu from "./Info";
+import { Trans } from "react-i18next";
 
 const menuItems = {
   // language: "Language",
-  audio: "Audio Settings",
+  audio: "menus.settings.main.audio",
   // help: "Help",
   // share: "Share Space Surveyors",
-  info: "About Space Surveyors",
+  info: "menus.settings.main.info",
 };
 
 const Submenus = {
@@ -46,8 +47,12 @@ const MainSubmenu = ({ isOpen, settingsCloseCallback, engine }) => {
     >
       <SubmenuHeader>
         <div>
-          <SubmenuTitle>Main Menu</SubmenuTitle>
-          <SubmenuDescription>Settings and more</SubmenuDescription>
+          <SubmenuTitle>
+            <Trans>menus.settings.main.title</Trans>
+          </SubmenuTitle>
+          <SubmenuDescription>
+            <Trans>menus.settings.main.description</Trans>
+          </SubmenuDescription>
         </div>
         <Button
           icon="close"
@@ -57,7 +62,9 @@ const MainSubmenu = ({ isOpen, settingsCloseCallback, engine }) => {
       </SubmenuHeader>
       <SubmenuContentWrapper>
         <SubmenuSection>
-          <SubmenuSectionHeading>Settings</SubmenuSectionHeading>
+          <SubmenuSectionHeading>
+            <Trans>menus.settings.main.section</Trans>
+          </SubmenuSectionHeading>
           <SubmenuNavItems>
             {menuItems &&
               Object.keys(menuItems).map((item) => {
@@ -69,7 +76,7 @@ const MainSubmenu = ({ isOpen, settingsCloseCallback, engine }) => {
                       iconSize="20px"
                       onClick={() => handleMenuChange(item, true)}
                     >
-                      {menuItems[item]}
+                      <Trans>{menuItems[item]}</Trans>
                     </SubmenuButton>
                     <Submenu
                       toggleMenuCallback={handleMenuChange}

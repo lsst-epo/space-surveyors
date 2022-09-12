@@ -1,24 +1,9 @@
 import React, { useRef } from "react";
 import useResizeObserver from "use-resize-observer";
-import styled from "styled-components";
-import { zStack } from "@styles/globalStyle";
+import { useTranslation } from "react-i18next";
 import { Exposure, AnimatedExposure } from "@components/svg/Exposure";
-import CameraTarget from "@components/Camera/Target";
+import * as Styled from "./styles";
 import FocalPlaneContainer from "@components/Camera/FocalPlaneContainer";
-import { fullScreenAbsolute } from "@styles/mixins/appearance";
-import CenteredText from "@components/svg/helpers/CenteredText";
-
-const CameraContainer = styled.div`
-  ${fullScreenAbsolute}
-  user-select: none;
-  z-index: ${zStack.camera};
-`;
-
-const ExposureText = styled(CenteredText)`
-  fill: var(--neutral10);
-  font-weight: bold;
-  text-shadow: 2px 2px 0 var(--neutral90);
-`;
 
 const CameraRenderer = ({
   nextPosition,
@@ -29,13 +14,14 @@ const CameraRenderer = ({
   size,
   paused,
 }) => {
+  const { t } = useTranslation();
   const { ref, width } = useResizeObserver();
   const { x, y } = physics;
-  const captureMessage = "Capturing";
+  const captureMessage = t("gameplay.camera.capture");
   const charSize = captureMessage.length / 2;
 
   return (
-    <CameraContainer>
+    <Styled.CameraContainer>
       {exposures &&
         exposures.map((exposure, i) => (
           <Exposure
@@ -47,7 +33,7 @@ const CameraRenderer = ({
         {exposureRemaining && (
           <AnimatedExposure {...{ size, $pause: paused || showEndgame }} />
         )}
-        <ExposureText
+        <Styled.ExposureText
           ref={ref}
           visibility={exposureRemaining ? "visible" : "hidden"}
           $width={width}
@@ -55,12 +41,14 @@ const CameraRenderer = ({
           {...{ charSize }}
         >
           {captureMessage}
-        </ExposureText>
+        </Styled.ExposureText>
       </FocalPlaneContainer>
       {nextPosition && (
-        <CameraTarget {...{ x: nextPosition.x, y: nextPosition.y, size }} />
+        <Styled.CameraTarget
+          {...{ x: nextPosition.x, y: nextPosition.y, size }}
+        />
       )}
-    </CameraContainer>
+    </Styled.CameraContainer>
   );
 };
 

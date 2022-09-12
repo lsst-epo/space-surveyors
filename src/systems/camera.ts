@@ -5,7 +5,7 @@ import {
   getRelativePosition,
   round,
   sum,
-} from "../utils";
+} from "@lib/utils";
 import { detectCapture } from "@systems/collision";
 
 /** onClick, while the game has started but not end,

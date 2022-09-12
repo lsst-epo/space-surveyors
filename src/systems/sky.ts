@@ -11,7 +11,7 @@ import {
   getRandomInt,
   getRandomWeightedValue,
   timeFromTimerStart,
-} from "../utils";
+} from "@lib/utils";
 import { System } from "detect-collisions";
 import { TimedSkyObject } from "@modules/TimedSkyObject";
 import { DynamicObject } from "@modules/DynamicObject";

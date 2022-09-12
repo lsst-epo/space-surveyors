@@ -1,4 +1,4 @@
-import { getRandomWeightedValue } from "../../utils";
+import { getRandomWeightedValue } from "@lib/utils";
 
 const starWeights = {
   "11": 0,
