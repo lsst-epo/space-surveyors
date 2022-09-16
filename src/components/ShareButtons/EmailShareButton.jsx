@@ -1,3 +1,4 @@
+import { Trans } from "react-i18next";
 import PropTypes from "prop-types";
 import styled from "styled-components";
 import { EmailShareButton } from "react-share";
@@ -23,7 +24,9 @@ export default function ShareButton({ subject, body, separator }) {
       <Styled.ShareIcon network="email">
         <IconComposer icon="email" />
       </Styled.ShareIcon>
-      <Styled.ShareNetwork>Email</Styled.ShareNetwork>
+      <Styled.ShareNetwork>
+        <Trans>menus.settings.share.email.label</Trans>
+      </Styled.ShareNetwork>
     </StyledEmailShareButton>
   );
 }

@@ -1,4 +1,5 @@
 import PropTypes from "prop-types";
+import { useTranslation } from "react-i18next";
 import IconComposer from "@components/svg/IconComposer";
 import * as Styled from "./styles";
 import CopyUrlButton from "@components/ShareButtons/CopyUrlButton";
@@ -15,8 +16,12 @@ export default function ShareButtons({
   image,
   email,
 }) {
+  const { t } = useTranslation();
   return (
-    <Styled.ShareButtonsList role="menu" aria-label="Share Buttons">
+    <Styled.ShareButtonsList
+      role="menu"
+      aria-label={t("menus.settings.share.label")}
+    >
       {url && (
         <li role="menuitem">
           <CopyUrlButton />
@@ -24,17 +29,26 @@ export default function ShareButtons({
       )}
       {facebook && (
         <li role="menuitem">
-          <FacebookShareButton hashtag="#spacesurveyors" />
+          <FacebookShareButton
+            quote={t("menus.settings.share.facebook")}
+            hashtag="#SpaceSurveyors"
+          />
         </li>
       )}
       {twitter && (
         <li role="menuitem">
-          <TwitterShareButton hashtags={["#spacesurveyors"]} />
+          <TwitterShareButton
+            hashtags={["SpaceSurveyors"]}
+            title={t("menus.settings.share.twitter")}
+          />
         </li>
       )}
       {email && (
         <li role="menuitem">
-          <EmailShareButton />
+          <EmailShareButton
+            subject={t("menus.settings.share.email.subject")}
+            body={t("menus.settings.share.email.body")}
+          />
         </li>
       )}
     </Styled.ShareButtonsList>

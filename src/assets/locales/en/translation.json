@@ -38,6 +38,19 @@
         "audio": "Audio Settings",
         "info": "About Space Surveyors",
         "language": "Language"
+      },
+      "share": {
+        "title": "Share Space Surveyors",
+        "description": "Let people know about us!",
+        "label": "Share Buttons",
+        "facebook": "Check out this game from Rubin Observatory",
+        "twitter": "Check out this game from @VRubinObs!",
+        "email": {
+          "label": "Email",
+          "subject": "Check out this game from Rubin Observatory",
+          "body": "How many objects can you find in the night sky?"
+        },
+        "url": "Get URL"
       }
     },
     "summary": {
