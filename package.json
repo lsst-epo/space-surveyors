@@ -16,8 +16,7 @@
     "deploy": "gh-pages -d example/dist"
   },
   "files": [
-    "dist",
-    "src"
+    "dist"
   ],
   "main": "./dist/space-surveyors.umd.cjs",
   "types": "./dist/types/index.d.ts",
