@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Trans } from "react-i18next";
 import Button from "@components/Button";
 import {
   SubmenuHeader,
@@ -24,8 +25,12 @@ const ShareSubmenu = ({ toggleMenuCallback, isOpen, menu }) => {
     >
       <SubmenuHeader>
         <div>
-          <SubmenuTitle>Share Space Surveyors</SubmenuTitle>
-          <SubmenuDescription>Let people know about us!</SubmenuDescription>
+          <SubmenuTitle>
+            <Trans>menus.settings.share.title</Trans>
+          </SubmenuTitle>
+          <SubmenuDescription>
+            <Trans>menus.settings.share.description</Trans>
+          </SubmenuDescription>
         </div>
         <Button
           icon="close"
