@@ -1,1 +1,92 @@
-{}
+{
+  "menus": {
+    "finish": "¡Se acabó el tiempo!",
+    "hud": { "score": "Objetos descubiertos esta noche <0>{{score}}</0>" },
+    "instructions": {
+      "title": "Space Surveyors",
+      "0": "En Space Surveyors tendrá <strong>{{duration}}</strong> antes de que termine la noche para investigar tantos objetos como sea posible. Busque estos objetos:",
+      "1": "<strong>Los objetos pueden ser muy pequeños o débiles en el cielo nocturno, ¿cómo puede optimizar la búsqueda de estos objetos difíciles de ver?</strong>",
+      "2": "Cuando comience el temporizador, haga clic o toque en cualquier parte de la pantalla para mover el telescopio a una nueva posición para comenzar a exponer una imagen.",
+      "3": "Los objetos celestes no están solos en el cielo nocturno. Nubes, aviones y satélites pueden interrumpir su cámara y evitar que inspeccione los objetos que desea."
+    },
+    "settings": {
+      "audio": {
+        "title": "Configuración de audio",
+        "description": "Activar y desactivar la música y los efectos",
+        "music": "Música",
+        "effects": "Efectos"
+      },
+      "info": {
+        "title": "Acerca de Space Surveyors",
+        "description": "Créditos",
+        "designer": "Diseñador",
+        "developer": "Desarrollador",
+        "astronomy_data": "Datos astronómicos",
+        "additional_development": "Programación adicional",
+        "testing": "Testeando"
+      },
+      "language": {
+        "title": "Selección de idioma",
+        "description": "Elija su idioma",
+        "en": "Inglés",
+        "es": "Español"
+      },
+      "main": {
+        "title": "Menú principal",
+        "description": "Configuración y más",
+        "section": "Configuración",
+        "audio": "Configuración de audio",
+        "info": "Acerca de Space Surveyors",
+        "language": "Idioma",
+        "share": "Compartir Space Surveyors"
+      },
+      "share": {
+        "title": "Compartir Space Surveyors",
+        "description": "¡Cuéntele a sus amigos sobre nosotros!",
+        "label": "Botones para compartir",
+        "facebook": "Pruebe este juego del Observatorio Rubin",
+        "twitter": "Pruebe este juego de @VRubinObs!",
+        "email": {
+          "label": "Correo",
+          "subject": "Pruebe este juego del Observatorio Rubin",
+          "body": "¿Cuántos objetos puede encontrar en el cielo nocturno?"
+        },
+        "url": "Obtenga la URL"
+      }
+    },
+    "summary": {
+      "title": "¡Felicidades!",
+      "summary": "¡Descubrió <0>{{score}}</0> objetos nuevos!"
+    }
+  },
+  "generics": {
+    "actions": {
+      "play": "Jugar",
+      "play_again": "¡Jugar de nuevo!",
+      "instructions": "Instrucciones",
+      "settings": "Configuración",
+      "restart": "Comenzar de nuevo",
+      "copied": "¡Copiado!",
+      "share_score": "Compartir puntaje"
+    },
+    "objects": {
+      "star_one": "Estrella",
+      "star_other": "Estrellas",
+      "galaxy_one": "Galaxia",
+      "galaxy_other": "Galaxias",
+      "supernova_one": "Supernova",
+      "supernova_other": "Supernovas",
+      "comet_one": "Cometa",
+      "comet_other": "Cometas",
+      "asteroid_one": "Asteroide",
+      "asteroid_other": "Asteroides"
+    }
+  },
+  "gameplay": {
+    "camera": {
+      "capture": "Capturando"
+    }
+  },
+  "share_copy": "Descubrí {{total}} objetos en los #SpaceSurveyors del Observatorio Rubin \r\n\r\n🪨 - {{asteroid}} ☄️ - {{comet}} 🌌 - {{galaxy}} ⭐ - {{star}} 💥 - {{supernova}}\r\n\r\n{{url}}",
+  "timer": "Tiempo restante: {{remaining}}"
+}

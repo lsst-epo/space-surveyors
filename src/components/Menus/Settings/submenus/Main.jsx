@@ -22,7 +22,7 @@ const menuItems = {
   language: "menus.settings.main.language",
   audio: "menus.settings.main.audio",
   // help: "Help",
-  share: "Share Space Surveyors",
+  share: "menus.settings.main.share",
   info: "menus.settings.main.info",
 };
 
