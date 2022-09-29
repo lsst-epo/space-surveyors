@@ -37,7 +37,8 @@
         "section": "Settings",
         "audio": "Audio Settings",
         "info": "About Space Surveyors",
-        "language": "Language"
+        "language": "Language",
+        "share": "Share Space Surveyors"
       },
       "share": {
         "title": "Share Space Surveyors",
