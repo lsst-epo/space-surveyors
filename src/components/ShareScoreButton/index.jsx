@@ -1,11 +1,10 @@
 import React, { useState } from "react";
 import Button from "@components/Button";
 import copy from "copy-to-clipboard";
-import { useTranslation } from "react-i18next";
+import { Trans } from "react-i18next";
 
 const ShareScoreButton = ({ score, total }) => {
-  const { t } = useTranslation();
-  const [buttonKey, setButtonKey] = useState(t("generics.actions.share_score"));
+  const [buttonKey, setButtonKey] = useState("generics.actions.share_score");
 
   const copyScore = () => {
     const { asteroid, comet, galaxy, supernova, star } = score;
@@ -29,7 +28,11 @@ const ShareScoreButton = ({ score, total }) => {
     }
   };
 
-  return <Button onClick={copyScore}>{t(buttonKey)}</Button>;
+  return (
+    <Button onClick={copyScore}>
+      <Trans>{buttonKey}</Trans>
+    </Button>
+  );
 };
 
 export default ShareScoreButton;
