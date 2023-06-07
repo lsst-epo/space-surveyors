@@ -32,7 +32,7 @@ To do a one-off build of the library package, use `npm run prepare` or `yarn pre
 Space Surveyors is deployed using [gh-pages](https://github.com/tschaub/gh-pages) and lives at [https://lsst-epo.github.io/space-surveyors/](https://lsst-epo.github.io/space-surveyors/). To deploy a branch to Github Pages:
 
 ```bash
-yarn build
+yarn deploy
 ```
 
 A `predeploy` script will build the TSDX library and then the Parcel example and `gh-pages` will push the Parcel `example/dist` directory to the `gh-pages` branch.
