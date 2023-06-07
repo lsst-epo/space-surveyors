@@ -7,6 +7,7 @@ export const CameraContainer = styled.div`
   ${fullScreenAbsolute}
   user-select: none;
   z-index: ${zStack.camera};
+  pointer-events: none
 `;
 
 export const CameraTarget = styled.div.attrs(({ x, y, size }) => ({
@@ -22,10 +23,12 @@ export const CameraTarget = styled.div.attrs(({ x, y, size }) => ({
   position: absolute;
   transform: translate(-50%, -50%);
   aspect-ratio: 1 / 1;
+  pointer-events: none
 `;
 
 export const ExposureText = styled(CenteredText)`
   fill: var(--neutral10);
   font-weight: bold;
   text-shadow: 2px 2px 0 var(--neutral90);
+  pointer-events: none
 `;

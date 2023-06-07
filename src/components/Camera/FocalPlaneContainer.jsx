@@ -13,6 +13,7 @@ const StyledFocalPlane = styled.svg.attrs(({ x, y, size }) => ({
   position: absolute;
   transform: translate(-50%, -50%);
   aspect-ratio: 1/1;
+  pointer-events: none
 `;
 
 const FocalPlaneContainer = ({ x, y, size, children }) => (
