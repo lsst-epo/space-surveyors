@@ -17,11 +17,12 @@ import Submenu from ".";
 
 const AudioSubmenu = ({ toggleMenuCallback, isOpen, menu, engine }) => {
   const { t } = useTranslation();
+
   const [musicPlaying, setMusic] = useState(
-    localStorage.getItem("music") === "true"
+    localStorage.getItem("music") ? localStorage.getItem("music") === "true" : true
   );
   const [effectsPlaying, setEffects] = useState(
-    localStorage.getItem("effects") === "true"
+    localStorage.getItem("effects") ? localStorage.getItem("effects") === "true" : true
   );
 
   const handleToggleMusic = () => {

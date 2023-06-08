@@ -6,9 +6,10 @@ const pauseAudio = (audio: GameAudio) => {
   });
 };
 
-const resumeAudio = (audio: GameAudio) => {
+const resumeAudio = (audio: GameAudio, stage) => {
   Object.keys(audio.instances).forEach((group) => {
     Object.keys(audio.instances[group]).forEach((sprite) => {
+      if (sprite === "countdown" && stage === "running") return;
       const id = audio.instances[group][sprite];
       if (id) {
         audio[group].play(id);
@@ -75,9 +76,9 @@ const handleResume: GameSystem = (entities, { events, time, dispatch }) => {
       camera.exposureStartTime += timeElapsed;
     }
     camera.paused = false;
-
+    
     // resume all audio that was previously playing
-    resumeAudio(audio);
+    resumeAudio(audio, lastStage);
 
     // add to the total time paused
     state.timePaused += timeElapsed;
