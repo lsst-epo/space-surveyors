@@ -1,18 +1,11 @@
 import React, { useState } from "react";
 import Button from "@components/Button";
 import copy from "copy-to-clipboard";
-<<<<<<< HEAD
-import { Trans, useTranslation } from "react-i18next";
 
-const ShareScoreButton = ({ score, total }) => {
-  const [buttonKey, setButtonKey] = useState("generics.actions.share_score");
-  const { t } = useTranslation();
-=======
 import { Trans } from "react-i18next";
 
 const ShareScoreButton = ({ score, total }) => {
   const [buttonKey, setButtonKey] = useState("generics.actions.share_score");
->>>>>>> 90d6750 ([C] missing translation key)
 
   const copyScore = () => {
     const { asteroid, comet, galaxy, supernova, star } = score;

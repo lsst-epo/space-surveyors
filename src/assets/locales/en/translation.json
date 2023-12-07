@@ -88,5 +88,9 @@
     }
   },
   "share_copy": "I discovered {{total}} objects in Rubin #SpaceSurveyors\r\n\r\n🪨 - {{asteroid}} ☄️ - {{comet}} 🌌 - {{galaxy}} ⭐ - {{star}} 💥 - {{supernova}}\r\n\r\n{{url}}",
-  "timer": "Time left: {{remaining}}"
+  "timer": "Time left: {{remaining}}",
+  "faq": {
+    "title": "Learn more about Space Surveyors",
+    "link": "https://rubinobservatory.org/explore/space-surveyors"
+  }
 }

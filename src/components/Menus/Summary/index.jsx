@@ -15,11 +15,13 @@ import {
   ScoreStandout,
   ScaledScoreList,
   ButtonContainer,
+  SummaryLink,
 } from "./styles";
 import DimensionsContext from "@contexts/dimensions";
-import { Trans } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 
 const SummaryMenu = ({ onMenuClose, score, engine, isOpen, menu }) => {
+  const { t, i18n } = useTranslation();
   const { dimensions } = useContext(DimensionsContext);
   const { aspectRatio } = dimensions;
   const { ref, width } = useResizeObserver();
@@ -55,10 +57,15 @@ const SummaryMenu = ({ onMenuClose, score, engine, isOpen, menu }) => {
           </Button>
           <ShareScoreButton score={score} total={scoreSum} />
         </ButtonContainer>
-        {/* <LinkContainer>
-        <a>Explore the night sky on the Skyviewer</a>
-        <a>Visit the Solar System on the Orbit Viewer</a>
-      </LinkContainer> */}
+        <ButtonContainer>
+          <SummaryLink
+            href={t("faq.link")}
+            hrefLang={i18n.resolvedLanguage}
+            target="_blank"
+          >
+            <Trans>faq.title</Trans>
+          </SummaryLink>
+        </ButtonContainer>
       </SummaryMenuResponsive>
     </SummaryMenuWrapper>
   );
