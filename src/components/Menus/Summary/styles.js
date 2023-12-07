@@ -51,6 +51,17 @@ export const ButtonContainer = styled.div`
   gap: 2em;
 `;
 
-export const LinkContainer = styled(ButtonContainer)`
+export const SummaryLink = styled.a`
+  font-weight: bold;
   color: var(--offWhite);
+  text-decoration: none;
+
+  &:hover,
+  &:focus {
+    text-decoration: underline;
+  }
+
+  &:visited {
+    color: var(--offWhite);
+  }
 `;
