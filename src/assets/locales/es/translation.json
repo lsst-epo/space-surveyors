@@ -90,6 +90,7 @@
   "share_copy": "Descubrí {{total}} objetos en los #SpaceSurveyors del Observatorio Rubin \r\n\r\n🪨 - {{asteroid}} ☄️ - {{comet}} 🌌 - {{galaxy}} ⭐ - {{star}} 💥 - {{supernova}}\r\n\r\n{{url}}",
   "timer": "Tiempo restante: {{remaining}}",
   "faq": {
+    "title": "Aprende más sobre Space Surveyors",
     "link": "https://rubinobservatory.org/es/explore/space-surveyors"
   }
 }
