@@ -54,12 +54,7 @@ export const ButtonContainer = styled.div`
 export const SummaryLink = styled.a`
   font-weight: bold;
   color: var(--offWhite);
-  text-decoration: none;
-
-  &:hover,
-  &:focus {
-    text-decoration: underline;
-  }
+  text-decoration: underline;
 
   &:visited {
     color: var(--offWhite);
