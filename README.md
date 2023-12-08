@@ -23,7 +23,7 @@ yarn # install dependencies
 yarn start # or yarn start
 ```
 
-The example imports and live reloads whatever is in `/dist`, so if you are seeing an out of date component, make sure Vite is running in `--watch` mode. The library is imported into the example using Vite's `resolve.alias` so no additional aliasing is required.
+The example installs the package built into `/dist` as a module. For live development, build the library using `yarn start` and `yarn link` to create a symlink between the library and example.
 
 To do a one-off build of the library package, use `npm run prepare` or `yarn prepare`.
 
@@ -35,4 +35,4 @@ Space Surveyors is deployed using [gh-pages](https://github.com/tschaub/gh-pages
 yarn deploy
 ```
 
-A `predeploy` script will build the TSDX library and then the Parcel example and `gh-pages` will push the Parcel `example/dist` directory to the `gh-pages` branch.
+A `predeploy` script will build the library and then the example and `gh-pages` will push the Parcel `example/dist` directory to the `gh-pages` branch.
