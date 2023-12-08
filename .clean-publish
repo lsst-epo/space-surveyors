@@ -1,0 +1,20 @@
+{
+  "packageManager": "yarn",
+  "tempDir": "tempPublish",
+  "files": [
+    "vite.config.js",
+    "tsconfig.json",
+    "tsconfig.node.json",
+    ".gitignore",
+    "src",
+    ".github",
+    "example",
+    "types",
+    ".eslintignore",
+    ".eslintrc.js",
+    ".node-version",
+    ".nvmrc",
+    ".stylelintrc.js",
+    "babel.config.js"
+  ]
+}

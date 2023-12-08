@@ -16,7 +16,30 @@ export default defineConfig({
     rollupOptions: {
       // make sure to externalize deps that shouldn't be bundled
       // into your library
-      external: ["react", "react-dom"],
+      external: [
+        "@castiron/style-mixins",
+        "copy-to-clipboard",
+        "detect-collisions",
+        "focus-trap",
+        "howler",
+        "i18next",
+        "i18next-browser-languagedetector",
+        "next/link",
+        "prop-types",
+        "random-js-no-node",
+        "react",
+        "react/jsx-runtime",
+        "react-dom",
+        "react-game-engine",
+        "react-i18next",
+        "react-inlinesvg",
+        "react-share",
+        "regenerator-runtime",
+        "screenfull",
+        "styled-components",
+        "use-resize-observer",
+        "weighted",
+      ],
       output: {
         // Provide global variables to use in the UMD build
         // for externalized deps

@@ -13,10 +13,14 @@
     "start": "tsc && vite build --watch --mode development",
     "prepare": "tsc && vite build",
     "predeploy": "yarn prepare && cd example && yarn build",
-    "deploy": "gh-pages -d example/dist"
+    "deploy": "gh-pages -d example/dist",
+    "publish:clean": "rm -r tempPublish & yarn prepare && clean-publish",
+    "publish:local": "rm -r tempPublish & yarn prepare && clean-publish --without-publish"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "main": "./dist/space-surveyors.umd.cjs",
   "types": "./dist/types/index.d.ts",
@@ -33,28 +37,16 @@
     "react": ">=16",
     "react-dom": ">=16"
   },
-  "devDependencies": {
-    "@babel/preset-react": "^7.18.6",
-    "@castiron/eslint-config": "^0.0.1",
+  "dependencies": {
     "@castiron/style-mixins": "^1.0.6",
-    "@types/howler": "^2.2.7",
-    "@types/react": "^18.0.17",
-    "@types/react-dom": "^18.0.6",
-    "@types/regenerator-runtime": "^0.13.1",
-    "@types/styled-components": "^5.1.25",
-    "@vitejs/plugin-react": "^2.0.1",
-    "babel-plugin-styled-components": "^2.0.7",
     "copy-to-clipboard": "^3.3.2",
     "detect-collisions": "^6.4.1",
     "focus-trap": "^7.0.0",
-    "gh-pages": "^4.0.0",
     "howler": "^2.2.3",
     "i18next": "^21.9.1",
     "i18next-browser-languagedetector": "^6.1.5",
     "prop-types": "^15.8.1",
     "random-js-no-node": "^2.1.0-b",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
     "react-game-engine": "^1.1.0",
     "react-i18next": "^11.18.6",
     "react-inlinesvg": "^3.0.0",
@@ -62,10 +54,25 @@
     "regenerator-runtime": "^0.13.9",
     "screenfull": "^6.0.2",
     "styled-components": "^5.3.5",
-    "typescript": "^4.7.3",
     "use-resize-observer": "^9.0.2",
-    "vite": "^3.0.7",
-    "vite-plugin-dts": "^1.4.1",
     "weighted": "^1.0.0"
+  },
+  "devDependencies": {
+    "@babel/preset-react": "^7.18.6",
+    "@castiron/eslint-config": "^0.0.1",
+    "@types/howler": "^2.2.7",
+    "@types/react": "^18.0.17",
+    "@types/react-dom": "^18.0.6",
+    "@types/regenerator-runtime": "^0.13.1",
+    "@types/styled-components": "^5.1.25",
+    "@vitejs/plugin-react": "^2.0.1",
+    "babel-plugin-styled-components": "^2.0.7",
+    "clean-publish": "^4.2.0",
+    "gh-pages": "^4.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "typescript": "^4.7.3",
+    "vite": "^3.0.7",
+    "vite-plugin-dts": "^1.4.1"
   }
 }
