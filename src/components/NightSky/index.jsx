@@ -1,13 +1,14 @@
-import React from 'react';
-import styled from 'styled-components';
-import Objects from '@components/NightSky/objects';
-import { zStack } from '@styles/globalStyle';
+import React from "react";
+import styled from "styled-components";
+import Objects from "@components/NightSky/objects";
+import { zStack } from "@styles/globalStyle";
 
 const NightSkyContainer = styled.div`
   position: absolute;
   width: 100%;
   height: 100%;
   z-index: ${zStack.objects};
+  pointer-events: none;
 `;
 
 const NightSkyRenderer = ({
@@ -32,7 +33,7 @@ const NightSkyRenderer = ({
           y,
           angle,
           width: `${width}%`,
-          variant: showSunrise ? 'day' : 'night',
+          variant: showSunrise ? "day" : "night",
         }}
       />
     );
