@@ -1012,10 +1012,10 @@ react-from-dom@^0.6.2:
   resolved "https://registry.yarnpkg.com/react-from-dom/-/react-from-dom-0.6.2.tgz#9da903a508c91c013b55afcd59348b8b0a39bdb4"
   integrity sha512-qvWWTL/4xw4k/Dywd41RBpLQUSq97csuv15qrxN+izNeLYlD9wn5W8LspbfYe5CWbaSdkZ72BsaYBPQf2x4VbQ==
 
-react-game-engine@^1.1.0:
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/react-game-engine/-/react-game-engine-1.2.0.tgz#3d95e0fc0c14077314b32dfb70d36f4f487bb278"
-  integrity sha512-VWyzGAa4B1k4dA4s96c1rM6RK7hiUy8vJfjh5NGr2PAjT3Ne9Duvr2nIgWTonJIRuc+sroRCbu9krXoEbuin3A==
+react-game-engine@1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/react-game-engine/-/react-game-engine-1.1.0.tgz#62c875d522c78c6952dc49c4d6b2a2124cf47bf4"
+  integrity sha512-aXfJnkh5sY06Gsr9CI8u3v0ykM6D/RKONrqbEdFi3yU5zc2mKWCOD5QWUTgHsfdYBCCh+TDmKWc14CJMZsKL7g==
 
 react-i18next@^11.18.6:
   version "11.18.6"
@@ -1127,7 +1127,7 @@ sourcemap-codec@^1.4.8:
   integrity sha512-9NykojV5Uih4lgo5So5dtw+f0JgJX30KCNI8gwhz2J9A15wD0Ml6tjHKwf6fTSa6fAdVBdZeNOs9eJ71qCk8vA==
 
 "space-surveyors@file:..":
-  version "1.0.2"
+  version "1.0.3"
   dependencies:
     "@castiron/style-mixins" "^1.0.6"
     copy-to-clipboard "^3.3.2"
@@ -1138,7 +1138,7 @@ sourcemap-codec@^1.4.8:
     i18next-browser-languagedetector "^6.1.5"
     prop-types "^15.8.1"
     random-js-no-node "^2.1.0-b"
-    react-game-engine "^1.1.0"
+    react-game-engine "1.1.0"
     react-i18next "^11.18.6"
     react-inlinesvg "^3.0.0"
     react-share "^4.4.0"
