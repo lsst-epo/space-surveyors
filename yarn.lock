@@ -2533,7 +2533,7 @@ react-from-dom@^0.6.2:
   resolved "https://registry.yarnpkg.com/react-from-dom/-/react-from-dom-0.6.2.tgz#9da903a508c91c013b55afcd59348b8b0a39bdb4"
   integrity sha512-qvWWTL/4xw4k/Dywd41RBpLQUSq97csuv15qrxN+izNeLYlD9wn5W8LspbfYe5CWbaSdkZ72BsaYBPQf2x4VbQ==
 
-react-game-engine@^1.1.0:
+react-game-engine@1.1.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/react-game-engine/-/react-game-engine-1.1.0.tgz#62c875d522c78c6952dc49c4d6b2a2124cf47bf4"
   integrity sha512-aXfJnkh5sY06Gsr9CI8u3v0ykM6D/RKONrqbEdFi3yU5zc2mKWCOD5QWUTgHsfdYBCCh+TDmKWc14CJMZsKL7g==

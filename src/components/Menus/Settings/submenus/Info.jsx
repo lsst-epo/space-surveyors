@@ -48,7 +48,7 @@ const InfoSubmenu = ({ toggleMenuCallback, isOpen, menu, engine }) => {
             <dt>
               <Trans>menus.settings.info.developer</Trans>
             </dt>
-            <dd>Alexandra Goff</dd>
+            <dd>Alexandra Moskowitz</dd>
             <dt>
               <Trans>menus.settings.info.astronomy_data</Trans>
             </dt>
