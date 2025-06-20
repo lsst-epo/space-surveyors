@@ -2,9 +2,10 @@ import React, { useState } from "react";
 import Button from "@components/Button";
 import copy from "copy-to-clipboard";
 
-import { Trans } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 
 const ShareScoreButton = ({ score, total }) => {
+  const { t } = useTranslation();
   const [buttonKey, setButtonKey] = useState("generics.actions.share_score");
 
   const copyScore = () => {
