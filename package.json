@@ -13,7 +13,7 @@
     "start": "tsc && vite build --watch --mode development",
     "prepare": "tsc && vite build",
     "predeploy": "yarn prepare && cd example && yarn build",
-    "deploy": "gh-pages -d example/dist",
+    "deploy": "gh-pages -d example/dist --dotfiles",
     "publish:clean": "rm -r tempPublish & yarn prepare && clean-publish",
     "publish:local": "rm -r tempPublish & yarn prepare && clean-publish --without-publish"
   },
