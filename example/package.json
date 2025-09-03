@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "scripts": {
     "start": "vite",
-    "build": "vite build && echo 'spacesurveyors.app' > dist/CNAME"
+    "build": "vite build"
   },
   "dependencies": {
     "modern-css-reset": "^1.4.0",
