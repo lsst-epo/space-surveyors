@@ -14,7 +14,7 @@ export default function ShareButton({ title, via, hashtags, related }) {
       url={
         typeof window !== "undefined"
           ? window.location.href
-          : "https://lsst-epo.github.io/space-surveyors/"
+          : "https://spacesurveyors.app"
       }
       title={title}
       hashtags={hashtags}
