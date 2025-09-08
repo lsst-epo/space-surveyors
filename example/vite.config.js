@@ -21,5 +21,5 @@ export default defineConfig({
       },
     },
   },
-  plugins: [react(), embeddedHtmlFallbackPlugin],
+  plugins: [react(), embeddedHtmlFallbackPlugin]
 });

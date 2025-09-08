@@ -15,7 +15,7 @@ export default function ShareButton({ subject, body, separator }) {
       url={
         typeof window !== "undefined"
           ? window.location.href
-          : "https://lsst-epo.github.io/space-surveyors/"
+          : "https://spacesurveyors.app"
       }
       subject={subject}
       body={body}
